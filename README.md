@@ -1,2 +1,2 @@
-# coolness
-COsmOlogical inference with dEnsity Split cluStering
+# sunbird
+SimUlatioN-Based Inference foR Density split clustering
