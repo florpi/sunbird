@@ -1,15 +1,11 @@
 import pytorch_lightning as pl
 from pathlib import Path
-import random
 import numpy as np
 import torch
-import pandas as pd
 from torch.utils.data import TensorDataset, DataLoader
 from typing import Optional
 
-# TODO: should be relative
-default_data_dir = "/n/home11/ccuestalazaro/sunbird/data/"
-
+default_data_dir = Path(__file__).parent.parent.parent / 'data/'
 
 class DSDataModule(pl.LightningDataModule):
     def __init__(
