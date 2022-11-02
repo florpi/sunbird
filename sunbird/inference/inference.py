@@ -7,7 +7,7 @@ import numpy as np
 import yaml
 
 
-DATA_PATH = Path('/n/home11/ccuestalazaro/sunbird/data/')
+DATA_PATH = Path(__file__).parent.parent.parent / 'data/'
 
 class Inference(ABC):
     def __init__(
