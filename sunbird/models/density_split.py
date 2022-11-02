@@ -14,15 +14,9 @@ class DensitySplit:
     def __init__(self, path_to_models=DEFAULT_PATH, path_to_data=DEFAULT_DATA_PATH):
         path_to_models = Path(path_to_models)
         self.s = np.load(path_to_data / "s.npy")
-        self.best_models = {
-            0: 121,
-            1: 142,
-            3: 143,
-            4: 185,
-        }
         self.models = [
             FCN.from_folder(
-                path_to_models / f"optuna_ds{q}_m0/version_{self.best_models[q]}"
+                path_to_models / f"best/ds{q}_m0/"
             )
             for q in self.best_models.keys()
         ]
