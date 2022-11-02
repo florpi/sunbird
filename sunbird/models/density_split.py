@@ -14,11 +14,12 @@ class DensitySplit:
     def __init__(self, path_to_models=DEFAULT_PATH, path_to_data=DEFAULT_DATA_PATH):
         path_to_models = Path(path_to_models)
         self.s = np.load(path_to_data / "s.npy")
+        self.quintiles = [0,1,3,4]
         self.models = [
             FCN.from_folder(
                 path_to_models / f"best/ds{q}_m0/"
             )
-            for q in self.best_models.keys()
+            for q in self.quintiles
         ]
         self.parameters = [
             "omega_b",
