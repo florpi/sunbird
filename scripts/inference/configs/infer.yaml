@@ -1,0 +1,89 @@
+data:
+  cosmology: 0
+  hod_idx: 60
+  s_min: 0
+  fixed_parameters: ['omega_b', 'n_s', 'alpha_s', 'N_ur', 'w0_fld', 'wa_fld', ]
+
+theory_model:
+    module: 'sunbird.models.density_split'
+    class: 'DensitySplit'
+    params: 
+        path_to_models: '/n/home11/ccuestalazaro/sunbird/trained_models/'
+inference:
+    outputfiles_basename: 'test'
+
+priors:
+    stats_module: 'scipy.stats'
+    omega_b:
+        distribution: 'uniform'
+        min: 0.0209
+        max: 0.0243
+    omega_cdm:
+        distribution: 'uniform'
+        min: 0.1032
+        max: 0.140
+    sigma8_m:
+        distribution: 'uniform'
+        min: 0.678
+        max: 0.938
+    n_s:
+        distribution: 'uniform'
+        min: 0.9012
+        max: 1.025
+
+    alpha_s:
+        distribution: 'uniform'
+        min: -0.038
+        max: 0.038
+
+    N_ur:
+        distribution: 'uniform'
+        min: 1.188
+        max: 2.889
+
+    w0_fld:
+        distribution: 'uniform'
+        min: -1.22
+        max: -0.726
+
+    wa_fld:
+        distribution: 'uniform'
+        min: -0.628
+        max: 0.621
+
+    logM1:
+        distribution: 'uniform'
+        min: 13.2
+        max: 14.4
+
+    logM_cut:
+        distribution: 'uniform'
+        min: 12.4
+        max: 13.3
+
+    alpha:
+        distribution: 'uniform'
+        min: 0.7
+        max: 1.49
+
+    alpha_sat:
+        distribution: 'uniform'
+        min: 0.7
+        max: 1.29
+
+    alpha_c:
+        distribution: 'uniform'
+        min: 0.
+        max: 0.5
+
+    sigma:
+        distribution: 'uniform'
+        min: -2.99
+        max: 0.
+
+    kappa:
+        distribution: 'uniform'
+        min: 0.
+        max: 1.49
+
+
