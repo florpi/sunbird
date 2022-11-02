@@ -5,7 +5,7 @@ amp_level: null
 auto_lr_find: false
 auto_scale_batch_size: false
 auto_select_gpus: false
-batch_size: 91
+batch_size: 121
 benchmark: null
 check_val_every_n_epoch: 1
 data_dir: /n/home11/ccuestalazaro/sunbird/data/
@@ -21,7 +21,7 @@ gpus: null
 gradient_clip_algorithm: null
 gradient_clip_val: null
 ipus: null
-learning_rate: 0.0038156679228836025
+learning_rate: 0.003987597318880161
 limit_predict_batches: null
 limit_test_batches: null
 limit_train_batches: null
@@ -38,7 +38,7 @@ model_dir: ../../trained_models
 move_metrics_to_cpu: false
 multiple_trainloader_mode: max_size_cycle
 multipole: 0
-n_hidden: 539
+n_hidden: 403
 n_input: 15
 n_layers: 5
 n_output: 34
@@ -59,5 +59,5 @@ sync_batchnorm: false
 tpu_cores: null
 track_grad_norm: -1
 val_check_interval: null
-weight_decay: 0.005456315880424617
+weight_decay: 0.009289987837914206
 weights_save_path: null
