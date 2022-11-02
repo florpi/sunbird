@@ -6,8 +6,8 @@ from sunbird.models import FCN
 import matplotlib.pyplot as plt
 
 
-DEFAULT_PATH = Path("/n/home11/ccuestalazaro/sunbird/trained_models/")
-DEFAULT_DATA_PATH = Path("/n/home11/ccuestalazaro/sunbird/data/full_ap/")
+DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/"
+DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 
 class DensitySplit:
