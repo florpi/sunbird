@@ -36,6 +36,7 @@ def fit(args):
     trainer = Trainer.from_argparse_args(
         args,
         logger=logger,
+        accelerator='auto',
         callbacks=[early_stop_callback, checkpoint_callback],
     )
     # Train
