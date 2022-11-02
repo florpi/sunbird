@@ -7,7 +7,8 @@ import numpy as np
 import yaml
 
 
-DATA_PATH = Path(__file__).parent.parent.parent / 'data/'
+DATA_PATH = Path(__file__).parent.parent.parent / "data/"
+
 
 class Inference(ABC):
     def __init__(
@@ -18,7 +19,7 @@ class Inference(ABC):
         priors,
         fixed_parameters,
         s_min: float,
-        device = 'cpu',
+        device="cpu",
     ):
         self.theory_model = theory_model
         self.observation = observation
@@ -30,14 +31,24 @@ class Inference(ABC):
         self.param_names = list(self.priors.keys())
 
     @classmethod
-    def from_config(cls, path_to_config, device="cpu", ):
+    def from_config(
+        cls,
+        path_to_config,
+        device="cpu",
+    ):
         with open(path_to_config, "r") as f:
             config = yaml.safe_load(f)
-        true_params_dict, observation = cls.get_observations(config["data"],)
-        fixed_parameters = {k: true_params_dict[k] for k in config['data']['fixed_parameters']}
+        true_params_dict, observation = cls.get_observations(
+            config["data"],
+        )
+        fixed_parameters = {
+            k: true_params_dict[k] for k in config["data"]["fixed_parameters"]
+        }
         priors = cls.get_priors(config["priors"], list(fixed_parameters.keys()))
-        covariance_matrix = cls.get_covariance(s_min=config['data']['s_min'])
-        theory_model = cls.get_theory_model(config["theory_model"],)
+        covariance_matrix = cls.get_covariance(s_min=config["data"]["s_min"])
+        theory_model = cls.get_theory_model(
+            config["theory_model"],
+        )
         return cls(
             theory_model=theory_model,
             observation=observation,
@@ -45,7 +56,7 @@ class Inference(ABC):
             fixed_parameters=fixed_parameters,
             priors=priors,
             device=device,
-            s_min=config['data']['s_min'],
+            s_min=config["data"]["s_min"],
         )
 
     @classmethod
@@ -70,36 +81,49 @@ class Inference(ABC):
         dist = getattr(distributions_module, dist_param.pop("distribution"))
         return dist(**dist_param)
 
-
     @classmethod
     def get_observations(
-        cls, data_config,
+        cls,
+        data_config,
     ):
-        cosmo_idx = data_config['cosmology']
-        hod_idx = data_config['hod_idx']
+        cosmo_idx = data_config["cosmology"]
+        hod_idx = data_config["hod_idx"]
         data = np.load(
-            DATA_PATH / f'full_ap/clustering/ds_cross_xi_smu_zsplit_Rs20_c{str(cosmo_idx).zfill(3)}_ph000.npy', 
+            DATA_PATH
+            / f"full_ap/clustering/ds_cross_xi_smu_zsplit_Rs20_c{str(cosmo_idx).zfill(3)}_ph000.npy",
             allow_pickle=True,
         ).item()
-        s = data['s']
+        s = data["s"]
         multipoles = []
-        for quintile in [0,1,3,4]:
-            multipoles += list(np.mean(data['multipoles'], axis=1)[hod_idx,quintile, 0][s > data_config['s_min']])
+        for quintile in [0, 1, 3, 4]:
+            multipoles += list(
+                np.mean(data["multipoles"], axis=1)[hod_idx, quintile, 0][
+                    s > data_config["s_min"]
+                ]
+            )
         multipoles = np.array(multipoles)
-        true_params_dict = dict(pd.read_csv(DATA_PATH / f'full_ap/cosmologies/AbacusSummit_c{str(cosmo_idx).zfill(3)}_hod1000.csv').iloc[hod_idx])
-        return true_params_dict, multipoles 
+        true_params_dict = dict(
+            pd.read_csv(
+                DATA_PATH
+                / f"full_ap/cosmologies/AbacusSummit_c{str(cosmo_idx).zfill(3)}_hod1000.csv"
+            ).iloc[hod_idx]
+        )
+        return true_params_dict, multipoles
 
     @classmethod
     def get_covariance(cls, s_min: float):
-        path_to_cov = DATA_PATH / 'full_ap/covariance/ds_cross_xi_smu_zsplit_Rs20_landyszalay_randomsX50.npy'
+        path_to_cov = (
+            DATA_PATH
+            / "full_ap/covariance/ds_cross_xi_smu_zsplit_Rs20_landyszalay_randomsX50.npy"
+        )
         data = np.load(path_to_cov, allow_pickle=True).item()
-        s = data['s']
+        s = data["s"]
         multipoles = []
-        for q in [0,1,3,4]:
-            multipoles.append(data['multipoles'][:,q,0][:,s>s_min])
+        for q in [0, 1, 3, 4]:
+            multipoles.append(data["multipoles"][:, q, 0][:, s > s_min])
         multipoles = np.array(multipoles)
-        multipoles = np.transpose(multipoles,axes=(1,0,2))
-        multipoles = multipoles.reshape((len(multipoles),-1))
+        multipoles = np.transpose(multipoles, axes=(1, 0, 2))
+        multipoles = multipoles.reshape((len(multipoles), -1))
         return np.cov(multipoles.T)
 
     @classmethod
@@ -111,16 +135,22 @@ class Inference(ABC):
         )
 
     @abstractmethod
-    def __call__(self,):
+    def __call__(
+        self,
+    ):
         pass
 
-
     def get_loglikelihood_for_prediction(
-        self, prediction, 
+        self,
+        prediction,
     ):
-        return stats.multivariate_normal.logpdf(prediction, self.observation, self.covariance_matrix)
+        return stats.multivariate_normal.logpdf(
+            prediction, self.observation, self.covariance_matrix
+        )
 
-    def sample_from_prior(self,):
+    def sample_from_prior(
+        self,
+    ):
         params = {}
         for param, dist in self.priors.items():
             params[param] = dist.rvs()
@@ -129,13 +159,16 @@ class Inference(ABC):
         return self.theory_model(params)
 
     def get_model_prediction(
-        self, parameters,
+        self,
+        parameters,
     ):
         params = {}
         for i, param in enumerate(self.priors.keys()):
-            params[param] = parameters[:,i]
+            params[param] = parameters[:, i]
         for i, fixed_param in enumerate(self.fixed_parameters.keys()):
-            params[fixed_param] = self.fixed_parameters[fixed_param] * np.ones(len(parameters))
+            params[fixed_param] = self.fixed_parameters[fixed_param] * np.ones(
+                len(parameters)
+            )
         out = self.theory_model.get_for_batch(params, s_min=self.s_min)
-        out = out.reshape((len(parameters),-1))
+        out = out.reshape((len(parameters), -1))
         return out
