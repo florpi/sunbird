@@ -118,9 +118,6 @@ class Inference(ABC):
     def get_loglikelihood_for_prediction(
         self, prediction, 
     ):
-        print('pred = ',prediction.shape)
-        print('obs = ',self.observation.shape)
-        print('cov = ',self.covariance_matrix.shape)
         return stats.multivariate_normal.logpdf(prediction, self.observation, self.covariance_matrix)
 
     def sample_from_prior(self,):
