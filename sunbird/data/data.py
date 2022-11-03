@@ -40,20 +40,32 @@ class DSDataModule(pl.LightningDataModule):
         )
 
     def setup(self, stage: Optional[str] = None):
-        self.ds_train = self.generate_dataset(
-            self.load_targets(self.data_dir, stage="train"),
-            self.load_data(self.data_dir, stage="train"),
-        )
-        self.ds_test = self.generate_dataset(
-            self.load_targets(self.data_dir, stage="test"),
-            self.load_data(self.data_dir, stage="test"),
-        )
-        self.ds_val = self.generate_dataset(
-            self.load_targets(self.data_dir, stage="val"),
-            self.load_data(self.data_dir, stage="val"),
-        )
-        self.n_output = self.ds_train.tensors[1].shape[-1]
-        self.n_input = self.ds_train.tensors[0].shape[-1]
+        if not stage or stage == 'train' or stage =='fit':
+            self.ds_train = self.generate_dataset(
+                self.load_targets(self.data_dir, stage="train"),
+                self.load_data(self.data_dir, stage="train"),
+            )
+            self.n_output = self.ds_train.tensors[1].shape[-1]
+            self.n_input = self.ds_train.tensors[0].shape[-1]
+
+        if not stage or stage == 'train' or stage =='fit':
+            self.ds_val = self.generate_dataset(
+                self.load_targets(self.data_dir, stage="val"),
+                self.load_data(self.data_dir, stage="val"),
+            )
+            self.n_output = self.ds_val.tensors[1].shape[-1]
+            self.n_input = self.ds_val.tensors[0].shape[-1]
+
+        if not stage or stage == 'test':
+            self.ds_test = self.generate_dataset(
+                self.load_targets(self.data_dir, stage="test"),
+                self.load_data(self.data_dir, stage="test"),
+            )
+            self.n_output = self.ds_test.tensors[1].shape[-1]
+            self.n_input = self.ds_test.tensors[0].shape[-1]
+
+
+
 
     def train_dataloader(self):
         return DataLoader(self.ds_train, batch_size=self.batch_size, shuffle=True)
