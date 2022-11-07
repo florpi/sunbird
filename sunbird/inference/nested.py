@@ -15,19 +15,19 @@ class Nested(Inference):
         prediction = self.get_model_prediction(params)
         return self.get_loglikelihood_for_prediction(prediction=prediction)
 
-    def __call__(self, log_dir,  num_live_points, slice_steps=None):
+    def __call__(self,  num_live_points=500, dlogz=0.01, max_iterations = 10_000, max_calls = 50000):
         self.output_dir.mkdir(parents=True, exist_ok=True)
         sampler = NestedSampler(
             self.get_loglikelihood_for_params,
             self.get_prior_from_cube,
             ndim=self.n_dim,
-            nlive=250,
+            nlive=num_live_points,
         )
         sampler.run_nested(
             checkpoint_file= str(self.output_dir / 'dynasty.save'),
-            dlogz=0.5,
-            maxiter=10000, 
-            maxcall=50000,
+            dlogz=dlogz,
+            maxiter=max_iterations, 
+            maxcall=max_calls,
         )
         results = sampler.results
         self.store_results(results)
@@ -38,14 +38,14 @@ class Nested(Inference):
 
     def convert_results_to_df(self, results):
         log_like = results.logl
-        weights = results.logwt
+        log_weights = results.logwt
         log_evidence = results.logz
         log_evidence_err = results.logzerr
         samples = results.samples
         df = pd.DataFrame(
             {
                 "log_likelihood": log_like,
-                "weights": weights,
+                "log_weights": log_weights,
                 "log_evidence": log_evidence,
                 "log_evidence_err": log_evidence_err,
             }
