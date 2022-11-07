@@ -171,7 +171,7 @@ class Inference(ABC):
             params[param] = dist.rvs()
         for p, v in self.fixed_parameters.items():
             params[p] = v
-        return self.theory_model(params, quintiles=self.quintiles)
+        return params, self.theory_model(params, quintiles=self.quintiles, s_min=self.s_min)
 
     def get_model_prediction(
         self,
