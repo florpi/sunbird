@@ -1,8 +1,14 @@
 data:
-  cosmology: 0
-  hod_idx: 60
-  s_min: 0
-  fixed_parameters: ['omega_b', 'n_s', 'alpha_s', 'N_ur', 'w0_fld', 'wa_fld', ]
+  path_to_observation: '/n/home11/ccuestalazaro/sunbird/data/inference/multipoles_c0_hod60.npy'
+  path_to_covariance_data: '/n/home11/ccuestalazaro/sunbird/data/full_ap/covariance/ds_cross_xi_smu_zsplit_Rs20_landyszalay_randomsX50.npy'
+  path_to_fixed_parameters: '/n/home11/ccuestalazaro/sunbird/data/inference/cosmology_c0_hod60.json'
+  quintiles: [0,1,3,4]
+  s_min: 30.
+  fixed_parameters: [
+    'omega_b', 'omega_cdm', 'sigma8_m', 'n_s', 'nrun', 'N_ur', 'w0_fld', 'wa_fld', 
+    #'logM1', 'logM_cut', 'alpha', 'alpha_sat', 'alpha_c', 
+    #'sigma', 'kappa'
+]
 
 theory_model:
     module: 'sunbird.models.density_split'
@@ -10,7 +16,7 @@ theory_model:
     params: 
         path_to_models: '/n/home11/ccuestalazaro/sunbird/trained_models/'
 inference:
-    outputfiles_basename: 'test'
+    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/results_dynasty/'
 
 priors:
     stats_module: 'scipy.stats'
@@ -18,10 +24,12 @@ priors:
         distribution: 'uniform'
         min: 0.0209
         max: 0.0243
+
     omega_cdm:
         distribution: 'uniform'
         min: 0.1032
         max: 0.140
+
     sigma8_m:
         distribution: 'uniform'
         min: 0.678
@@ -30,8 +38,7 @@ priors:
         distribution: 'uniform'
         min: 0.9012
         max: 1.025
-
-    alpha_s:
+    nrun:
         distribution: 'uniform'
         min: -0.038
         max: 0.038
@@ -77,9 +84,9 @@ priors:
         max: 0.5
 
     sigma:
-        distribution: 'uniform'
-        min: -2.99
-        max: 0.
+        distribution: 'loguniform'
+        a: 0.001
+        b: 9.2
 
     kappa:
         distribution: 'uniform'

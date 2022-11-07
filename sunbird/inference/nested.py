@@ -1,53 +1,61 @@
 from sunbird.inference import Inference
+import json
 import numpy as np
-from ultranest import ReactiveNestedSampler
-import ultranest.stepsampler
-
+import pandas as pd
+from dynesty import NestedSampler
 
 class Nested(Inference):
     def get_prior_from_cube(self, cube):
-        transformed_cube = np.zeros_like(cube)
+        transformed_cube = np.array(cube)
         for n, param in enumerate(self.param_names):
-            transformed_cube[:, n] = self.priors[param].ppf(cube[:, n])
+            transformed_cube[n] = self.priors[param].ppf(cube[n])
         return transformed_cube
 
     def get_loglikelihood_for_params(self, params):
         prediction = self.get_model_prediction(params)
-        loglike = self.get_loglikelihood_for_prediction(prediction=prediction)
-        return np.atleast_1d(loglike)
+        return self.get_loglikelihood_for_prediction(prediction=prediction)
 
-    def __call__(self, log_dir, slice_steps, num_live_points):
-        sampler = ReactiveNestedSampler(
-            self.param_names,
+    def __call__(self, log_dir,  num_live_points, slice_steps=None):
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        sampler = NestedSampler(
             self.get_loglikelihood_for_params,
-            log_dir=log_dir,
-            vectorized=True,
-            transform=self.get_prior_from_cube,
+            self.get_prior_from_cube,
+            ndim=self.n_dim,
+            nlive=250,
         )
-        sampler.stepsampler = ultranest.stepsampler.SliceSampler(
-            nsteps=slice_steps,
-            generate_direction=ultranest.stepsampler.generate_mixture_random_direction,
+        sampler.run_nested(
+            checkpoint_file= str(self.output_dir / 'dynasty.save'),
+            dlogz=0.5,
+            maxiter=10000, 
+            maxcall=50000,
         )
-        sampler.run(
-            dlogz=0.5 + 0.1 * len(self.param_names),
-            max_num_improvement_loops=3,
-            min_num_live_points=num_live_points,
+        results = sampler.results
+        self.store_results(results)
+
+    def store_results(self, results):
+        df = self.convert_results_to_df(results=results)
+        df.to_csv(self.output_dir / 'results.csv', index=False)
+
+    def convert_results_to_df(self, results):
+        log_like = results.logl
+        weights = results.logwt
+        log_evidence = results.logz
+        log_evidence_err = results.logzerr
+        samples = results.samples
+        df = pd.DataFrame(
+            {
+                "log_likelihood": log_like,
+                "weights": weights,
+                "log_evidence": log_evidence,
+                "log_evidence_err": log_evidence_err,
+            }
         )
-        sampler.print_results()
-        sampler.plot()
+        for i, param in enumerate(self.priors):
+            df[param] = samples[:, i]
+        return df
 
     def get_results(
         self,
     ):
-        chain = np.loadtxt(
-            self.inference_config["outputfiles_basename"] + f"smin{self.s_min:.2f}.txt"
-        )
-        df = pd.DataFrame(
-            {
-                "log_likelihood": chain[:, 1],
-                "weights": chain[:, 0],
-            }
-        )
-        for i, param in enumerate(self.priors):
-            df[param] = chain[:, 2 + i]
-        return df
+        return pd.read_csv(self.output_dir / 'results.csv')
+
