@@ -1,9 +1,9 @@
 data:
   path_to_observation: '/n/home11/ccuestalazaro/sunbird/data/inference/multipoles_c0_hod60.npy'
   path_to_covariance_data: '/n/home11/ccuestalazaro/sunbird/data/full_ap/covariance/ds_cross_xi_smu_zsplit_Rs20_landyszalay_randomsX50.npy'
-  path_to_fixed_parameters: '/n/home11/ccuestalazaro/sunbird/data/inference/cosmology_c140_hod60.json'
+  path_to_fixed_parameters: '/n/home11/ccuestalazaro/sunbird/data/inference/cosmology_c0_hod60.json'
   quintiles: [0,1,3,4]
-  s_min: 30.
+  s_min: 0.
   fixed_parameters: [
     'omega_b', 'omega_cdm', 'sigma8_m', 'n_s', 'nrun', 'N_ur', 'w0_fld', 'wa_fld', 
     #'logM1', 'logM_cut', 'alpha', 'alpha_sat', 'alpha_c', 
@@ -16,7 +16,7 @@ theory_model:
     params: 
         path_to_models: '/n/home11/ccuestalazaro/sunbird/trained_models/'
 inference:
-    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/results_dynasty_c140/'
+    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/results_dynasty/'
 
 priors:
     stats_module: 'scipy.stats'
