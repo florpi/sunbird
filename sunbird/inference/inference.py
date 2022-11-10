@@ -6,6 +6,8 @@ import importlib
 import numpy as np
 import yaml
 import json
+import matplotlib.pyplot as plt
+import sys
 
 # TODO:
 # - Run mcmc with only HOD parameters
@@ -61,11 +63,24 @@ class Inference(ABC):
         fixed_parameters = {
             k: fixed_parameters[k] for k in data_config["fixed_parameters"]
         }
-        covariance_matrix = cls.get_covariance(
-            path_to_cov_data=data_config["path_to_covariance_data"],
+        covariance_matrix = cls.get_covariance_data(
+            path_to_cov=data_config["path_to_covariance_data"],
             quintiles=data_config["quintiles"],
             s_min=data_config["s_min"],
         )
+        if config["inference"]["add_emulation_error"]:
+            cov_perf = cls.get_covariance_perf(
+                path_to_cov=data_config["path_to_covariance_perf"],
+                quintiles=data_config["quintiles"],
+                s_min=data_config["s_min"],
+            )
+            cov_test = cls.get_covariance_test(
+                path_to_cov=data_config["path_to_covariance_test"],
+                quintiles=data_config["quintiles"],
+                s_min=data_config["s_min"],
+            )
+            cov_emu = cov_perf - cov_test
+            covariance_matrix =+ cov_emu
         theory_model = cls.get_theory_model(
             config["theory_model"],
         )
@@ -111,12 +126,37 @@ class Inference(ABC):
         return multipoles[:, s > s_min].reshape(-1)
 
     @classmethod
-    def get_covariance(cls, path_to_cov_data, s_min: float, quintiles):
-        data = np.load(path_to_cov_data, allow_pickle=True).item()
+    def get_covariance_data(cls, path_to_cov, s_min: float, quintiles):
+        data = np.load(path_to_cov, allow_pickle=True).item()
         s = data["s"]
         multipoles = []
         for q in quintiles:
             multipoles.append(data["multipoles"][:, q, 0][:, s > s_min])
+        multipoles = np.array(multipoles)
+        multipoles = np.transpose(multipoles, axes=(1, 0, 2))
+        multipoles = multipoles.reshape((len(multipoles), -1))
+        return np.cov(multipoles.T)
+
+    @classmethod
+    def get_covariance_test(cls, path_to_cov, s_min: float, quintiles, volume_rescaling=64):
+        data = np.load(path_to_cov, allow_pickle=True).item()
+        s = data["s"]
+        multipoles = []
+        for q in quintiles:
+            multipoles.append(data["multipoles"][:, q, 0][:, s > s_min])
+        multipoles = np.array(multipoles)
+        multipoles = np.transpose(multipoles, axes=(1, 0, 2))
+        multipoles = multipoles.reshape((len(multipoles), -1))
+        return np.cov(multipoles.T) / volume_rescaling
+
+    @classmethod
+    def get_covariance_perf(cls, path_to_cov, s_min: float, quintiles):
+        data = np.load(path_to_cov, allow_pickle=True).item()
+        s = data["s"]
+        multipoles = []
+        for q in quintiles:
+            qq = q - 1 if q > 2 else q
+            multipoles.append(data["multipoles"][:, qq][:, s > s_min])
         multipoles = np.array(multipoles)
         multipoles = np.transpose(multipoles, axes=(1, 0, 2))
         multipoles = multipoles.reshape((len(multipoles), -1))
