@@ -15,7 +15,7 @@ class Nested(Inference):
         prediction = self.get_model_prediction(params)
         return self.get_loglikelihood_for_prediction(prediction=prediction)
 
-    def __call__(self,  num_live_points=500, dlogz=0.01, max_iterations = 10_000, max_calls = 50000):
+    def __call__(self,  num_live_points=1000, dlogz=0.01, max_iterations = 50_000, max_calls = 1_000_000):
         self.output_dir.mkdir(parents=True, exist_ok=True)
         sampler = NestedSampler(
             self.get_loglikelihood_for_params,
