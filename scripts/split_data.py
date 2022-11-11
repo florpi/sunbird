@@ -52,10 +52,10 @@ if __name__ == "__main__":
     test_idx = idx[n_val : n_val + n_test]
     train_idx = list(idx[n_val + n_test :]) + list(range(n_derivative_grid))
 
-    np.save("train_params.npy", params[train_idx].reshape(-1, params.shape[-1]))
-    np.save("test_params.npy", params[test_idx].reshape(-1, params.shape[-1]))
+    np.save("../data/train_params.npy", params[train_idx].reshape(-1, params.shape[-1]))
+    np.save("../data/test_params.npy", params[test_idx].reshape(-1, params.shape[-1]))
     np.save(
-        "val_params.npy",
+        "../data/val_params.npy",
         params[val_idx].reshape(-1, params.shape[-1]),
     )
     for multipole in [0,1]:
@@ -66,7 +66,7 @@ if __name__ == "__main__":
             )
         multipoles = np.array(multipoles)
         np.save(
-            f"train_tpcf_m{multipole}.npy",
+            f"../data/train_tpcf_m{multipole}.npy",
             multipoles[train_idx].reshape(-1, multipoles.shape[-1]),
         )
     for quintile in quintiles:
@@ -78,14 +78,14 @@ if __name__ == "__main__":
                 )
             multipoles = np.array(multipoles)
             np.save(
-                f"train_ds{quintile}_m{multipole}.npy",
+                f"../data/train_ds{quintile}_m{multipole}.npy",
                 multipoles[train_idx].reshape(-1, multipoles.shape[-1]),
             )
             np.save(
-                f"test_ds{quintile}_m{multipole}.npy",
+                f"../data/test_ds{quintile}_m{multipole}.npy",
                 multipoles[test_idx].reshape(-1, multipoles.shape[-1]),
             )
             np.save(
-                f"val_ds{quintile}_m{multipole}.npy",
+                f"../data/val_ds{quintile}_m{multipole}.npy",
                 multipoles[val_idx].reshape(-1, multipoles.shape[-1]),
             )
