@@ -69,6 +69,7 @@ class Inference(ABC):
             s_min=data_config["s_min"],
         )
         if config["inference"]["add_emulation_error"]:
+            print('adding emulator error')
             cov_perf = cls.get_covariance_perf(
                 path_to_cov=data_config["path_to_covariance_perf"],
                 quintiles=data_config["quintiles"],
@@ -79,8 +80,9 @@ class Inference(ABC):
                 quintiles=data_config["quintiles"],
                 s_min=data_config["s_min"],
             )
-            cov_emu = cov_perf - cov_test
+            cov_emu = cov_perf + cov_test
             covariance_matrix =+ cov_emu
+            # print(np.sqrt(np.diag(covariance_matrix)))
         theory_model = cls.get_theory_model(
             config["theory_model"],
         )
@@ -185,6 +187,11 @@ class Inference(ABC):
             min_uniform = dist_param.pop("min")
             dist_param["loc"] = min_uniform
             dist_param["scale"] = max_uniform - min_uniform
+        if dist_param["distribution"] == "norm":
+            mean_gaussian = dist_param.pop("mean")
+            dispersion_gaussian = dist_param.pop("dispersion")
+            dist_param["loc"] = mean_gaussian
+            dist_param["scale"] = dispersion_gaussian
         dist = getattr(distributions_module, dist_param.pop("distribution"))
         return dist(**dist_param)
 
