@@ -5,18 +5,20 @@ data:
   quintiles: [0,1,3,4]
   s_min: 30.
   fixed_parameters: [
-    'omega_b', 'omega_cdm', 'sigma8_m', 'n_s', 'nrun', 'N_ur', 'w0_fld', 'wa_fld', 
-    #'logM1', 'logM_cut', 'alpha', 'alpha_sat', 'alpha_c', 
-    #'sigma', 'kappa'
+    'omega_b', 'nrun', 'N_ur', 'w0_fld', 'wa_fld',
+    # 'omega_b', 'omega_cdm', 'sigma8_m', 'n_s', 'nrun', 'N_ur', 'w0_fld', 'wa_fld', 
+    # 'logM1', 'logM_cut', 'alpha', 'alpha_sat', 'alpha_c', 
+    # 'sigma', 'kappa'
 ]
 
 theory_model:
     module: 'sunbird.models.density_split'
     class: 'DensitySplit'
     params: 
-        path_to_models: '/n/home11/ccuestalazaro/sunbird/trained_models/'
+        path_to_models: '/home/epaillas/code/sunbird/trained_models/'
 inference:
-    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/results_dynasty/'
+    add_emulation_error: True
+    output_dir: '/home/epaillas/code/sunbird/scripts/inference/results_dynasty/'
 
 priors:
     stats_module: 'scipy.stats'
