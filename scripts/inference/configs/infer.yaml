@@ -16,8 +16,6 @@ fixed_parameters: ['omega_b', 'n_s', 'alpha_s', 'N_ur', 'w0_fld', 'wa_fld', ]
 theory_model:
     module: 'sunbird.summaries'
     class: 'TPCF'
-    params: 
-        path_to_model: '/n/home11/ccuestalazaro/sunbird/trained_models/tpcf_full/version_0/'
 
 inference:
     output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/results_dynasty/'
