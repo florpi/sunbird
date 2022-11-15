@@ -1,2 +1,3 @@
 from .models import FCN
-from .density_split import DensitySplit
+from .predictor import Predictor
+from .bundle import PredictorBundle
