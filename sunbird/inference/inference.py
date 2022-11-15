@@ -222,8 +222,10 @@ class Inference(ABC):
     def get_theory_model(cls, theory_config, filters):
         module = theory_config.pop("module")
         class_name = theory_config.pop("class")
-        return getattr(importlib.import_module(module), class_name)(
-            **theory_config["params"],
+        module = getattr(importlib.import_module(module), class_name)
+        if 'params' in theory_config:
+            return module(**theory_config['params'], **filters)
+        return module(
             **filters,
         )
 
