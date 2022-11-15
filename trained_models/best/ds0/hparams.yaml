@@ -9,7 +9,6 @@ auto_select_gpus: false
 batch_size: 32
 benchmark: null
 check_val_every_n_epoch: 1
-data_dir: /n/home11/ccuestalazaro/sunbird/data
 default_root_dir: null
 detect_anomaly: false
 deterministic: null

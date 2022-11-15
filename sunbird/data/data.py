@@ -6,7 +6,6 @@ import json
 from torch.utils.data import TensorDataset, DataLoader
 from typing import Optional
 
-default_data_dir = str(Path(__file__).parent.parent.parent / "data/")
 
 def load_summary_training(data_dir, statistic, s, apply_s2):
     with open(
@@ -29,7 +28,6 @@ class DSDataModule(pl.LightningDataModule):
     def __init__(
         self,
         statistic: str = "ds0",
-        data_dir: str = default_data_dir,
         batch_size: int = 32,
         standarize: bool = False,
         normalize: bool = False,
@@ -39,7 +37,7 @@ class DSDataModule(pl.LightningDataModule):
         s_max: Optional[float] = None,
     ):
         super().__init__()
-        self.data_dir = Path(data_dir)
+        self.data_dir= str(Path(__file__).parent.parent.parent / "data/")
         self.statistic = statistic
         self.batch_size = batch_size
         self.standarize = standarize
