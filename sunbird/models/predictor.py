@@ -39,10 +39,11 @@ class Predictor(pl.LightningModule):
             config = yaml.safe_load(f)
         nn_model = FCN.from_folder(path_to_model)
         nn_model.eval()
-        s = np.load(TRAIN_DIR / config['data_dir']/'s.npy')
+        data_dir = TRAIN_DIR.parent.parent / 'data/'
+        s = np.load(data_dir / 's.npy')
         s = np.array(list(s) + list(s))
         summary_stats = load_summary_training(
-            data_dir= TRAIN_DIR / config['data_dir'],
+            data_dir= data_dir,
             statistic=config['statistic'],
             s=s,
             apply_s2=config['apply_s2'],
