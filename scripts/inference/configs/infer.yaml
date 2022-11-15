@@ -1,9 +1,9 @@
 data:
-  path_to_observation: '/n/home11/ccuestalazaro/sunbird/data/inference/multipoles_c0_hod60.npy'
+  path_to_observation: '/n/home11/ccuestalazaro/sunbird/data/inference/multipoles_c100_hod60.npy'
   path_to_covariance_data: '/n/home11/ccuestalazaro/sunbird/data/full_ap/covariance/ds_cross_xi_smu_zsplit_Rs20_landyszalay_randomsX50.npy'
-  path_to_fixed_parameters: '/n/home11/ccuestalazaro/sunbird/data/inference/cosmology_c0_hod60.json'
-  quintiles: [0,1,3,4]
+  path_to_fixed_parameters: '/n/home11/ccuestalazaro/sunbird/data/inference/cosmology_c100_hod60.json'
   s_min: 30.
+  quintiles: [0,1,3,4]
   fixed_parameters: [
     'omega_b', 'nrun', 'N_ur', 'w0_fld', 'wa_fld',
     # 'omega_b', 'omega_cdm', 'sigma8_m', 'n_s', 'nrun', 'N_ur', 'w0_fld', 'wa_fld', 
@@ -12,13 +12,15 @@ data:
 ]
 
 theory_model:
-    module: 'sunbird.models.density_split'
+    module: 'sunbird.summaries.density_split'
     class: 'DensitySplit'
     params: 
-        path_to_models: '/home/epaillas/code/sunbird/trained_models/'
+        path_to_model: '/n/home11/ccuestalazaro/sunbird/trained_models/best/'
+        quintiles: [0,1,3,4]
+
 inference:
-    add_emulation_error: True
-    output_dir: '/home/epaillas/code/sunbird/scripts/inference/results_dynasty/'
+    add_emulation_error: False 
+    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/results_dynasty/'
 
 priors:
     stats_module: 'scipy.stats'
