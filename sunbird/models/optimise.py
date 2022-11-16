@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser = FCN.add_model_specific_args(parser)
     args = parser.parse_args()
 
-    args.run_name = f"{args.run_name}_ds{args.quintile}_m{args.multipole}"
+    #args.run_name = f"{args.run_name}_ds{args.quintile}_m{args.multipole}"
     n_trials = 200
     study = optuna.create_study()
     optimize_objective = lambda trial: objective(trial, args)

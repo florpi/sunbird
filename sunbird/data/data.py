@@ -37,7 +37,7 @@ class DSDataModule(pl.LightningDataModule):
         s_max: Optional[float] = None,
     ):
         super().__init__()
-        self.data_dir= str(Path(__file__).parent.parent.parent / "data/")
+        self.data_dir= Path(__file__).parent.parent.parent / "data/"
         self.statistic = statistic
         self.batch_size = batch_size
         self.standarize = standarize
