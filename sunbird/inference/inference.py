@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from typing import Dict, Optional, List
 import xarray as xr
 from sunbird.models import Predictor
+from sunbird.covariance import CovarianceMatrix
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
@@ -26,9 +27,9 @@ class Inference(ABC):
         self.theory_model = theory_model
         self.observation = observation
         self.covariance_matrix = covariance_matrix
-        #self.inverse_covariance_matrix = self.invert_covariance(
-        #    covariance_matrix=self.covariance_matrix,
-        #)
+        self.inverse_covariance_matrix = self.invert_covariance(
+            covariance_matrix=self.covariance_matrix,
+        )
         self.priors = priors
         self.n_dim = len(self.priors)
         self.fixed_parameters = fixed_parameters
@@ -59,11 +60,19 @@ class Inference(ABC):
         fixed_parameters = {}
         for k in config['fixed_parameters']:
             fixed_parameters[k] = parameters[k]
-        #covariance_matrix = cls.get_covariance_data(
-        #    path_to_cov=config['data']["path_to_covariance_data"],
-        #    filters=filters,
-        #)
-        covariance_matrix = None
+        cov_data = CovarianceMatrix.get_covariance_data(
+            statistic=config['data']['summary'],
+            filters=filters,
+        )
+        cov_intrinsic = CovarianceMatrix.get_covariance_intrinsic(
+            statistic=config['data']['summary'],
+            filters=filters,
+        )
+        cov_test = CovarianceMatrix.get_covariance_test(
+            statistic=config['data']['summary'],
+            filters=filters,
+        )
+        covariance_matrix = cov_data
         theory_model = cls.get_theory_model(
             config["theory_model"],
             filters,
@@ -77,7 +86,7 @@ class Inference(ABC):
             covariance_matrix=covariance_matrix,
             fixed_parameters=fixed_parameters,
             priors=priors,
-            output_dir = config['inference']['output_dir'],
+            output_dir=config['inference']['output_dir'],
             device=device,
         )
     
