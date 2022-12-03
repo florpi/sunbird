@@ -8,9 +8,10 @@ import matplotlib.pyplot as plt
 from typing import Dict, Optional, List
 import xarray as xr
 from sunbird.models import Predictor
-from sunbird.covariance import CovarianceMatrix
+from sunbird.covariance import CovarianceMatrix, normalize_cov
+import sys
 
-DATA_PATH = Path(__file__).parent.parent.parent / "data/"
+DATA_PATH = Path(__file__).parent.parent.parent / "data/different_hods/"
 
 class Inference(ABC):
     def __init__(
@@ -68,11 +69,11 @@ class Inference(ABC):
             statistic=config['data']['summary'],
             filters=filters,
         )
-        cov_test = CovarianceMatrix.get_covariance_test(
-            statistic=config['data']['summary'],
-            filters=filters,
-        )
-        covariance_matrix = cov_data
+        # cov_test = CovarianceMatrix.get_covariance_test(
+        #     statistic=config['data']['summary'],
+        #     filters=filters,
+        # )
+        covariance_matrix = cov_data + cov_intrinsic
         theory_model = cls.get_theory_model(
             config["theory_model"],
             filters,
@@ -101,7 +102,7 @@ class Inference(ABC):
         if statistic == 'density_split':
             data = np.load(
                 DATA_PATH
-                / f"full_ap/clustering/ds/ds_cross_xi_smu_zsplit_Rs20_c{str(cosmology).zfill(3)}_ph000.npy",
+                / f"full_ap/clustering/ds/gaussian/ds_cross_xi_smu_zsplit_Rs20_c{str(cosmology).zfill(3)}_ph000.npy",
                 allow_pickle=True,
             ).item()
             quintiles = range(5)
@@ -157,7 +158,7 @@ class Inference(ABC):
         params_dict = dict(
             pd.read_csv(
                 DATA_PATH
-                / f"full_ap/cosmologies/AbacusSummit_c{str(cosmology).zfill(3)}_hod1000.csv"
+                / f"full_ap/cosmologies/AbacusSummit_c{cosmology:03}_hod1000.csv"
             ).iloc[hod_idx]
         )
         params_dict['alpha_sat'] = params_dict['alpha_s']

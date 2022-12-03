@@ -39,7 +39,7 @@ class Predictor(pl.LightningModule):
             config = yaml.safe_load(f)
         nn_model = FCN.from_folder(path_to_model)
         nn_model.eval()
-        data_dir = TRAIN_DIR.parent.parent / 'data/'
+        data_dir = TRAIN_DIR.parent.parent / 'data/different_hods/training/ds/gaussian/'
         s = np.load(data_dir / 's.npy')
         s = np.array(list(s) + list(s))
         summary_stats = load_summary_training(
