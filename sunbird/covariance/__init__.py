@@ -1,1 +1,1 @@
-from .covariance import CovarianceMatrix
+from .covariance import CovarianceMatrix, normalize_cov
