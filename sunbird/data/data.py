@@ -36,9 +36,10 @@ class DSDataModule(pl.LightningDataModule):
         s_min: Optional[float] = None,
         s_max: Optional[float] = None,
         dataset: Optional[str] = 'different_hods',
+        corr_type: Optional[str] = 'gaussian',
     ):
         super().__init__()
-        self.data_dir= Path(__file__).parent.parent.parent / f"data/datasets/{dataset}"
+        self.data_dir= Path(__file__).parent.parent.parent / f"data/datasets/{dataset}/corr_type"
         self.statistic = statistic
         self.batch_size = batch_size
         self.standarize = standarize
@@ -58,6 +59,7 @@ class DSDataModule(pl.LightningDataModule):
 
     def load_data(self, data_dir, stage):
         data = np.load(data_dir / f"{stage}_{self.statistic}.npy")
+        print(np.shape(data))
         if self.apply_s2:
             data = self.s**2 * data
         if self.normalize:
@@ -80,6 +82,7 @@ class DSDataModule(pl.LightningDataModule):
 
     def load_parameters(self, data_dir, stage):
         parameters = np.load(data_dir / f"{stage}_params.npy")
+        print(np.shape(parameters))
         if self.normalize_inputs:
             parameters = (parameters - self.summary["x_min"]) / (
                 self.summary["x_max"] - self.summary["x_min"]
@@ -118,7 +121,11 @@ class DSDataModule(pl.LightningDataModule):
             self.n_input = self.ds_test.tensors[0].shape[-1]
 
     def train_dataloader(self):
-        return DataLoader(self.ds_train, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(
+            self.ds_train,
+            batch_size=self.batch_size,
+            shuffle=True,
+        )
 
     def val_dataloader(self):
         return DataLoader(

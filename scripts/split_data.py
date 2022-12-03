@@ -28,6 +28,7 @@ def read_multipoles(
     dataset,
     quintile=0,
     multipole=0,
+    corr_type='cross',
 ):
     if dataset == 'combined':
         s, same = read_multipoles(cosmo_idx, dataset='same_hods', quintile=quintile, multipole=multipole) 
@@ -35,7 +36,7 @@ def read_multipoles(
         return s, np.concatenate((same, different))
     else:
         data = np.load(
-            f"../data/clustering/density_split/{dataset}/ds_cross_xi_smu_zsplit_Rs20_c{cosmo_idx}_ph000.npy",
+            f"../data/clustering/density_split/{dataset}/ds_{corr_type}_xi_smu_zsplit_Rs20_c{cosmo_idx}_ph000.npy",
             allow_pickle=True,
         ).item()
         return data['s'], np.mean(data["multipoles"], axis=1)[:, quintile, multipole]
@@ -56,18 +57,28 @@ def store_summaries(s, parameters, multipoles, path_to_store):
     with open(path_to_store, "w") as fd:
         json.dump(summary, fd)
 
+def store_params(idx_list, output_path, dataset):
+    params = []
+    for idx in idx_list:
+        params.append(read_params(idx, dataset))
+    params = np.array(params)
+    params = params.reshape(-1, params.shape[-1])
+    np.save(output_path, params)
+    #f"../data/datasets/{dataset}/train_params.npy", params[train_idx].reshape(-1, params.shape[-1]))
+
 
 if __name__ == "__main__":
     quintiles = [0, 1, 3, 4]
-    dataset = 'combined'
+    dataset = 'same_hods'
+    with open('../data/train_test_split.json') as f:
+        train_test_split = json.load(f)
+    for stage in ['train', 'test', 'val']:
+        np.save(
+            idx_list=train_test_split[stage],
+            output_path=f"../data/datasets/{dataset}/{stage}_params.npy", 
+            dataset=dataset,
+        )
 
-
-    np.save(f"../data/datasets/{dataset}/train_params.npy", params[train_idx].reshape(-1, params.shape[-1]))
-    np.save(f"../data/datasets/{dataset}/test_params.npy", params[test_idx].reshape(-1, params.shape[-1]))
-    np.save(
-        f"../data/datasets/{dataset}/val_params.npy",
-        params[val_idx].reshape(-1, params.shape[-1]),
-    )
     '''
     multipoles = []
     for idx in cosmo_idx:

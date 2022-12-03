@@ -7,7 +7,11 @@ from sunbird.models import Predictor, PredictorBundle
 from sunbird.summaries.base import BaseSummary
 
 
+<<<<<<< HEAD
 DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best_combined/"
+=======
+DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best_gaussian/"
+>>>>>>> fc6f999a21809ca93e8e2ae25d82b53899de6b22
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 
