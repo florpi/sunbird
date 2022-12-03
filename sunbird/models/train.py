@@ -44,6 +44,7 @@ def fit(args):
         model,
         dm,
     )
+    dm.dump_summaries(path=Path(trainer.log_dir) / "summary.json")
     # Test
     # trainer.test(datamodule=dm, ckpt_path="best")
     return trainer.callback_metrics["val_loss"].item()

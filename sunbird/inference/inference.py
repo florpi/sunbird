@@ -72,7 +72,7 @@ class Inference(ABC):
             statistic=config['data']['summary'],
             filters=filters,
         )
-        covariance_matrix = cov_data
+        covariance_matrix = cov_data + cov_intrinsic
         theory_model = cls.get_theory_model(
             config["theory_model"],
             filters,
@@ -101,14 +101,14 @@ class Inference(ABC):
         if statistic == 'density_split':
             data = np.load(
                 DATA_PATH
-                / f"full_ap/clustering/ds/ds_cross_xi_smu_zsplit_Rs20_c{str(cosmology).zfill(3)}_ph000.npy",
+                / f"clustering/density_split/same_hods/ds_cross_xi_smu_zsplit_Rs20_c{str(cosmology).zfill(3)}_ph000.npy",
                 allow_pickle=True,
             ).item()
             quintiles = range(5)
         elif statistic == 'tpcf':
             data = np.load(
                 DATA_PATH
-                / f"full_ap/clustering/xi_smu/xi_smu_c{str(cosmology).zfill(3)}_ph000.npy",
+                / f"clustering/tpcf/same_hods/xi_smu_c{str(cosmology).zfill(3)}_ph000.npy",
                 allow_pickle=True,
             ).item()
         else:
@@ -154,14 +154,12 @@ class Inference(ABC):
         cosmology: int,
         hod_idx: int,
     ):
-        params_dict = dict(
+        return dict(
             pd.read_csv(
                 DATA_PATH
-                / f"full_ap/cosmologies/AbacusSummit_c{str(cosmology).zfill(3)}_hod1000.csv"
+                / f"parameters/same_hods/AbacusSummit_c{str(cosmology).zfill(3)}_hod1000.csv"
             ).iloc[hod_idx]
         )
-        params_dict['alpha_sat'] = params_dict['alpha_s']
-        return params_dict
 
     @classmethod
     def from_config(

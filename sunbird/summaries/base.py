@@ -25,9 +25,9 @@ class BaseSummary:
             "logM1",
             "logM_cut",
             "alpha",
-            "alpha_sat",
+            "alpha_s",
             "alpha_c",
-            "sigma",
+            "logsigma",
             "kappa",
         ]
 
