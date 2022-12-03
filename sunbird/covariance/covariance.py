@@ -5,7 +5,7 @@ import xarray as xr
 import torch
 from matplotlib import pyplot as plt
 
-DATA_PATH = Path(__file__).parent.parent.parent / "data/covariance/"
+DATA_PATH = Path(__file__).parent.parent.parent / "data/different_hods/"
 TEST_COSMOS = list(range(5))
 
 
@@ -27,7 +27,8 @@ class CovarianceMatrix():
         if statistic == 'density_split':
             data = np.load(
                 DATA_PATH
-                / "ds_cross_xi_smu_zsplit_Rs20_landyszalay_randomsX50.npy",
+                / "covariance/ds/gaussian/"
+                / "ds_cross_xi_smu_zsplit_gaussian_Rs10_landyszalay_randomsX50.npy",
                 allow_pickle=True,
             ).item()
             quintiles = range(5)
@@ -63,6 +64,7 @@ class CovarianceMatrix():
         if statistic == 'density_split':
             data = np.load(
                 DATA_PATH
+                / "covariance/ds/gaussian/"
                 / "ds_cross_xi_smu_zsplit_Rs20_c000.npy",
                 allow_pickle=True,
             ).item()
@@ -100,12 +102,13 @@ class CovarianceMatrix():
         for cosmo in TEST_COSMOS:
             data = np.load(
                 DATA_PATH
+                / f"full_ap/clustering/ds/gaussian/"
                 / f'ds_cross_xi_smu_zsplit_Rs20_c{cosmo:03}_ph000.npy',
                 allow_pickle=True
             ).item()
             s = data['s']
             data = data['multipoles']
-            for hod in range(1, 999):
+            for hod in range(0, 1000):
                 xi_test.append(data[hod])
         xi_test = np.asarray(xi_test)
         xi_test = np.mean(xi_test, axis=1)
@@ -129,11 +132,11 @@ class CovarianceMatrix():
         for cosmo in TEST_COSMOS:
             data = np.genfromtxt(
                 DATA_PATH
-                / f'AbacusSummit_c{cosmo:03}_hod1000.csv',
+                / f"full_ap/cosmologies/AbacusSummit_c{cosmo:03}_hod1000.csv",
                 skip_header=1,
                 delimiter=","
             )
-            for hod in range(1, 999):
+            for hod in range(0, 1000):
                 params = torch.tensor(
                     data[hod],
                     dtype=torch.float32
