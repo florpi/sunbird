@@ -7,7 +7,7 @@ from sunbird.models import Predictor, PredictorBundle
 from sunbird.summaries.base import BaseSummary
 
 
-DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best/"
+DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best_combined/"
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 
@@ -28,17 +28,18 @@ class DensitySplit(BaseSummary):
 
     def forward(self, inputs, filters):
         output = self.model(inputs)
-        if 's_min' in filters:
-            min_mask = self.model.s > filters['s_min']
-        else:
-            min_mask = None
-        if 's_max' in filters:
-            max_mask = self.model.s < filters['s_max']
-        else:
-            max_mask = None
-        output = output[:, (min_mask) & (max_mask)]
-        if 'multipoles' in filters:
-            output = output.reshape((len(output), -1, output.shape[-1]//2))
-            output = output[:, filters['multipoles'], :].reshape(-1)
+        if filters is not None:
+            if 's_min' in filters:
+                min_mask = self.model.s > filters['s_min']
+            else:
+                min_mask = None
+            if 's_max' in filters:
+                max_mask = self.model.s < filters['s_max']
+            else:
+                max_mask = None
+            output = output[:, (min_mask) & (max_mask)]
+            if 'multipoles' in filters:
+                output = output.reshape((len(output), -1, output.shape[-1]//2))
+                output = output[:, filters['multipoles'], :].reshape(-1)
         return output
  

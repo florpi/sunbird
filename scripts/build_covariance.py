@@ -43,7 +43,6 @@ if __name__ == '__main__':
     ax.set_title('test set error')
     plt.tight_layout()
     plt.savefig('covariance_test.png', dpi=300)
-
     fig, ax = plt.subplots(figsize=(4, 4))
     cov_intrinsic = CovarianceMatrix.get_covariance_intrinsic(
         statistic='density_split', filters=filters)

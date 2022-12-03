@@ -1,24 +1,27 @@
 
 filters:
-    s_min: 30.
+    s_min: 0.
     s_max: 150.
     quintiles: [0,1,3,4]
-    multipoles: [0,]
+    multipoles: [0,1]
 
 data:
-    cosmology: 100
+    cosmology: 0
     hod_idx: 60
-    summary: 'tpcf'
-    path_to_covariance_data: 'covariance.npy' 
+    summary: 'density_split'
 
-fixed_parameters: ['omega_b', 'n_s', 'alpha_s', 'N_ur', 'w0_fld', 'wa_fld', ]
+fixed_parameters: [
+    'omega_b', 'nrun', 'N_ur', 'w0_fld', 'wa_fld', 
+    'logM1', 'logM_cut', 'alpha', 'alpha_s', 'alpha_c',
+    'logsigma', 'kappa'
+]
 
 theory_model:
     module: 'sunbird.summaries'
-    class: 'TPCF'
+    class: 'DensitySplit'
 
 inference:
-    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/results_dynasty/'
+    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/results_ds_c0_fixed_hod'
 
 priors:
     stats_module: 'scipy.stats'
@@ -75,7 +78,7 @@ priors:
         min: 0.7
         max: 1.49
 
-    alpha_sat:
+    alpha_s:
         distribution: 'uniform'
         min: 0.7
         max: 1.29
@@ -85,10 +88,10 @@ priors:
         min: 0.
         max: 0.5
 
-    sigma:
-        distribution: 'loguniform'
-        a: 0.001
-        b: 1.
+    logsigma:
+        distribution: 'uniform'
+        min: -3.
+        max: 0.
 
     kappa:
         distribution: 'uniform'

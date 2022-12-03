@@ -2,6 +2,7 @@
 import torch
 import numpy as np
 import yaml
+import json
 from typing import List
 from pathlib import Path
 import pytorch_lightning as pl
@@ -42,12 +43,7 @@ class Predictor(pl.LightningModule):
         data_dir = TRAIN_DIR.parent.parent / 'data/'
         s = np.load(data_dir / 's.npy')
         s = np.array(list(s) + list(s))
-        summary_stats = load_summary_training(
-            data_dir= data_dir,
-            statistic=config['statistic'],
-            s=s,
-            apply_s2=config['apply_s2'],
-        )
+        summary_stats = cls.load_summary(path_to_model)
         for k, v in summary_stats.items():
             summary_stats[k] = torch.tensor(v, dtype=torch.float32, requires_grad=False)
         return cls(
@@ -60,6 +56,12 @@ class Predictor(pl.LightningModule):
             apply_s2=config['apply_s2'],
         )
 
+    @classmethod
+    def load_summary(cls, path_to_model):
+        with open(path_to_model / 'summary.json') as fd:
+            summary = json.load(fd)
+        return eval(summary)
+    
     def forward(self, inputs: torch.tensor):
         if self.normalize_inputs:
             inputs = (inputs - self.summary_stats['x_min']) / (self.summary_stats['x_max'] - self.summary_stats['x_min'])

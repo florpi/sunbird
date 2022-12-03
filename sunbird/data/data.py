@@ -35,16 +35,17 @@ class DSDataModule(pl.LightningDataModule):
         apply_s2: bool = False,
         s_min: Optional[float] = None,
         s_max: Optional[float] = None,
+        dataset: Optional[str] = 'different_hods',
     ):
         super().__init__()
-        self.data_dir= Path(__file__).parent.parent.parent / "data/"
+        self.data_dir= Path(__file__).parent.parent.parent / f"data/datasets/{dataset}"
         self.statistic = statistic
         self.batch_size = batch_size
         self.standarize = standarize
         self.normalize = normalize
         self.normalize_inputs = normalize_inputs
         self.apply_s2 = apply_s2
-        self.s = np.load(self.data_dir / "s.npy")
+        self.s = np.load(self.data_dir.parent.parent / "s.npy")
         self.s = np.array(list(self.s) + list(self.s))
         self.summary = load_summary_training(
             data_dir=self.data_dir,
@@ -54,8 +55,6 @@ class DSDataModule(pl.LightningDataModule):
         )
         self.s_min = s_min
         self.s_max = s_max
-
-
 
     def load_data(self, data_dir, stage):
         data = np.load(data_dir / f"{stage}_{self.statistic}.npy")
@@ -134,3 +133,14 @@ class DSDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
         )
+
+    def dump_summaries(self, path):
+        class NumpyEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                return json.JSONEncoder.default(self, obj)
+
+        with open(path, 'w') as fd:
+            json_dump = json.dumps(self.summary, cls=NumpyEncoder)
+            json.dump(json_dump, fd)

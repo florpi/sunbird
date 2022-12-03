@@ -1,5 +1,7 @@
 import optuna
 from pytorch_lightning import Trainer, seed_everything
+import joblib
+from pathlib import Path
 from argparse import ArgumentParser, Namespace
 from sunbird.data import DSDataModule
 from sunbird.models import FCN
@@ -17,8 +19,8 @@ def objective(trial, args):
     n_hidden = trial.suggest_int("n_hidden", 32, 1024)
     batch_size = trial.suggest_int(
         "batch_size",
-        64,
-        512,
+        128,
+        1024,
     )
     args.learning_rate = lr
     args.weight_decay = weight_decay
@@ -55,3 +57,5 @@ if __name__ == "__main__":
     print("  Params: ")
     for key, value in trial.params.items():
         print("    {}: {}".format(key, value))
+    
+    joblib.dump(study, Path(args.model_dir) / f'{args.run_name}/study.pkl',)
