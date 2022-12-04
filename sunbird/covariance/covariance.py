@@ -1,152 +1,155 @@
-from sunbird.summaries import DensitySplit, TPCF
 import numpy as np
+import json
 from pathlib import Path
-import xarray as xr
+from typing import List, Dict
+
+# import xarray as xr
 import torch
 from matplotlib import pyplot as plt
+from sunbird.summaries import DensitySplit, TPCF
+from sunbird.abacus_utils.read_statistics import (
+    read_statistics_for_covariance,
+    read_statistic,
+    read_parameters,
+)
 
-DATA_PATH = Path(__file__).parent.parent.parent / "data/different_hods/"
-TEST_COSMOS = list(range(5))
+DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 
-class CovarianceMatrix():
+class CovarianceMatrix:
     def __init__(
         self,
-        statistic,
-        filters
+        statistics: List[str],
+        slice_filters: Dict,
+        select_filters: Dict,
     ):
-        self.statistic = statistic
-        self.filters = filters
+        """Compute a covariance matrix for a list of statistics and filters in any
+        dimension
 
-    @classmethod
+        Args:
+            statistics (List[str]): list of statistics to use
+            slice_filters (Dict): dictionary with slice filters on given coordinates
+            select_filters (Dict): dictionary with select filters on given coordinates
+        """
+        self.statistics = statistics
+        self.slice_filters = slice_filters
+        self.select_filters = select_filters
+        self.emulators = {
+            #'density_split_cross': DensitySplit(correlation_type='cross',)
+            #'density_split_auto': DensitySplit(correlation_type='auto',)
+            "tpcf": TPCF(),
+        }
+
     def get_covariance_data(
-        cls,
-        statistic,
-        filters,
+        self,
     ) -> np.array:
-        if statistic == 'density_split':
-            data = np.load(
-                DATA_PATH
-                / "covariance/ds/gaussian/"
-                / "ds_cross_xi_smu_zsplit_gaussian_Rs10_landyszalay_randomsX50.npy",
-                allow_pickle=True,
-            ).item()
-            quintiles = range(5)
-        else:
-            raise ValueError(f'{statistic} is not implemented!')
-        s = data["s"]
-        data = data['multipoles']
-        print(np.shape(data))
-        if statistic == 'density_split':
-            data = xr.DataArray(
-                data, 
-                dims=("phases", "quintiles", "multipoles", "s"), 
-                coords={
-                    "phases": list(range(len(data))),
-                    "quintiles": list(quintiles),
-                    "multipoles": [0, 1, 2],
-                    "s": s,
-                },
-            )
-            data = data.sel(
-                quintiles=filters['quintiles'],
-                multipoles=filters['multipoles'],
-                s=slice(filters['s_min'], filters['s_max']),
-            ).values.reshape(*data.shape[:1], -1)
-            return np.cov(data, rowvar=False)
+        """Get the covariance matrix of the data for the specified summary statistics
 
-    @classmethod
-    def get_covariance_test(
-        cls,
-        statistic,
-        filters,
-    ) -> np.array:
-        if statistic == 'density_split':
-            data = np.load(
-                DATA_PATH
-                / "covariance/ds/gaussian/"
-                / "ds_cross_xi_smu_zsplit_Rs20_c000.npy",
-                allow_pickle=True,
-            ).item()
-            quintiles = range(5)
-        else:
-            raise ValueError(f'{statistic} is not implemented!')
-        s = data["s"]
-        data = data['multipoles']
-        print(np.shape(data))
-        if statistic == 'density_split':
-            data = xr.DataArray(
-                data, 
-                dims=("phases", "quintiles", "multipoles", "s"), 
-                coords={
-                    "phases": list(range(len(data))),
-                    "quintiles": list(quintiles),
-                    "multipoles": [0, 1, 2],
-                    "s": s,
-                },
+        Returns:
+            np.array: covariance matrix of the data
+        """
+        summaries = []
+        for statistic in self.statistics:
+            summary = read_statistics_for_covariance(
+                statistic=statistic,
+                select_filters=self.select_filters,
+                slice_filters=self.slice_filters,
             )
-            data = data.sel(
-                quintiles=filters['quintiles'],
-                multipoles=filters['multipoles'],
-                s=slice(filters['s_min'], filters['s_max']),
-            ).values.reshape(*data.shape[:1], -1)
-            return np.cov(data, rowvar=False) / 64
+            summaries.append(summary.values)
+        summaries = np.array(summaries)
+        n_phases = len(summary["phases"])
+        summaries = summaries.reshape(n_phases, -1)
+        return np.cov(summaries, rowvar=False)
 
-    @classmethod
-    def get_covariance_intrinsic(
-        cls,
-        statistic,
-        filters,
+    def get_true_test(
+        self,
+        test_cosmologies: List[int],
     ) -> np.array:
+        """Get true values for the specified summary statistics in the test
+        set cosmologies
+
+        Args:
+            test_cosmologies (List[int]): indices of test set cosmologies
+
+        Returns:
+            np.array: true values
+        """
         xi_test = []
-        for cosmo in TEST_COSMOS:
-            data = np.load(
-                DATA_PATH
-                / f"full_ap/clustering/ds/gaussian/"
-                / f'ds_cross_xi_smu_zsplit_Rs20_c{cosmo:03}_ph000.npy',
-                allow_pickle=True
-            ).item()
-            s = data['s']
-            data = data['multipoles']
-            for hod in range(0, 1000):
-                xi_test.append(data[hod])
-        xi_test = np.asarray(xi_test)
-        xi_test = np.mean(xi_test, axis=1)
-        xi_test = xr.DataArray(
-            xi_test, 
-            dims=("phases", "quintiles", "multipoles", "s"), 
-            coords={
-                "phases": list(range(len(xi_test))),
-                "quintiles": range(5),
-                "multipoles": [0, 1, 2],
-                "s": s,
-            },
-        )
-        xi_test = xi_test.sel(
-            quintiles=filters['quintiles'],
-            multipoles=filters['multipoles'],
-            s=slice(filters['s_min'], filters['s_max']),
-        ).values.reshape(*xi_test.shape[:1], -1)
-        emulator = DensitySplit(quintiles=filters["quintiles"])
-        xi_model = []
-        for cosmo in TEST_COSMOS:
-            data = np.genfromtxt(
-                DATA_PATH
-                / f"full_ap/cosmologies/AbacusSummit_c{cosmo:03}_hod1000.csv",
-                skip_header=1,
-                delimiter=","
-            )
-            for hod in range(0, 1000):
-                params = torch.tensor(
-                    data[hod],
-                    dtype=torch.float32
-                ).reshape(1, -1)
-                xi = emulator.get_for_sample(
-                    inputs=params,
-                    filters=filters
+        for statistic in self.statistics:
+            for cosmology in test_cosmologies:
+                xi_test.append(
+                    read_statistic(
+                        statistic=statistic,
+                        cosmology=cosmology,
+                        dataset="different_hods",
+                        select_filters=self.select_filters,
+                        slice_filters=self.slice_filters,
+                    ).values
                 )
-                xi_model.append(xi)
-        xi_model = np.asarray(xi_model)
+        return np.array(xi_test)
+
+    def get_inputs_test(
+        self,
+        test_cosmologies: List[int],
+    ) -> np.array:
+        """Get input values for test set cosmologies
+
+        Args:
+            test_cosmologies (List[int]): indices of test set cosmologies
+
+        Returns:
+            np.array: input values
+        """
+        inputs = []
+        for cosmology in test_cosmologies:
+            inputs.append(
+                read_parameters(
+                    cosmology=cosmology, dataset="different_hods"
+                ).to_numpy()
+            )
+        inputs = np.array(inputs)
+        return inputs.reshape((-1, inputs.shape[-1]))
+
+    def get_emulator_predictions(
+        self,
+        inputs: np.array,
+    ) -> np.array:
+        """Get emulator predictions for inputs
+
+        Args:
+            inputs (np.array): input data
+
+        Returns:
+            np.array: emulator prediction
+        """
+        inputs = torch.tensor(inputs, dtype=torch.float32)
+        xi_model = []
+        for statistic in self.statistics:
+            xi_model.append(
+                self.emulators[statistic].get_for_batch_inputs(
+                    inputs,
+                    select_filters=self.select_filters,
+                    slice_filters=self.slice_filters,
+                ),
+            )
+        return np.squeeze(np.array(xi_model))
+
+    def get_covariance_emulator_error(
+        self,
+    ) -> np.array:
+        """Estimate the emulator's error on the test set
+
+        Returns:
+            np.array: covariance of the emulator's errors
+        """
+        with open(DATA_PATH / f"train_test_split.json", "r") as f:
+            test_cosmologies = json.load(f)["test"]
+        xi_test = self.get_true_test(test_cosmologies=test_cosmologies)
+        inputs = self.get_inputs_test(test_cosmologies=test_cosmologies)
+        xi_model = self.get_emulator_predictions(inputs=inputs)
+        xi_test = xi_test.reshape(
+            (xi_test.shape[0] * xi_test.shape[1], -1)
+        )
         return np.cov(xi_model - xi_test, rowvar=False)
 
 
@@ -157,5 +160,3 @@ def normalize_cov(cov):
         for j in range(nbins):
             corr[i, j] = cov[i, j] / np.sqrt(cov[i, i] * cov[j, j])
     return corr
-
-

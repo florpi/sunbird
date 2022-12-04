@@ -6,19 +6,17 @@ import random
 dataset = 'different_hods'
 
 n_derivative_grid = 27
-cosmo_idx = list(np.arange(100, 100 + n_derivative_grid)) + list(
-    np.arange(130, 181)
-)
+derivative_grid = list(np.arange(100,100 + n_derivative_grid))
+lhc_grid = list(np.arange(130,181))
 percent_val = 0.1
 percent_test = 0.1
-n_samples = len(cosmo_idx)
-idx = n_derivative_grid + np.arange(n_samples - n_derivative_grid)
-random.shuffle(idx)
+random.shuffle(lhc_grid)
+n_samples = len(lhc_grid)
 n_val = int(np.floor(percent_val * n_samples))
 n_test = int(np.floor(percent_test * n_samples))
-val_idx = idx[:n_val]
-test_idx = idx[n_val : n_val + n_test]
-train_idx = list(idx[n_val + n_test :]) + list(range(n_derivative_grid))
+val_idx = lhc_grid[:n_val]
+test_idx = lhc_grid[n_val : n_val + n_test]
+train_idx = list(lhc_grid[n_val + n_test :]) + derivative_grid
 
 split_dict = {
     'train': [int(idx) for idx in train_idx],
