@@ -9,6 +9,7 @@ from typing import Dict, Optional, List
 import xarray as xr
 from sunbird.models import Predictor
 from sunbird.covariance import CovarianceMatrix, normalize_cov
+from sunbird.abacus_utils.read_statistics import read_statistic, read_parameters
 import sys
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/different_hods/"
@@ -21,7 +22,8 @@ class Inference(ABC):
         covariance_matrix: np.array,
         priors: Dict,
         fixed_parameters: Dict[str, float],
-        filters: Dict,
+        select_filters: Dict,
+        slice_filters: Dict,
         output_dir: Path,
         device: str ="cpu",
     ):
@@ -36,7 +38,8 @@ class Inference(ABC):
         self.fixed_parameters = fixed_parameters
         self.device = device
         self.param_names = list(self.priors.keys())
-        self.filters = filters
+        self.select_filters = select_filters
+        self.slice_filters = slice_filters
         self.output_dir = Path(output_dir)
 
     @classmethod
@@ -47,12 +50,14 @@ class Inference(ABC):
     )->"Inference":
         with open(path_to_config, "r") as f:
             config = yaml.safe_load(f)
-        filters = config['filters']
+        select_filters = config['select_filters']
+        slice_filters = config['slice_filters']
         observation = cls.get_observation_for_abacus(
             cosmology= config['data']['cosmology'],
             hod_idx= config['data']['hod_idx'],
             statistic=config['data']['summary'],
-            filters=filters,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
         )
         parameters = cls.get_parameters_for_abacus(
             cosmology= config['data']['cosmology'],
@@ -61,36 +66,24 @@ class Inference(ABC):
         fixed_parameters = {}
         for k in config['fixed_parameters']:
             fixed_parameters[k] = parameters[k]
-        cov_data = CovarianceMatrix.get_covariance_data(
-            statistic=config['data']['summary'],
-            filters=filters,
+        covariance = CovarianceMatrix(
+            statistics = [config['data']['summary']],
+            select_filters=select_filters,
+            slice_filters = slice_filters,
         )
-        cov_intrinsic = CovarianceMatrix.get_covariance_intrinsic(
-            statistic=config['data']['summary'],
-            filters=filters,
-        )
-<<<<<<< HEAD
-        cov_test = CovarianceMatrix.get_covariance_test(
-            statistic=config['data']['summary'],
-            filters=filters,
-        )
-=======
-        # cov_test = CovarianceMatrix.get_covariance_test(
-        #     statistic=config['data']['summary'],
-        #     filters=filters,
-        # )
->>>>>>> fc6f999a21809ca93e8e2ae25d82b53899de6b22
-        covariance_matrix = cov_data + cov_intrinsic
+        cov_data = covariance.get_covariance_data()
+        cov_emulator_error = covariance.get_covariance_emulator_error()
+        covariance_matrix = cov_data + cov_emulator_error
         theory_model = cls.get_theory_model(
-            config["theory_model"],
-            filters,
+            config["theory_model"], None
         )
         parameters_to_fit = [p for p in theory_model.parameters if p not in fixed_parameters.keys()]
         priors = cls.get_priors(config["priors"], parameters_to_fit)
         return cls(
             theory_model=theory_model,
             observation=observation,
-            filters=filters,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
             covariance_matrix=covariance_matrix,
             fixed_parameters=fixed_parameters,
             priors=priors,
@@ -104,61 +97,16 @@ class Inference(ABC):
         cosmology: int,
         hod_idx: int,
         statistic: str,
-        filters: Dict,
+        select_filters: Dict,
+        slice_filters: Dict,
     )->np.array:
-        if statistic == 'density_split':
-            data = np.load(
-                DATA_PATH
-<<<<<<< HEAD
-                / f"clustering/density_split/same_hods/ds_cross_xi_smu_zsplit_Rs20_c{str(cosmology).zfill(3)}_ph000.npy",
-=======
-                / f"full_ap/clustering/ds/gaussian/ds_cross_xi_smu_zsplit_Rs20_c{str(cosmology).zfill(3)}_ph000.npy",
->>>>>>> fc6f999a21809ca93e8e2ae25d82b53899de6b22
-                allow_pickle=True,
-            ).item()
-            quintiles = range(5)
-        elif statistic == 'tpcf':
-            data = np.load(
-                DATA_PATH
-                / f"clustering/tpcf/same_hods/xi_smu_c{str(cosmology).zfill(3)}_ph000.npy",
-                allow_pickle=True,
-            ).item()
-        else:
-            raise ValueError(f'{statistic} is not implemented!')
-        s = data["s"]
-        multipoles = range(3)
-        data = data['multipoles']
-        data = np.mean(data,axis=1)
-        data = data[hod_idx]
-        if statistic == 'density_split':
-            data = xr.DataArray(
-                data, 
-                dims=("quintiles", "multipoles", "s"), 
-                coords={
-                "quintiles": list(quintiles),
-                "multipoles": list(multipoles),
-                "s": s,
-                },
-            )
-            return data.sel(
-                quintiles=filters['quintiles'],
-                multipoles=filters['multipoles'],
-                s=slice(filters['s_min'],filters['s_max']),
-            ).values.reshape(-1)
-        elif statistic == 'tpcf':
-            data = xr.DataArray(
-                data, 
-                dims=("multipoles", "s"), 
-                coords={
-                "multipoles": list(multipoles),
-                "s": s,
-                },
-            )
-            return data.sel(
-                multipoles=filters['multipoles'],
-                s=slice(filters['s_min'],filters['s_max']),
-            ).values.reshape(-1)
-
+        return read_statistic(
+                statistic=statistic,
+                cosmology = cosmology,
+                dataset = 'different_hods',
+                select_filters=select_filters,
+                slice_filters = slice_filters,
+            ).values[hod_idx].reshape(-1)
 
     @classmethod
     def get_parameters_for_abacus(
@@ -166,50 +114,11 @@ class Inference(ABC):
         cosmology: int,
         hod_idx: int,
     ):
-        return dict(
-            pd.read_csv(
-                DATA_PATH
-<<<<<<< HEAD
-                / f"parameters/same_hods/AbacusSummit_c{str(cosmology).zfill(3)}_hod1000.csv"
-=======
-                / f"full_ap/cosmologies/AbacusSummit_c{cosmology:03}_hod1000.csv"
->>>>>>> fc6f999a21809ca93e8e2ae25d82b53899de6b22
-            ).iloc[hod_idx]
-        )
-
-    @classmethod
-    def from_config(
-        cls,
-        path_to_config: Path,
-        device: str ="cpu",
-    )->"Inference":
-        with open(path_to_config, "r") as f:
-            config = yaml.safe_load(f)
-        filters = config['filters']
-        observation = cls.get_observation(
-            path_to_observation=config['data']["path_to_observation"],
-            filters=filters,
-        )
-        fixed_parameters = config["fixed_parameters"]
-        covariance_matrix = cls.get_covariance_data(
-            path_to_cov=config['data']["path_to_covariance_data"],
-            filters=filters,
-        )
-        theory_model = cls.get_theory_model(
-            config["theory_model"],
-            filters=filters,
-        )
-        parameters_to_fit = [p for p in theory_model.parameters if p not in fixed_parameters.keys()]
-        priors = cls.get_priors(config["priors"], parameters_to_fit)
-        return cls(
-            theory_model=theory_model,
-            observation=observation,
-            covariance_matrix=covariance_matrix,
-            fixed_parameters=fixed_parameters,
-            priors=priors,
-            output_dir = config['inference']['output_dir'],
-            device=device,
-        )
+        return read_parameters(
+            cosmology=cosmology,
+            dataset='different_hods',
+        ).iloc[hod_idx].to_dict()
+ 
 
     @classmethod
     def get_priors(cls, prior_config: Dict[str,Dict], parameters_to_fit: List[str])->Dict:
@@ -249,7 +158,7 @@ class Inference(ABC):
         if 'params' in theory_config:
             return module(**theory_config['params'], **filters)
         return module(
-            **filters,
+            #**filters,
         )
 
     @abstractmethod
@@ -298,7 +207,7 @@ class Inference(ABC):
             params[param] = dist.rvs()
         for p, v in self.fixed_parameters.items():
             params[p] = v
-        return params, self.theory_model(params, filters=self.filters)
+        return params, self.theory_model(params, select_filters=self.select_filters, slice_filters=self.slice_filters)
 
     def get_model_prediction(
         self,
@@ -309,7 +218,8 @@ class Inference(ABC):
             params[fixed_param] = self.fixed_parameters[fixed_param] 
         return self.theory_model(
             params,
-            filters=self.filters,
+            select_filters=self.select_filters,
+            slice_filters=self.slice_filters,
         )
 
     def get_model_prediction_vectorized(

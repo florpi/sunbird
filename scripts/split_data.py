@@ -14,10 +14,16 @@ def read_params(cosmo_idx, dataset):
 
 def read_tpcf_multipoles(
     cosmo_idx,
+    dataset,
     multipole=0,
 ):
+    if dataset == 'combined':
+        s, same = read_multipoles(cosmo_idx, dataset='same_hods', multipole=multipole) 
+        s, different = read_multipoles(cosmo_idx, dataset='different_hods', multipole=multipole) 
+        return s, np.concatenate((same, different))
+
     data = np.load(
-        f"../data/clustering/xi_smu/xi_smu_c{cosmo_idx}_ph000.npy",
+        f"../data/clustering/{dataset}/xi_smu/xi_smu_c{cosmo_idx}_ph000.npy",
         allow_pickle=True,
     ).item()
     return data['s'], np.mean(data["multipoles"], axis=1)[:, multipole]
@@ -57,85 +63,108 @@ def store_summaries(s, parameters, multipoles, path_to_store):
     with open(path_to_store, "w") as fd:
         json.dump(summary, fd)
 
-def store_params(idx_list, output_path, dataset):
+def read_params_for_stage(idx_list, dataset):
     params = []
     for idx in idx_list:
         params.append(read_params(idx, dataset))
     params = np.array(params)
-    params = params.reshape(-1, params.shape[-1])
-    np.save(output_path, params)
-    #f"../data/datasets/{dataset}/train_params.npy", params[train_idx].reshape(-1, params.shape[-1]))
+    return params.reshape(-1, params.shape[-1])
 
-
-if __name__ == "__main__":
-    quintiles = [0, 1, 3, 4]
-    dataset = 'same_hods'
-    with open('../data/train_test_split.json') as f:
-        train_test_split = json.load(f)
-    for stage in ['train', 'test', 'val']:
-        np.save(
-            idx_list=train_test_split[stage],
-            output_path=f"../data/datasets/{dataset}/{stage}_params.npy", 
-            dataset=dataset,
-        )
-
-    '''
+def read_tpcf_for_stage(idx_list, dataset,):
     multipoles = []
-    for idx in cosmo_idx:
+    for idx in idx_list:
         combined_multi = []
         for multipole in [0, 1]:
-            s, multi = read_tpcf_multipoles(idx, multipole=multipole)
+            s, multi = read_tpcf_multipoles(idx, multipole=multipole, dataset=dataset)
             combined_multi.append(multi)
         combined_multi = np.hstack(combined_multi)
         multipoles.append(combined_multi)
     multipoles = np.array(multipoles)
     s = np.array(list(s) + list(s))
-    np.save(
-        f"../data/train_tpcf.npy",
-        multipoles[train_idx].reshape(-1, multipoles.shape[-1]),
+    multipoles = multipoles.reshape((-1, multipoles.shape[-1]))
+    return s, multipoles
+
+if __name__ == "__main__":
+    quintiles = [0, 1, 3, 4]
+    filter_type = ['tophat', 'gaussian']
+    corr_types = ['auto', 'cross']
+    dataset = 'different_hods'
+    with open('../data/train_test_split.json') as f:
+        train_test_split = json.load(f)
+    train_params = read_params_for_stage(
+        train_test_split['train'],
+        dataset=dataset
     )
+    np.save(
+        f"../data/datasets/{dataset}/train_params.npy", 
+        train_params,
+    )
+    for stage in ['test', 'val']:
+        params = read_params_for_stage(train_test_split[stage], dataset=dataset)
+        np.save(
+            f"../data/datasets/{dataset}/{stage}_params.npy", 
+            params,
+        )
+    s, train_multipoles = read_tpcf_for_stage(train_test_split['train'], dataset=dataset)
+    np.save(
+        f"../data/datasets/{dataset}/train_tpcf.npy",
+        train_multipoles
+    )
+    np.save(f'../data/s.npy', np.unique(s))
     store_summaries(
         s,
-        params[train_idx].reshape(-1, params.shape[-1]),
-        multipoles[train_idx].reshape(-1, multipoles.shape[-1]),
-        f"../data/train_tpcf_summary.json",
+        train_params,
+        train_multipoles,
+        f"../data/datasets/{dataset}/train_tpcf_summary.json",
     )
-    np.save(
-        f"../data/test_tpcf.npy",
-        multipoles[test_idx].reshape(-1, multipoles.shape[-1]),
-    )
-    np.save(
-        f"../data/val_tpcf.npy",
-        multipoles[val_idx].reshape(-1, multipoles.shape[-1]),
-    )
-    '''
 
-    for quintile in quintiles:
-        multipoles = []
-        for idx in cosmo_idx:
-            combined_multi = []
-            for multipole in [0, 1]:
-                s, multi = read_multipoles(idx, dataset=dataset,quintile=quintile, multipole=multipole)
-                combined_multi.append(multi)
-            combined_multi = np.hstack(combined_multi)
-            multipoles.append(combined_multi)
-        multipoles = np.array(multipoles)
-        s = np.array(list(s) + list(s))
+    for stage in ['test', 'val']:
+        s, multipoles = read_tpcf_for_stage(train_test_split[stage], dataset=dataset)
         np.save(
-            f"../data/datasets/{dataset}/train_ds{quintile}.npy",
-            multipoles[train_idx].reshape(-1, multipoles.shape[-1]),
+            f"../data/datasets/{dataset}/{stage}_tpcf.npy",
+            multipoles 
         )
-        np.save(
-            f"../data/datasets/{dataset}/test_ds{quintile}.npy",
-            multipoles[test_idx].reshape(-1, multipoles.shape[-1]),
-        )
-        np.save(
-            f"../data/datasets/{dataset}/val_ds{quintile}.npy",
-            multipoles[val_idx].reshape(-1, multipoles.shape[-1]),
-        )
-        store_summaries(
-            s,
-            params[train_idx].reshape(-1, params.shape[-1]),
-            multipoles[train_idx].reshape(-1, multipoles.shape[-1]),
-            f"../data/datasets/{dataset}/train_ds{quintile}_summary.json",
-        )
+
+    for corr_type in corr_types:
+        for quintile in quintiles:
+            s, train_multipoles_quintile = read_multipoles_for_stage(
+                train_test_split['train'], 
+                dataset=dataset,
+                quintile=quintile,
+            )
+            store_summaries(
+                s,
+                train_params,
+                train_multipoles_quintile,
+                f"../data/datasets/{dataset}/train_ds{quintile}_{corr_type}_summary.json",
+            )
+'''
+            multipoles = []
+            for idx in cosmo_idx:
+                combined_multi = []
+                for multipole in [0, 1]:
+                    s, multi = read_multipoles(idx, dataset=dataset,quintile=quintile, multipole=multipole)
+                    combined_multi.append(multi)
+                combined_multi = np.hstack(combined_multi)
+                multipoles.append(combined_multi)
+            multipoles = np.array(multipoles)
+            s = np.array(list(s) + list(s))
+            np.save(
+                f"../data/datasets/{dataset}/train_ds{quintile}.npy",
+                multipoles[train_idx].reshape(-1, multipoles.shape[-1]),
+            )
+            np.save(
+                f"../data/datasets/{dataset}/test_ds{quintile}.npy",
+                multipoles[test_idx].reshape(-1, multipoles.shape[-1]),
+            )
+            np.save(
+                f"../data/datasets/{dataset}/val_ds{quintile}.npy",
+                multipoles[val_idx].reshape(-1, multipoles.shape[-1]),
+            )
+            store_summaries(
+                s,
+                params[train_idx].reshape(-1, params.shape[-1]),
+                multipoles[train_idx].reshape(-1, multipoles.shape[-1]),
+                f"../data/datasets/{dataset}/train_ds{quintile}_summary.json",
+            )
+'''

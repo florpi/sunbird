@@ -5,7 +5,7 @@ import numpy as np
 from sunbird.models.predictor import Predictor
 from sunbird.summaries.base import BaseSummary
 
-DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best/tpcf/"
+DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/tpcf_final/version_0/"
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 #TODO: Take care of normalization properly, by reading from hparams.yaml
 
@@ -17,18 +17,21 @@ class TPCF(BaseSummary):
         )
         self.model = Predictor.from_folder(path_to_model)
 
-    def forward(self, inputs, filters):
+    def forward(self, inputs, select_filters, slice_filters):
         output = self.model(inputs)
-        if 's_min' in filters:
-            min_mask = self.model.s > filters['s_min']
-        else:
-            min_mask = None
-        if 's_max' in filters:
-            max_mask = self.model.s < filters['s_max']
-        else:
-            max_mask = None
-        output = output[:, (min_mask) & (max_mask)]
-        if 'multipoles' in filters:
-            output = output.reshape((-1, output.shape[-1]//2))[filters['multipoles']].reshape(-1)
+        if slice_filters is not None:
+            if 's' in slice_filters:
+                s_min = slice_filters['s'][0]
+                s_max = slice_filters['s'][1]
+                output = output[:, (self.model.s > s_min) & (self.model.s < s_max)]
+            if 'multipoles' in slice_filters:
+                m_min = slice_filters['multipoles'][0]
+                m_max = slice_filters['multipoles'][1]
+                output = output.reshape((2,-1, output.shape[-1]//2))[m_min:m_max]
+        if select_filters is not None:
+            if 'multipoles' in select_filters:
+                multipoles = select_filters['multipoles']
+                output = output.reshape((2,-1, output.shape[-1]//2))
+                output = output[multipoles].reshape(-1)
         return output
         

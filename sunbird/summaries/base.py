@@ -32,27 +32,31 @@ class BaseSummary:
         ]
 
     def __call__(
-        self, param_dict, filters
+        self, param_dict, select_filters, slice_filters
     ):
         inputs = torch.tensor(
             np.array([param_dict[k] for k in self.parameters]).reshape(1, -1),
             dtype=torch.float32,
         )
-        output = self.get_for_sample(inputs, filters=filters)
+        output = self.get_for_sample(inputs, select_filters=select_filters, slice_filters=slice_filters)
         return output.reshape(-1)
 
-    def get_for_sample(self, inputs, filters):
-        return self.forward(inputs, filters=filters).detach().numpy()
+    def get_for_sample(self, inputs, select_filters, slice_filters):
+        return self.forward(inputs, select_filters=select_filters, slice_filters=slice_filters).detach().numpy()
 
-    def get_for_batch(self, param_dict, filters,):
+    def get_for_batch(self, param_dict, select_filters, slice_filters,):
         inputs = torch.tensor(
             np.array([param_dict[k] for k in self.parameters]),
             dtype=torch.float32,
         ).T
         return self.get_for_batch_inputs(
-            inputs=inputs, filters=filters,
+            inputs=inputs, select_filters=select_filters, slice_filters=slice_filters,
         )
 
-    def get_for_batch_inputs(self, inputs,filters):
-        outputs = self.forward(inputs, filters=filters).detach().numpy()
+    def get_for_batch_inputs(self, inputs, select_filters, slice_filters,):
+        print(inputs.shape)
+        outputs = self.forward(
+            inputs, select_filters=select_filters, slice_filters=slice_filters,
+        ).detach().numpy()
+        print(outputs.shape)
         return outputs.reshape((len(inputs),-1))

@@ -7,11 +7,7 @@ from sunbird.models import Predictor, PredictorBundle
 from sunbird.summaries.base import BaseSummary
 
 
-<<<<<<< HEAD
-DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best_combined/"
-=======
 DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best_gaussian/"
->>>>>>> fc6f999a21809ca93e8e2ae25d82b53899de6b22
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 
@@ -30,20 +26,22 @@ class DensitySplit(BaseSummary):
             predictors_dict,
         )
 
-    def forward(self, inputs, filters):
+    def forward(self, inputs, slice_filters, select_filters):
         output = self.model(inputs)
-        if filters is not None:
-            if 's_min' in filters:
-                min_mask = self.model.s > filters['s_min']
-            else:
-                min_mask = None
-            if 's_max' in filters:
-                max_mask = self.model.s < filters['s_max']
-            else:
-                max_mask = None
-            output = output[:, (min_mask) & (max_mask)]
-            if 'multipoles' in filters:
+        if slice_filters is not None:
+            if 's' in slice_filters:
+                s_min = slice_filters['s'][0]
+                s_max = slice_filters['s'][1]
+                output = output[:, (self.model.s > s_min) & (self.model.s < s_max)]
+            if 'multipoles' in slice_filters:
+                m_min = slice_filters['multipoles'][0]
+                m_max = slice_filters['multipoles'][1]
                 output = output.reshape((len(output), -1, output.shape[-1]//2))
-                output = output[:, filters['multipoles'], :].reshape(-1)
+                output = output[:, m_min:m_max, :].reshape(-1)
+        if select_filters is not None:
+            if 'multipoles' in select_filters:
+                multipoles = select_filters['multipoles']
+                output = output.reshape((len(output), -1, output.shape[-1]//2))
+                output = output[:, multipoles, :].reshape(-1)
         return output
- 
+        
