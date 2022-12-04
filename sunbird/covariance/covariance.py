@@ -55,10 +55,9 @@ class CovarianceMatrix:
                 select_filters=self.select_filters,
                 slice_filters=self.slice_filters,
             )
-            summaries.append(summary.values)
-        summaries = np.array(summaries)
-        n_phases = len(summary["phases"])
-        summaries = summaries.reshape(n_phases, -1)
+            summary = np.array(summary.values).reshape((len(summary['phases']),-1))
+            summaries.append(summary)
+        summaries = np.hstack(summaries)
         return np.cov(summaries, rowvar=False)
 
     def get_true_test(
