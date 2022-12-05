@@ -7,21 +7,17 @@ select_filters:
 
 data:
     cosmology: 0
-    hod_idx: 60
-    summary: 'density_split'
+    hod_idx: 0
+    summaries: ['density_split_cross']
 
-fixed_parameters: [
-    'omega_b', 'nrun', 'N_ur', 'w0_fld', 'wa_fld', 
-    'logM1', 'logM_cut', 'alpha', 'alpha_s', 'alpha_c',
-    'logsigma', 'kappa'
-]
+fixed_parameters: ['omega_b', 'nrun', 'N_ur', 'w0_fld', 'wa_fld', ]
 
 theory_model:
     module: 'sunbird.summaries'
-    class: 'DensitySplit'
+    class: 'DensitySplitCross'
 
 inference:
-    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/results_ds_c0_fixed_hod'
+    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/results_ds_cross'
 
 priors:
     stats_module: 'scipy.stats'

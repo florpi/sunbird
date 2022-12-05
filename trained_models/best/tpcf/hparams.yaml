@@ -6,9 +6,10 @@ apply_s2: true
 auto_lr_find: false
 auto_scale_batch_size: false
 auto_select_gpus: false
-batch_size: 259
+batch_size: 209
 benchmark: null
 check_val_every_n_epoch: 1
+dataset: different_hods
 default_root_dir: null
 detect_anomaly: false
 deterministic: null
@@ -21,7 +22,7 @@ gpus: null
 gradient_clip_algorithm: null
 gradient_clip_val: null
 ipus: null
-learning_rate: 0.01726554169844948
+learning_rate: 0.019790313667063852
 limit_predict_batches: null
 limit_test_batches: null
 limit_train_batches: null
@@ -37,10 +38,10 @@ min_steps: null
 model_dir: ../../trained_models
 move_metrics_to_cpu: false
 multiple_trainloader_mode: max_size_cycle
-n_hidden: 42
+n_hidden: 43
 n_input: 15
 n_layers: 6
-n_output: 68
+n_output: 74
 normalize: true
 normalize_inputs: true
 num_nodes: 1
@@ -63,5 +64,5 @@ sync_batchnorm: false
 tpu_cores: null
 track_grad_norm: -1
 val_check_interval: null
-weight_decay: 0.006683279977776773
+weight_decay: 0.00569826814975638
 weights_save_path: null
