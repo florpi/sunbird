@@ -14,7 +14,6 @@ class TPCF(BaseSummary):
         self,
         path_to_model: Path = DEFAULT_PATH,
         path_to_data: Path = DEFAULT_DATA_PATH,
-        **kwargs
     ):
         super().__init__(
             path_to_data=path_to_data,
