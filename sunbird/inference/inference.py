@@ -151,13 +151,13 @@ class Inference(ABC):
         return np.cov(multipoles.T)
 
     @classmethod
-    def get_theory_model(cls, theory_config, filters):
+    def get_theory_model(cls, theory_config,):
         module = theory_config.pop("module")
         class_name = theory_config.pop("class")
         module = getattr(importlib.import_module(module), class_name)
-        if 'params' in theory_config:
-            return module(**theory_config['params'], **filters)
-        return module(**filters)
+        if 'args' in theory_config:
+            return module(**theory_config['args'],)
+        return module()
 
     @abstractmethod
     def __call__(

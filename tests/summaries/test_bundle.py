@@ -5,7 +5,7 @@ from sunbird.summaries import TPCF, DensitySplitCross, Bundle
 def test__bundle():
     tpcf = TPCF()
     ds = DensitySplitCross()
-    bundle = Bundle([tpcf, ds])
+    bundle = Bundle(['tpcf', 'density_split_cross']) 
     inputs = torch.tensor(np.random.random((10,15)), dtype=torch.float32)
     bundle_output = bundle.forward(inputs,None, None)
     bundle_output = bundle_output.detach().numpy()

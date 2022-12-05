@@ -1,20 +1,26 @@
 from typing import List, Dict
 import torch
 from sunbird.summaries.base import BaseSummary
+from sunbird.summaries import TPCF, DensitySplitAuto, DensitySplitCross
 
 
 class Bundle(BaseSummary):
     def __init__(
         self,
-        summaries: List["BaseSummary"],
+        summaries: List[str],
     ):
         """Combine a list of summaries into a bundle
 
         Args:
-            summaries (List[&quot;BaseSummary&quot;]): list of summaries
+            summaries (List[str]): list of summaries to combine
         """
-
         self.summaries = summaries
+        self.all_summaries = {
+            'tpcf': TPCF(),
+            'density_split_cross': DensitySplitCross(),
+            'density_split_auto': DensitySplitAuto(),
+        }
+        
 
     def forward(
         self, inputs: torch.tensor, select_filters: Dict, slice_filters: Dict
@@ -32,7 +38,7 @@ class Bundle(BaseSummary):
         output = []
         for summary in self.summaries:
             output.append(
-                summary.forward(
+                self.all_summaries[summary].forward(
                     inputs=inputs,
                     select_filters=select_filters,
                     slice_filters=slice_filters,
