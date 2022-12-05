@@ -49,7 +49,7 @@ def convert_to_summary(
     return summary
 
 def read_ds_statistic(
-    path_to_file, select_filters=None, slice_filters=None,
+    path_to_file, select_filters=None, slice_filters=None,  avg_los=False,
 ) :
     data = np.load(
         path_to_file,
@@ -57,6 +57,8 @@ def read_ds_statistic(
     ).item()
     s = data['s']
     data = data['multipoles']
+    if avg_los:
+        data = np.mean(data,axis=1)
     phases = list(range(len(data)))
     quintiles = list(range(5))
     multipoles = list(range(3))
@@ -109,12 +111,14 @@ def read_statistics_for_covariance(
         path_to_file = DATA_PATH / f"covariance/ds/gaussian/ds_auto_xi_smu_zsplit_gaussian_Rs10_landyszalay_randomsX50.npy",
         select_filters=select_filters,
         slice_filters=slice_filters,
+        avg_los=False,
     ) 
     elif statistic == 'density_split_cross':
        return read_ds_statistic(
         path_to_file = DATA_PATH / f"covariance/ds/gaussian/ds_cross_xi_smu_zsplit_gaussian_Rs10_landyszalay_randomsX50.npy",
         select_filters=select_filters,
         slice_filters=slice_filters,
+        avg_los=False,
     ) 
     elif statistic == 'tpcf':
         return read_tpcf_statistic(

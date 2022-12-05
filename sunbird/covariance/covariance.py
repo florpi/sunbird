@@ -6,7 +6,7 @@ from typing import List, Dict
 # import xarray as xr
 import torch
 from matplotlib import pyplot as plt
-from sunbird.summaries import DensitySplit, TPCF
+from sunbird.summaries import DensitySplitAuto, DensitySplitCross, TPCF
 from sunbird.abacus_utils.read_statistics import (
     read_statistics_for_covariance,
     read_statistic,
@@ -35,8 +35,8 @@ class CovarianceMatrix:
         self.slice_filters = slice_filters
         self.select_filters = select_filters
         self.emulators = {
-            #'density_split_cross': DensitySplit(correlation_type='cross',)
-            #'density_split_auto': DensitySplit(correlation_type='auto',)
+            'density_split_cross': DensitySplitCross(),
+            'density_split_auto': DensitySplitAuto(),
             "tpcf": TPCF(),
         }
 

@@ -67,7 +67,7 @@ class Inference(ABC):
         for k in config['fixed_parameters']:
             fixed_parameters[k] = parameters[k]
         covariance = CovarianceMatrix(
-            statistics = [config['data']['summary']],
+            statistics = config['data']['summaries'],
             select_filters=select_filters,
             slice_filters = slice_filters,
         )
@@ -157,9 +157,7 @@ class Inference(ABC):
         module = getattr(importlib.import_module(module), class_name)
         if 'params' in theory_config:
             return module(**theory_config['params'], **filters)
-        return module(
-            #**filters,
-        )
+        return module(**filters)
 
     @abstractmethod
     def __call__(
