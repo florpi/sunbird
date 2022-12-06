@@ -168,8 +168,10 @@ class Inference(ABC):
     ):
         pass
 
-    def invert_covariance(self, covariance_matrix,):
-        return np.linalg.inv(covariance_matrix)
+    def invert_covariance(self, covariance_matrix, n_mocks_covariance=1000):
+        #TODO: Move n_mocks_covariance to config file
+        #hartlap_factor =  (n_mocks_covariance - 1) / (n_mocks_covariance - len(covariance_matrix) - 2)
+        return np.linalg.inv(covariance_matrix)# * hartlap_factor)
 
     def initialize_distribution(cls, distributions_module, dist_param):
         if dist_param["distribution"] == "uniform":
