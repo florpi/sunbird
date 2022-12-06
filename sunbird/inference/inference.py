@@ -55,7 +55,7 @@ class Inference(ABC):
         observation = cls.get_observation_for_abacus(
             cosmology= config['data']['cosmology'],
             hod_idx= config['data']['hod_idx'],
-            statistic=config['data']['summary'],
+            statistics=config['data']['summaries'],
             select_filters=select_filters,
             slice_filters=slice_filters,
         )
@@ -75,7 +75,7 @@ class Inference(ABC):
         cov_emulator_error = covariance.get_covariance_emulator_error()
         covariance_matrix = cov_data + cov_emulator_error
         theory_model = cls.get_theory_model(
-            config["theory_model"], None
+            config["theory_model"], 
         )
         parameters_to_fit = [p for p in theory_model.parameters if p not in fixed_parameters.keys()]
         priors = cls.get_priors(config["priors"], parameters_to_fit)
@@ -96,17 +96,20 @@ class Inference(ABC):
         cls,
         cosmology: int,
         hod_idx: int,
-        statistic: str,
+        statistics: str,
         select_filters: Dict,
         slice_filters: Dict,
     )->np.array:
-        return read_statistic(
-                statistic=statistic,
-                cosmology = cosmology,
-                dataset = 'different_hods',
-                select_filters=select_filters,
-                slice_filters = slice_filters,
-            ).values[hod_idx].reshape(-1)
+        observation = []
+        for statistic in statistics:
+            observation.append(read_statistic(
+                    statistic=statistic,
+                    cosmology = cosmology,
+                    dataset = 'different_hods',
+                    select_filters=select_filters,
+                    slice_filters = slice_filters,
+                ).values[hod_idx].reshape(-1))
+        return np.hstack(observation)
 
     @classmethod
     def get_parameters_for_abacus(
