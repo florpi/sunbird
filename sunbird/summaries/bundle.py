@@ -21,6 +21,9 @@ class Bundle(BaseSummary):
             'density_split_auto': DensitySplitAuto(),
         }
         
+    @property
+    def parameters(self,):
+        return self.all_summaries['tpcf'].parameters
 
     def forward(
         self, inputs: torch.tensor, select_filters: Dict, slice_filters: Dict
