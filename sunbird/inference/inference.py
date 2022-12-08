@@ -48,6 +48,16 @@ class Inference(ABC):
         path_to_config: Path,
         device: str ="cpu",
     )->"Inference":
+        """ Read from config file to fit one of the abacus summit
+        simulations
+
+        Args:
+            path_to_config (Path): path to configuration file 
+            device (str, optional): device to use to run model. Defaults to "cpu".
+
+        Returns:
+            Inference: inference object 
+        """
         with open(path_to_config, "r") as f:
             config = yaml.safe_load(f)
         select_filters = config['select_filters']
