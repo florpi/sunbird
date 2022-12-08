@@ -61,6 +61,22 @@ class Inference(ABC):
         """
         with open(path_to_config, "r") as f:
             config = yaml.safe_load(f)
+        return cls.from_abacus_config_dict(
+            config=config,
+            device=device
+        )
+
+    def from_abacus_config_dict(cls, config: Dict, device: str='cpu'):
+        """Use dictionary config to fit one of the abacus summit
+        simulations
+
+        Args:
+            config (Dict): dictionary with configuration
+            device (str, optional): device to use to run model. Defaults to "cpu".
+
+        Returns:
+            Inference: inference object
+        """
         select_filters = config["select_filters"]
         slice_filters = config["slice_filters"]
         observation = cls.get_observation_for_abacus(
@@ -120,12 +136,15 @@ class Inference(ABC):
         Args:
             cosmology (int): cosmology box to use as mock observation 
             hod_idx (int): id of the hod sample for the given cosmology 
-            statistics (str): 
-            select_filters (Dict): _description_
-            slice_filters (Dict): _description_
+            statistics (str): list of statistics to use (the statistic has
+            to be one of either tpcf, density_split_auto or density_split_cross)
+            select_filters (Dict): dictionary with filters to select values
+            across a particular dimension
+            slice_filters (Dict): dictionary with filters to slice values across
+            a particular dimension 
 
         Returns:
-            np.array: _description_
+            np.array: array with observations 
         """
         observation = []
         for statistic in statistics:
