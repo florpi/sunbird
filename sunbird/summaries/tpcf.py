@@ -3,11 +3,9 @@ from sunbird.models.predictor import Predictor
 from sunbird.summaries.base import BaseSummary
 
 DEFAULT_PATH = (
-    Path(__file__).parent.parent.parent / "trained_models/tpcf_final/version_0/"
+    Path(__file__).parent.parent.parent / "trained_models/best/tpcf/"
 )
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
-# TODO: Take care of normalization properly, by reading from hparams.yaml
-
 
 class TPCF(BaseSummary):
     def __init__(
