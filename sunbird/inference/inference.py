@@ -14,6 +14,7 @@ import sys
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/different_hods/"
 
+
 class Inference(ABC):
     def __init__(
         self,
@@ -25,7 +26,7 @@ class Inference(ABC):
         select_filters: Dict,
         slice_filters: Dict,
         output_dir: Path,
-        device: str ="cpu",
+        device: str = "cpu",
     ):
         self.theory_model = theory_model
         self.observation = observation
@@ -46,48 +47,50 @@ class Inference(ABC):
     def from_abacus_config(
         cls,
         path_to_config: Path,
-        device: str ="cpu",
-    )->"Inference":
-        """ Read from config file to fit one of the abacus summit
+        device: str = "cpu",
+    ) -> "Inference":
+        """Read from config file to fit one of the abacus summit
         simulations
 
         Args:
-            path_to_config (Path): path to configuration file 
+            path_to_config (Path): path to configuration file
             device (str, optional): device to use to run model. Defaults to "cpu".
 
         Returns:
-            Inference: inference object 
+            Inference: inference object
         """
         with open(path_to_config, "r") as f:
             config = yaml.safe_load(f)
-        select_filters = config['select_filters']
-        slice_filters = config['slice_filters']
+        select_filters = config["select_filters"]
+        slice_filters = config["slice_filters"]
         observation = cls.get_observation_for_abacus(
-            cosmology= config['data']['cosmology'],
-            hod_idx= config['data']['hod_idx'],
-            statistics=config['data']['summaries'],
+            cosmology=config["data"]["cosmology"],
+            hod_idx=config["data"]["hod_idx"],
+            statistics=config["data"]["summaries"],
             select_filters=select_filters,
             slice_filters=slice_filters,
         )
         parameters = cls.get_parameters_for_abacus(
-            cosmology= config['data']['cosmology'],
-            hod_idx= config['data']['hod_idx'],
+            cosmology=config["data"]["cosmology"],
+            hod_idx=config["data"]["hod_idx"],
         )
         fixed_parameters = {}
-        for k in config['fixed_parameters']:
+        for k in config["fixed_parameters"]:
             fixed_parameters[k] = parameters[k]
         covariance = CovarianceMatrix(
-            statistics = config['data']['summaries'],
+            statistics=config["data"]["summaries"],
             select_filters=select_filters,
-            slice_filters = slice_filters,
+            slice_filters=slice_filters,
         )
         cov_data = covariance.get_covariance_data()
         cov_emulator_error = covariance.get_covariance_emulator_error()
         covariance_matrix = cov_data + cov_emulator_error
         theory_model = cls.get_theory_model(
-            config["theory_model"], 
+            config["theory_model"],
         )
-        parameters_to_fit = [p for p in theory_model.parameters if p not in fixed_parameters.keys()]
+        parameters_to_fit = [
+            p for p in theory_model.parameters if p not in fixed_parameters.keys()
+        ]
         priors = cls.get_priors(config["priors"], parameters_to_fit)
         return cls(
             theory_model=theory_model,
@@ -97,28 +100,46 @@ class Inference(ABC):
             covariance_matrix=covariance_matrix,
             fixed_parameters=fixed_parameters,
             priors=priors,
-            output_dir=config['inference']['output_dir'],
+            output_dir=config["inference"]["output_dir"],
             device=device,
         )
-    
+
     @classmethod
     def get_observation_for_abacus(
         cls,
         cosmology: int,
         hod_idx: int,
-        statistics: str,
+        statistics: List[str],
         select_filters: Dict,
         slice_filters: Dict,
-    )->np.array:
+    ) -> np.array:
+        """ Use one of the cosmology boxes from abacus summit
+        latin hypercube as a mock observation. Select the hod sample
+        ```hod_idx''' for a given statistic
+
+        Args:
+            cosmology (int): cosmology box to use as mock observation 
+            hod_idx (int): id of the hod sample for the given cosmology 
+            statistics (str): 
+            select_filters (Dict): _description_
+            slice_filters (Dict): _description_
+
+        Returns:
+            np.array: _description_
+        """
         observation = []
         for statistic in statistics:
-            observation.append(read_statistic(
+            observation.append(
+                read_statistic(
                     statistic=statistic,
-                    cosmology = cosmology,
-                    dataset = 'different_hods',
+                    cosmology=cosmology,
+                    dataset="different_hods",
                     select_filters=select_filters,
-                    slice_filters = slice_filters,
-                ).values[hod_idx].reshape(-1))
+                    slice_filters=slice_filters,
+                )
+                .values[hod_idx]
+                .reshape(-1)
+            )
         return np.hstack(observation)
 
     @classmethod
@@ -127,14 +148,19 @@ class Inference(ABC):
         cosmology: int,
         hod_idx: int,
     ):
-        return read_parameters(
-            cosmology=cosmology,
-            dataset='different_hods',
-        ).iloc[hod_idx].to_dict()
- 
+        return (
+            read_parameters(
+                cosmology=cosmology,
+                dataset="different_hods",
+            )
+            .iloc[hod_idx]
+            .to_dict()
+        )
 
     @classmethod
-    def get_priors(cls, prior_config: Dict[str,Dict], parameters_to_fit: List[str])->Dict:
+    def get_priors(
+        cls, prior_config: Dict[str, Dict], parameters_to_fit: List[str]
+    ) -> Dict:
         distributions_module = importlib.import_module(prior_config.pop("stats_module"))
         prior_dict = {}
         for param in parameters_to_fit:
@@ -160,12 +186,17 @@ class Inference(ABC):
         return np.cov(multipoles.T)
 
     @classmethod
-    def get_theory_model(cls, theory_config,):
+    def get_theory_model(
+        cls,
+        theory_config,
+    ):
         module = theory_config.pop("module")
         class_name = theory_config.pop("class")
         module = getattr(importlib.import_module(module), class_name)
-        if 'args' in theory_config:
-            return module(**theory_config['args'],)
+        if "args" in theory_config:
+            return module(
+                **theory_config["args"],
+            )
         return module()
 
     @abstractmethod
@@ -175,9 +206,9 @@ class Inference(ABC):
         pass
 
     def invert_covariance(self, covariance_matrix, n_mocks_covariance=1000):
-        #TODO: Move n_mocks_covariance to config file
-        #hartlap_factor =  (n_mocks_covariance - 1) / (n_mocks_covariance - len(covariance_matrix) - 2)
-        return np.linalg.inv(covariance_matrix)# * hartlap_factor)
+        # TODO: Move n_mocks_covariance to config file
+        # hartlap_factor =  (n_mocks_covariance - 1) / (n_mocks_covariance - len(covariance_matrix) - 2)
+        return np.linalg.inv(covariance_matrix)  # * hartlap_factor)
 
     def initialize_distribution(cls, distributions_module, dist_param):
         if dist_param["distribution"] == "uniform":
@@ -205,18 +236,20 @@ class Inference(ABC):
         prediction,
     ):
         diff = prediction - self.observation
-        right = np.einsum('ik,...k', self.inverse_covariance_matrix, diff)
-        return -0.5 * np.einsum('ki,ji', diff, right)[:,0]
+        right = np.einsum("ik,...k", self.inverse_covariance_matrix, diff)
+        return -0.5 * np.einsum("ki,ji", diff, right)[:, 0]
 
     def sample_from_prior(
-        self, 
+        self,
     ):
         params = {}
         for param, dist in self.priors.items():
             params[param] = dist.rvs()
         for p, v in self.fixed_parameters.items():
             params[p] = v
-        return params, self.theory_model(params, select_filters=self.select_filters, slice_filters=self.slice_filters)
+        return params, self.theory_model(
+            params, select_filters=self.select_filters, slice_filters=self.slice_filters
+        )
 
     def get_model_prediction(
         self,
@@ -224,7 +257,7 @@ class Inference(ABC):
     ):
         params = dict(zip(list(self.priors.keys()), parameters))
         for i, fixed_param in enumerate(self.fixed_parameters.keys()):
-            params[fixed_param] = self.fixed_parameters[fixed_param] 
+            params[fixed_param] = self.fixed_parameters[fixed_param]
         return self.theory_model(
             params,
             select_filters=self.select_filters,
