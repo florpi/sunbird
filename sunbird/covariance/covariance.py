@@ -73,8 +73,9 @@ class CovarianceMatrix:
         Returns:
             np.array: true values
         """
-        xi_test = []
+        xi_tests = []
         for statistic in self.statistics:
+            xi_test = []
             for cosmology in test_cosmologies:
                 xi_test.append(
                     read_statistic(
@@ -85,7 +86,11 @@ class CovarianceMatrix:
                         slice_filters=self.slice_filters,
                     ).values
                 )
-        return np.array(xi_test)
+            xi_tests.append(xi_test)
+        xi_tests = np.array(xi_tests)
+        return xi_tests.reshape(
+            (xi_tests.shape[1] * xi_tests.shape[2], -1)
+        )
 
     def get_inputs_test(
         self,
@@ -131,7 +136,7 @@ class CovarianceMatrix:
                     slice_filters=self.slice_filters,
                 ),
             )
-        return np.squeeze(np.array(xi_model))
+        return np.squeeze(np.array(xi_model))#.swapaxes(0,1)
 
     def get_covariance_emulator_error(
         self,
@@ -146,9 +151,7 @@ class CovarianceMatrix:
         xi_test = self.get_true_test(test_cosmologies=test_cosmologies)
         inputs = self.get_inputs_test(test_cosmologies=test_cosmologies)
         xi_model = self.get_emulator_predictions(inputs=inputs)
-        xi_test = xi_test.reshape(
-            (xi_test.shape[0] * xi_test.shape[1], -1)
-        )
+        #xi_model = xi_model.reshape((xi_model.shape[0],-1))
         return np.cov(xi_model - xi_test, rowvar=False)
 
 

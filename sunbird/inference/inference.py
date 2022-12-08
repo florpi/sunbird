@@ -135,10 +135,6 @@ class Inference(ABC):
         return prior_dict
 
     @classmethod
-    def get_observation(cls, path_to_observation: Path, filters: Dict)->np.array:
-        return 
-
-    @classmethod
     def get_covariance_data(cls, path_to_cov, s_min: float, quintiles):
         data = np.load(path_to_cov, allow_pickle=True).item()
         s = data["s"]
