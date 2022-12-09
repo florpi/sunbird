@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from dynesty import NestedSampler
 
+
 class Nested(Inference):
     def get_prior_from_cube(self, cube):
         transformed_cube = np.array(cube)
@@ -15,7 +16,13 @@ class Nested(Inference):
         prediction = self.get_model_prediction(params)
         return self.get_loglikelihood_for_prediction(prediction=prediction)
 
-    def __call__(self,  num_live_points=1000, dlogz=0.01, max_iterations = 50_000, max_calls = 1_000_000):
+    def __call__(
+        self,
+        num_live_points=1000,
+        dlogz=0.01,
+        max_iterations=50_000,
+        max_calls=1_000_000,
+    ):
         self.output_dir.mkdir(parents=True, exist_ok=True)
         sampler = NestedSampler(
             self.get_loglikelihood_for_params,
@@ -24,9 +31,9 @@ class Nested(Inference):
             nlive=num_live_points,
         )
         sampler.run_nested(
-            checkpoint_file= str(self.output_dir / 'dynasty.save'),
+            checkpoint_file=str(self.output_dir / "dynasty.save"),
             dlogz=dlogz,
-            maxiter=max_iterations, 
+            maxiter=max_iterations,
             maxcall=max_calls,
         )
         results = sampler.results
@@ -34,7 +41,7 @@ class Nested(Inference):
 
     def store_results(self, results):
         df = self.convert_results_to_df(results=results)
-        df.to_csv(self.output_dir / 'results.csv', index=False)
+        df.to_csv(self.output_dir / "results.csv", index=False)
 
     def convert_results_to_df(self, results):
         log_like = results.logl
@@ -57,5 +64,4 @@ class Nested(Inference):
     def get_results(
         self,
     ):
-        return pd.read_csv(self.output_dir / 'results.csv')
-
+        return pd.read_csv(self.output_dir / "results.csv")

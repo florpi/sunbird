@@ -12,22 +12,25 @@ class UltraNested(Inference):
             transformed_cube[:, n] = self.priors[param].ppf(cube[:, n])
         return transformed_cube
     """
-    def get_prior_from_cube(self,cube):
+
+    def get_prior_from_cube(self, cube):
         params = cube.copy()
-        lo = 0.1 
-        hi = 0.14 
-        params[:,0] = cube[:,0] * (hi - lo) + lo
+        lo = 0.1
+        hi = 0.14
+        params[:, 0] = cube[:, 0] * (hi - lo) + lo
         lo = 0.68
-        hi = 0.94 
-        params[:,1] = cube[:,1] * (hi - lo) + lo
+        hi = 0.94
+        params[:, 1] = cube[:, 1] * (hi - lo) + lo
         return params
 
     def get_loglikelihood_for_params(self, params):
         prediction = self.get_model_prediction_vectorized(params)
-        loglike = self.get_loglikelihood_for_prediction_vectorized(prediction=prediction)
+        loglike = self.get_loglikelihood_for_prediction_vectorized(
+            prediction=prediction
+        )
         return np.atleast_1d(loglike)
 
-    def __call__(self, log_dir,  num_live_points, slice_steps=None):
+    def __call__(self, log_dir, num_live_points, slice_steps=None):
         sampler = ReactiveNestedSampler(
             self.param_names,
             self.get_loglikelihood_for_params,
@@ -41,8 +44,8 @@ class UltraNested(Inference):
                 generate_direction=ultranest.stepsampler.generate_mixture_random_direction,
             )
         sampler.run(
-            #dlogz=0.5 + 0.1 * len(self.param_names),
-            dlogz=1., # desired accuracy on logz
+            # dlogz=0.5 + 0.1 * len(self.param_names),
+            dlogz=1.0,  # desired accuracy on logz
             max_num_improvement_loops=3,
             min_num_live_points=num_live_points,
         )

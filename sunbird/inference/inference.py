@@ -4,8 +4,7 @@ import importlib
 import numpy as np
 import yaml
 from typing import Dict, List, Tuple
-from sunbird.models import Predictor
-from sunbird.covariance import CovarianceMatrix 
+from sunbird.covariance import CovarianceMatrix
 from sunbird.abacus_utils.read_statistics import read_statistic, read_parameters
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/different_hods/"
@@ -14,7 +13,7 @@ DATA_PATH = Path(__file__).parent.parent.parent / "data/different_hods/"
 class Inference(ABC):
     def __init__(
         self,
-        theory_model: Predictor,
+        theory_model: "Summary",
         observation: np.array,
         covariance_matrix: np.array,
         priors: Dict,
@@ -57,12 +56,9 @@ class Inference(ABC):
         """
         with open(path_to_config, "r") as f:
             config = yaml.safe_load(f)
-        return cls.from_abacus_config_dict(
-            config=config,
-            device=device
-        )
+        return cls.from_abacus_config_dict(config=config, device=device)
 
-    def from_abacus_config_dict(cls, config: Dict, device: str='cpu'):
+    def from_abacus_config_dict(cls, config: Dict, device: str = "cpu"):
         """Use dictionary config to fit one of the abacus summit
         simulations
 
@@ -122,22 +118,22 @@ class Inference(ABC):
         select_filters: Dict,
         slice_filters: Dict,
     ) -> np.array:
-        """ Use one of the cosmology boxes from abacus summit
+        """Use one of the cosmology boxes from abacus summit
         latin hypercube as a mock observation. Select the hod sample
         ```hod_idx''' for a given statistic
 
         Args:
-            cosmology (int): cosmology box to use as mock observation 
-            hod_idx (int): id of the hod sample for the given cosmology 
+            cosmology (int): cosmology box to use as mock observation
+            hod_idx (int): id of the hod sample for the given cosmology
             statistics (str): list of statistics to use (the statistic has
             to be one of either tpcf, density_split_auto or density_split_cross)
             select_filters (Dict): dictionary with filters to select values
             across a particular dimension
             slice_filters (Dict): dictionary with filters to slice values across
-            a particular dimension 
+            a particular dimension
 
         Returns:
-            np.array: array with observations 
+            np.array: array with observations
         """
         observation = []
         for statistic in statistics:
@@ -159,12 +155,12 @@ class Inference(ABC):
         cls,
         cosmology: int,
         hod_idx: int,
-    )->Dict[str, float]:
-        """ Read the parameters of an abacus summit simmulation
+    ) -> Dict[str, float]:
+        """Read the parameters of an abacus summit simmulation
 
         Args:
-            cosmology (int): cosmology model to read 
-            hod_idx (int): idx of the hod 
+            cosmology (int): cosmology model to read
+            hod_idx (int): idx of the hod
 
         Returns:
             Dict: dictionary of parameters describing a simulation
@@ -179,44 +175,52 @@ class Inference(ABC):
         )
 
     @classmethod
-    def get_covariance_matrix(cls, statistics: List[str], select_filters: Dict, slice_filters: Dict, add_emulator_error: bool =True, apply_hartlap_correction=True,)->np.array:
-        """ Compute covariance matrix for a list of statistics
+    def get_covariance_matrix(
+        cls,
+        statistics: List[str],
+        select_filters: Dict,
+        slice_filters: Dict,
+        add_emulator_error: bool = True,
+        apply_hartlap_correction=True,
+    ) -> np.array:
+        """Compute covariance matrix for a list of statistics
 
         Args:
-            statistics (List[str]): list of statistics 
-            select_filters (Dict): filters to select values along a dimension 
-            slice_filters (Dict): filters to slice values along a dimension 
+            statistics (List[str]): list of statistics
+            select_filters (Dict): filters to select values along a dimension
+            slice_filters (Dict): filters to slice values along a dimension
             add_emulator_error (bool, optional): whether to add in the estimated emulator error. Defaults to True.
             apply_hartlap_correction (bool, optional): whether to correct the covariance matrix with the Hartlap factor
             to ensure the inverse covariance matrix is an unbiased estimator.
 
         Returns:
-            np.array: covariance matrix 
+            np.array: covariance matrix
         """
         covariance = CovarianceMatrix(
             statistics=statistics,
             select_filters=select_filters,
             slice_filters=slice_filters,
         )
-        covariance_data = covariance.get_covariance_data(apply_hartlap_correction=apply_hartlap_correction)
+        covariance_data = covariance.get_covariance_data(
+            apply_hartlap_correction=apply_hartlap_correction
+        )
         if add_emulator_error:
             cov_emulator_error = covariance.get_covariance_emulator_error()
             return covariance_data + cov_emulator_error
         return covariance_data
 
-
     @classmethod
     def get_priors(
         cls, prior_config: Dict[str, Dict], parameters_to_fit: List[str]
     ) -> Dict:
-        """ Initialize priors for a given configuration and a list of parameters to fit
+        """Initialize priors for a given configuration and a list of parameters to fit
 
         Args:
-            prior_config (Dict[str, Dict]): configuration of priors 
-            parameters_to_fit (List[str]): list of parameteters that are being fitted 
+            prior_config (Dict[str, Dict]): configuration of priors
+            parameters_to_fit (List[str]): list of parameteters that are being fitted
 
         Returns:
-            Dict: dictionary with initialized priors 
+            Dict: dictionary with initialized priors
         """
         distributions_module = importlib.import_module(prior_config.pop("stats_module"))
         prior_dict = {}
@@ -231,14 +235,14 @@ class Inference(ABC):
     def get_theory_model(
         cls,
         theory_config: Dict,
-    )->"Summary":
-        """ Get theory model
+    ) -> "Summary":
+        """Get theory model
 
         Args:
-            theory_config (Dict): configuration for theory model, both module and class 
+            theory_config (Dict): configuration for theory model, both module and class
 
         Returns:
-            Summary: summary to fit 
+            Summary: summary to fit
         """
         module = theory_config.pop("module")
         class_name = theory_config.pop("class")
@@ -255,26 +259,31 @@ class Inference(ABC):
     ):
         pass
 
-    def invert_covariance(self, covariance_matrix: np.array,)->np.array:
-        """ invert covariance matrix
+    def invert_covariance(
+        self,
+        covariance_matrix: np.array,
+    ) -> np.array:
+        """invert covariance matrix
 
         Args:
-            covariance_matrix (np.array): covariance matrix to invert 
+            covariance_matrix (np.array): covariance matrix to invert
 
         Returns:
-            np.array: inverse covariance 
+            np.array: inverse covariance
         """
         return np.linalg.inv(covariance_matrix)
 
-    def initialize_distribution(cls, distributions_module, dist_param: Dict[str, float]):
-        """Initialize a given prior distribution fromt he distributions_module 
+    def initialize_distribution(
+        cls, distributions_module, dist_param: Dict[str, float]
+    ):
+        """Initialize a given prior distribution fromt he distributions_module
 
         Args:
-            distributions_module : module form which to import distributions 
-            dist_param (Dict[str, float]): parameters of the distributions 
+            distributions_module : module form which to import distributions
+            dist_param (Dict[str, float]): parameters of the distributions
 
         Returns:
-            prior distirbution 
+            prior distirbution
         """
         if dist_param["distribution"] == "uniform":
             max_uniform = dist_param.pop("max")
@@ -292,14 +301,14 @@ class Inference(ABC):
     def get_loglikelihood_for_prediction(
         self,
         prediction: np.array,
-    )->float:
-        """ Get gaussian loglikelihood for prediction
+    ) -> float:
+        """Get gaussian loglikelihood for prediction
 
         Args:
-            prediction (np.array): model prediction 
+            prediction (np.array): model prediction
 
         Returns:
-            float: log likelihood 
+            float: log likelihood
         """
         diff = prediction - self.observation
         return -0.5 * diff @ self.inverse_covariance_matrix @ diff
@@ -307,11 +316,11 @@ class Inference(ABC):
     def get_loglikelihood_for_prediction_vectorized(
         self,
         prediction: np.array,
-    )->np.array:
-        """ Get vectorized loglikelihood prediction
+    ) -> np.array:
+        """Get vectorized loglikelihood prediction
 
         Args:
-            prediction (np.array): prediciton in batches 
+            prediction (np.array): prediciton in batches
 
         Returns:
             np.array: array of likelihoods
@@ -322,11 +331,11 @@ class Inference(ABC):
 
     def sample_from_prior(
         self,
-    )->Tuple:
-        """ Sample predictions from prior
+    ) -> Tuple:
+        """Sample predictions from prior
 
         Returns:
-            Tuple: tuple of parameters and theory model predictions 
+            Tuple: tuple of parameters and theory model predictions
         """
         params = {}
         for param, dist in self.priors.items():
@@ -340,14 +349,14 @@ class Inference(ABC):
     def get_model_prediction(
         self,
         parameters: np.array,
-    )->np.array:
-        """ Get model prediction for a given set of input parameters
+    ) -> np.array:
+        """Get model prediction for a given set of input parameters
 
         Args:
-            parameters (np.array): input parameters 
+            parameters (np.array): input parameters
 
         Returns:
-            np.array: model prediction 
+            np.array: model prediction
         """
         params = dict(zip(list(self.priors.keys()), parameters))
         for i, fixed_param in enumerate(self.fixed_parameters.keys()):
@@ -361,14 +370,14 @@ class Inference(ABC):
     def get_model_prediction_vectorized(
         self,
         parameters: np.array,
-    )->np.array:
-        """ get vectorized model predictions
+    ) -> np.array:
+        """get vectorized model predictions
 
         Args:
-            parameters (np.array): input parameters 
+            parameters (np.array): input parameters
 
         Returns:
-            np.array: model predictions in batches 
+            np.array: model predictions in batches
         """
         params = {}
         for i, param in enumerate(self.priors.keys()):
