@@ -43,6 +43,7 @@ class CovarianceMatrix:
     def get_covariance_data(
         self,
         apply_hartlap_correction: bool = True,
+        fractional: bool = False,
     ) -> np.array:
         """Get the covariance matrix of the data for the specified summary statistics
 
@@ -65,6 +66,8 @@ class CovarianceMatrix:
             hartlap_factor = (n_mocks - 1) / (n_mocks - n_bins - 2)
         else:
             hartlap_factor = 1.
+        if fractional:
+            return hartlap_factor * np.cov(summaries / np.mean(summaries, axis=0), rowvar=False)
         return hartlap_factor * np.cov(summaries, rowvar=False) 
 
     def get_true_test(
@@ -147,6 +150,7 @@ class CovarianceMatrix:
 
     def get_covariance_emulator_error(
         self,
+        fractional: bool = False,
     ) -> np.array:
         """Estimate the emulator's error on the test set
 
@@ -158,6 +162,8 @@ class CovarianceMatrix:
         xi_test = self.get_true_test(test_cosmologies=test_cosmologies)
         inputs = self.get_inputs_test(test_cosmologies=test_cosmologies)
         xi_model = self.get_emulator_predictions(inputs=inputs)
+        if fractional:
+            return np.cov((xi_model - xi_test)/xi_test, rowvar=False)
         return np.cov(xi_model - xi_test, rowvar=False)
 
 
