@@ -42,6 +42,7 @@ class CovarianceMatrix:
 
     def get_covariance_data(
         self,
+        apply_hartlap_correction: bool = True,
     ) -> np.array:
         """Get the covariance matrix of the data for the specified summary statistics
 
@@ -58,7 +59,13 @@ class CovarianceMatrix:
             summary = np.array(summary.values).reshape((len(summary['phases']),-1))
             summaries.append(summary)
         summaries = np.hstack(summaries)
-        return np.cov(summaries, rowvar=False)
+        if apply_hartlap_correction:
+            n_mocks = len(summaries)
+            n_bins = summaries.shape[-1]
+            hartlap_factor = (n_mocks - 1) / (n_mocks - n_bins - 2)
+        else:
+            hartlap_factor = 1.
+        return hartlap_factor * np.cov(summaries, rowvar=False) 
 
     def get_true_test(
         self,
@@ -151,7 +158,6 @@ class CovarianceMatrix:
         xi_test = self.get_true_test(test_cosmologies=test_cosmologies)
         inputs = self.get_inputs_test(test_cosmologies=test_cosmologies)
         xi_model = self.get_emulator_predictions(inputs=inputs)
-        #xi_model = xi_model.reshape((xi_model.shape[0],-1))
         return np.cov(xi_model - xi_test, rowvar=False)
 
 

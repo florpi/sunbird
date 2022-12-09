@@ -2,15 +2,11 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 import importlib
 import numpy as np
-import pandas as pd
 import yaml
-import matplotlib.pyplot as plt
-from typing import Dict, Optional, List
-import xarray as xr
+from typing import Dict, List, Tuple
 from sunbird.models import Predictor
-from sunbird.covariance import CovarianceMatrix, normalize_cov
+from sunbird.covariance import CovarianceMatrix 
 from sunbird.abacus_utils.read_statistics import read_statistic, read_parameters
-import sys
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/different_hods/"
 
@@ -93,14 +89,11 @@ class Inference(ABC):
         fixed_parameters = {}
         for k in config["fixed_parameters"]:
             fixed_parameters[k] = parameters[k]
-        covariance = CovarianceMatrix(
+        covariance_matrix = cls.get_covariance_matrix(
             statistics=config["data"]["summaries"],
             select_filters=select_filters,
             slice_filters=slice_filters,
         )
-        cov_data = covariance.get_covariance_data()
-        cov_emulator_error = covariance.get_covariance_emulator_error()
-        covariance_matrix = cov_data + cov_emulator_error
         theory_model = cls.get_theory_model(
             config["theory_model"],
         )
@@ -166,7 +159,16 @@ class Inference(ABC):
         cls,
         cosmology: int,
         hod_idx: int,
-    ):
+    )->Dict[str, float]:
+        """ Read the parameters of an abacus summit simmulation
+
+        Args:
+            cosmology (int): cosmology model to read 
+            hod_idx (int): idx of the hod 
+
+        Returns:
+            Dict: dictionary of parameters describing a simulation
+        """
         return (
             read_parameters(
                 cosmology=cosmology,
@@ -177,9 +179,45 @@ class Inference(ABC):
         )
 
     @classmethod
+    def get_covariance_matrix(cls, statistics: List[str], select_filters: Dict, slice_filters: Dict, add_emulator_error: bool =True, apply_hartlap_correction=True,)->np.array:
+        """ Compute covariance matrix for a list of statistics
+
+        Args:
+            statistics (List[str]): list of statistics 
+            select_filters (Dict): filters to select values along a dimension 
+            slice_filters (Dict): filters to slice values along a dimension 
+            add_emulator_error (bool, optional): whether to add in the estimated emulator error. Defaults to True.
+            apply_hartlap_correction (bool, optional): whether to correct the covariance matrix with the Hartlap factor
+            to ensure the inverse covariance matrix is an unbiased estimator.
+
+        Returns:
+            np.array: covariance matrix 
+        """
+        covariance = CovarianceMatrix(
+            statistics=statistics,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+        )
+        covariance_data = covariance.get_covariance_data(apply_hartlap_correction=apply_hartlap_correction)
+        if add_emulator_error:
+            cov_emulator_error = covariance.get_covariance_emulator_error()
+            return covariance_data + cov_emulator_error
+        return covariance_data
+
+
+    @classmethod
     def get_priors(
         cls, prior_config: Dict[str, Dict], parameters_to_fit: List[str]
     ) -> Dict:
+        """ Initialize priors for a given configuration and a list of parameters to fit
+
+        Args:
+            prior_config (Dict[str, Dict]): configuration of priors 
+            parameters_to_fit (List[str]): list of parameteters that are being fitted 
+
+        Returns:
+            Dict: dictionary with initialized priors 
+        """
         distributions_module = importlib.import_module(prior_config.pop("stats_module"))
         prior_dict = {}
         for param in parameters_to_fit:
@@ -190,25 +228,18 @@ class Inference(ABC):
         return prior_dict
 
     @classmethod
-    def get_covariance_data(cls, path_to_cov, s_min: float, quintiles):
-        data = np.load(path_to_cov, allow_pickle=True).item()
-        s = data["s"]
-        multipoles = []
-        if quintiles is not None:
-            for q in quintiles:
-                multipoles.append(data["multipoles"][:, q, 0][:, s > s_min])
-        else:
-            multipoles.append(data["multipoles"][:, 0][:, s > s_min])
-        multipoles = np.array(multipoles)
-        multipoles = np.transpose(multipoles, axes=(1, 0, 2))
-        multipoles = multipoles.reshape((len(multipoles), -1))
-        return np.cov(multipoles.T)
-
-    @classmethod
     def get_theory_model(
         cls,
-        theory_config,
-    ):
+        theory_config: Dict,
+    )->"Summary":
+        """ Get theory model
+
+        Args:
+            theory_config (Dict): configuration for theory model, both module and class 
+
+        Returns:
+            Summary: summary to fit 
+        """
         module = theory_config.pop("module")
         class_name = theory_config.pop("class")
         module = getattr(importlib.import_module(module), class_name)
@@ -224,12 +255,27 @@ class Inference(ABC):
     ):
         pass
 
-    def invert_covariance(self, covariance_matrix, n_mocks_covariance=1000):
-        # TODO: Move n_mocks_covariance to config file
-        # hartlap_factor =  (n_mocks_covariance - 1) / (n_mocks_covariance - len(covariance_matrix) - 2)
-        return np.linalg.inv(covariance_matrix)  # * hartlap_factor)
+    def invert_covariance(self, covariance_matrix: np.array,)->np.array:
+        """ invert covariance matrix
 
-    def initialize_distribution(cls, distributions_module, dist_param):
+        Args:
+            covariance_matrix (np.array): covariance matrix to invert 
+
+        Returns:
+            np.array: inverse covariance 
+        """
+        return np.linalg.inv(covariance_matrix)
+
+    def initialize_distribution(cls, distributions_module, dist_param: Dict[str, float]):
+        """Initialize a given prior distribution fromt he distributions_module 
+
+        Args:
+            distributions_module : module form which to import distributions 
+            dist_param (Dict[str, float]): parameters of the distributions 
+
+        Returns:
+            prior distirbution 
+        """
         if dist_param["distribution"] == "uniform":
             max_uniform = dist_param.pop("max")
             min_uniform = dist_param.pop("min")
@@ -245,22 +291,43 @@ class Inference(ABC):
 
     def get_loglikelihood_for_prediction(
         self,
-        prediction,
-    ):
+        prediction: np.array,
+    )->float:
+        """ Get gaussian loglikelihood for prediction
+
+        Args:
+            prediction (np.array): model prediction 
+
+        Returns:
+            float: log likelihood 
+        """
         diff = prediction - self.observation
         return -0.5 * diff @ self.inverse_covariance_matrix @ diff
 
     def get_loglikelihood_for_prediction_vectorized(
         self,
-        prediction,
-    ):
+        prediction: np.array,
+    )->np.array:
+        """ Get vectorized loglikelihood prediction
+
+        Args:
+            prediction (np.array): prediciton in batches 
+
+        Returns:
+            np.array: array of likelihoods
+        """
         diff = prediction - self.observation
         right = np.einsum("ik,...k", self.inverse_covariance_matrix, diff)
         return -0.5 * np.einsum("ki,ji", diff, right)[:, 0]
 
     def sample_from_prior(
         self,
-    ):
+    )->Tuple:
+        """ Sample predictions from prior
+
+        Returns:
+            Tuple: tuple of parameters and theory model predictions 
+        """
         params = {}
         for param, dist in self.priors.items():
             params[param] = dist.rvs()
@@ -272,8 +339,16 @@ class Inference(ABC):
 
     def get_model_prediction(
         self,
-        parameters,
-    ):
+        parameters: np.array,
+    )->np.array:
+        """ Get model prediction for a given set of input parameters
+
+        Args:
+            parameters (np.array): input parameters 
+
+        Returns:
+            np.array: model prediction 
+        """
         params = dict(zip(list(self.priors.keys()), parameters))
         for i, fixed_param in enumerate(self.fixed_parameters.keys()):
             params[fixed_param] = self.fixed_parameters[fixed_param]
@@ -285,8 +360,16 @@ class Inference(ABC):
 
     def get_model_prediction_vectorized(
         self,
-        parameters,
-    ):
+        parameters: np.array,
+    )->np.array:
+        """ get vectorized model predictions
+
+        Args:
+            parameters (np.array): input parameters 
+
+        Returns:
+            np.array: model predictions in batches 
+        """
         params = {}
         for i, param in enumerate(self.priors.keys()):
             params[param] = parameters[:, i]
