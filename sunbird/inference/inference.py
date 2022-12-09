@@ -56,8 +56,11 @@ class Inference(ABC):
         """
         with open(path_to_config, "r") as f:
             config = yaml.safe_load(f)
-        return cls.from_abacus_config_dict(config=config, device=device)
+        return cls.from_abacus_config_dict(
+            config=config, device=device,
+        )
 
+    @classmethod
     def from_abacus_config_dict(cls, config: Dict, device: str = "cpu"):
         """Use dictionary config to fit one of the abacus summit
         simulations
