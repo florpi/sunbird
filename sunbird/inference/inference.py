@@ -7,7 +7,7 @@ from typing import Dict, List, Tuple
 from sunbird.covariance import CovarianceMatrix
 from sunbird.abacus_utils.read_statistics import read_statistic, read_parameters
 
-DATA_PATH = Path(__file__).parent.parent.parent / "data/different_hods/"
+DATA_PATH = Path(__file__).parent.parent.parent / "data/different_hods_linsigma/"
 
 
 class Inference(ABC):
@@ -144,7 +144,7 @@ class Inference(ABC):
                 read_statistic(
                     statistic=statistic,
                     cosmology=cosmology,
-                    dataset="different_hods",
+                    dataset="different_hods_linsigma",
                     select_filters=select_filters,
                     slice_filters=slice_filters,
                 )
@@ -171,7 +171,7 @@ class Inference(ABC):
         return (
             read_parameters(
                 cosmology=cosmology,
-                dataset="different_hods",
+                dataset="different_hods_linsigma",
             )
             .iloc[hod_idx]
             .to_dict()
@@ -207,6 +207,7 @@ class Inference(ABC):
         covariance_data = covariance.get_covariance_data(
             apply_hartlap_correction=apply_hartlap_correction
         )
+        covariance_data = covariance_data
         if add_emulator_error:
             cov_emulator_error = covariance.get_covariance_emulator_error()
             return covariance_data + cov_emulator_error
@@ -364,6 +365,11 @@ class Inference(ABC):
         params = dict(zip(list(self.priors.keys()), parameters))
         for i, fixed_param in enumerate(self.fixed_parameters.keys()):
             params[fixed_param] = self.fixed_parameters[fixed_param]
+        model = self.theory_model(
+            params,
+            select_filters=self.select_filters,
+            slice_filters=self.slice_filters,
+        )
         return self.theory_model(
             params,
             select_filters=self.select_filters,

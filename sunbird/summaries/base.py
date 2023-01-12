@@ -2,6 +2,7 @@ import numpy as np
 from typing import Optional, List
 import torch
 from pathlib import Path
+from matplotlib import pyplot as plt
 
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
@@ -28,7 +29,7 @@ class BaseSummary:
             "alpha",
             "alpha_s",
             "alpha_c",
-            "logsigma",
+            "sigma",
             "kappa",
         ]
 
