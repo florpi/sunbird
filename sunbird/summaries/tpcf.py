@@ -1,9 +1,11 @@
 from pathlib import Path
 from sunbird.models.predictor import Predictor
 from sunbird.summaries.base import BaseSummary
+import numpy as np
+import matplotlib.pyplot as plt
 
 DEFAULT_PATH = (
-    Path(__file__).parent.parent.parent / "trained_models/best/tpcf/"
+    Path(__file__).parent.parent.parent / "trained_models/enrique/tpcf/"
 )
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
@@ -33,6 +35,6 @@ class TPCF(BaseSummary):
         if select_filters is not None:
             if "multipoles" in select_filters:
                 multipoles = select_filters["multipoles"]
-                output = output.reshape((2, -1, output.shape[-1] // 2))
-                output = output[multipoles].reshape(-1)
+                output = output.reshape(-1, 2, output.shape[-1] // 2)
+                output = output[:, multipoles].reshape(-1)
         return output

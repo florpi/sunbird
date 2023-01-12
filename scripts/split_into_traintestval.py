@@ -5,9 +5,8 @@ import random
 
 dataset = 'different_hods'
 
-n_derivative_grid = 27
-derivative_grid = list(np.arange(100,100 + n_derivative_grid))
-lhc_grid = list(np.arange(130,181))
+derivative_grid = list(range(100, 127))
+lhc_grid = list(range(130, 182)) + list(range(0, 5)) + list(range(13, 14))
 percent_val = 0.1
 percent_test = 0.1
 random.shuffle(lhc_grid)
