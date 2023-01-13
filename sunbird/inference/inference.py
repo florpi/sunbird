@@ -5,9 +5,12 @@ import numpy as np
 import yaml
 from typing import Dict, List, Tuple
 from sunbird.covariance import CovarianceMatrix
-from sunbird.abacus_utils.read_statistics import read_statistic, read_parameters
-
-DATA_PATH = Path(__file__).parent.parent.parent / "data/different_hods_linsigma/"
+from sunbird.read_utils.read_statistics import (
+    read_statistic_abacus, read_parameters_abacus,
+    read_statistic_patchy, read_parameters_patchy
+)
+import sys
+import matplotlib.pyplot as plt
 
 
 class Inference(ABC):
@@ -61,6 +64,28 @@ class Inference(ABC):
         )
 
     @classmethod
+    def from_patchy_config(
+        cls,
+        path_to_config: Path,
+        device: str = "cpu",
+    ) -> "Inference":
+        """Read from config file to fit one of the BOSS Patchy
+        mocks
+
+        Args:
+            path_to_config (Path): path to configuration file
+            device (str, optional): device to use to run model. Defaults to "cpu".
+
+        Returns:
+            Inference: inference object
+        """
+        with open(path_to_config, "r") as f:
+            config = yaml.safe_load(f)
+        return cls.from_patchy_config_dict(
+            config=config, device=device,
+        )
+
+    @classmethod
     def from_abacus_config_dict(cls, config: Dict, device: str = "cpu"):
         """Use dictionary config to fit one of the abacus summit
         simulations
@@ -84,6 +109,55 @@ class Inference(ABC):
         parameters = cls.get_parameters_for_abacus(
             cosmology=config["data"]["cosmology"],
             hod_idx=config["data"]["hod_idx"],
+        )
+        fixed_parameters = {}
+        for k in config["fixed_parameters"]:
+            fixed_parameters[k] = parameters[k]
+        covariance_matrix = cls.get_covariance_matrix(
+            statistics=config["data"]["summaries"],
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+        )
+        theory_model = cls.get_theory_model(
+            config["theory_model"],
+        )
+        parameters_to_fit = [
+            p for p in theory_model.parameters if p not in fixed_parameters.keys()
+        ]
+        priors = cls.get_priors(config["priors"], parameters_to_fit)
+        return cls(
+            theory_model=theory_model,
+            observation=observation,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            covariance_matrix=covariance_matrix,
+            fixed_parameters=fixed_parameters,
+            priors=priors,
+            output_dir=config["inference"]["output_dir"],
+            device=device,
+        )
+
+    @classmethod
+    def from_patchy_config_dict(cls, config: Dict, device: str = "cpu"):
+        """Use dictionary config to fit one of the abacus summit
+        simulations
+
+        Args:
+            config (Dict): dictionary with configuration
+            device (str, optional): device to use to run model. Defaults to "cpu".
+
+        Returns:
+            Inference: inference object
+        """
+        select_filters = config["select_filters"]
+        slice_filters = config["slice_filters"]
+        observation = cls.get_observation_for_patchy(
+            phase=config["data"]["phase"],
+            statistics=config["data"]["summaries"],
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+        )
+        parameters = cls.get_parameters_for_patchy(
         )
         fixed_parameters = {}
         for k in config["fixed_parameters"]:
@@ -141,7 +215,7 @@ class Inference(ABC):
         observation = []
         for statistic in statistics:
             observation.append(
-                read_statistic(
+                read_statistic_abacus(
                     statistic=statistic,
                     cosmology=cosmology,
                     dataset="different_hods_linsigma",
@@ -152,6 +226,77 @@ class Inference(ABC):
                 .reshape(-1)
             )
         return np.hstack(observation)
+
+    @classmethod
+    def get_observation_for_patchy(
+        cls,
+        phase: int,
+        statistics: List[str],
+        select_filters: Dict,
+        slice_filters: Dict,
+    ) -> np.array:
+        """Use one of the phases (realizations) from the BOSS Patchy
+        simulations as a mock observation.
+
+        Args:
+            phase (int): id of the Patchy mock realization
+            statistics (str): list of statistics to use (the statistic has
+            to be one of either tpcf, density_split_auto or density_split_cross)
+            select_filters (Dict): dictionary with filters to select values
+            across a particular dimension
+            slice_filters (Dict): dictionary with filters to slice values across
+            a particular dimension
+
+        Returns:
+            np.array: array with observations
+        """
+        observation = []
+        for statistic in statistics:
+            observation.append(
+                (read_statistic_patchy(
+                    statistic=statistic,
+                    select_filters=select_filters,
+                    slice_filters=slice_filters,
+                )
+                .values)[phase]#.mean(axis=0)
+                .reshape(-1)
+            )
+        return np.hstack(observation)
+
+    @classmethod
+    def get_observation_for_patchy_mean(
+        cls,
+        statistics: List[str],
+        select_filters: Dict,
+        slice_filters: Dict,
+    ) -> np.array:
+        """Use the mean of the MD-Patchy mocks (averaged across all
+        realizations) as a mock observation.
+
+        Args:
+            statistics (str): list of statistics to use (the statistic has
+            to be one of either tpcf, density_split_auto or density_split_cross)
+            select_filters (Dict): dictionary with filters to select values
+            across a particular dimension
+            slice_filters (Dict): dictionary with filters to slice values across
+            a particular dimension
+
+        Returns:
+            np.array: array with observations
+        """
+        observation = []
+        for statistic in statistics:
+            observation.append(
+                (read_statistic_patchy(
+                    statistic=statistic,
+                    select_filters=select_filters,
+                    slice_filters=slice_filters,
+                )
+                .values).mean(axis=0)
+                .reshape(-1)
+            )
+        return np.hstack(observation)
+
 
     @classmethod
     def get_parameters_for_abacus(
@@ -169,11 +314,27 @@ class Inference(ABC):
             Dict: dictionary of parameters describing a simulation
         """
         return (
-            read_parameters(
+            read_parameters_abacus(
                 cosmology=cosmology,
                 dataset="different_hods_linsigma",
             )
             .iloc[hod_idx]
+            .to_dict()
+        )
+
+    @classmethod
+    def get_parameters_for_patchy(
+        cls,
+    ) -> Dict[str, float]:
+        """Read the parameters of the BOSS Patchy mocks
+
+        Returns:
+            Dict: dictionary of parameters describing a simulation
+        """
+        return (
+            read_parameters_patchy(
+            )
+            .iloc[0]
             .to_dict()
         )
 
