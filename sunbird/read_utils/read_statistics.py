@@ -129,7 +129,7 @@ def read_statistics_for_covariance(
     else:
         raise ValueError(f'{statistic} is not implemented!')
 
-def read_statistic(
+def read_statistic_abacus(
         statistic,
         cosmology,
         dataset,
@@ -160,8 +160,42 @@ def read_statistic(
     else:
         raise ValueError(f'{statistic} is not implemented!')
 
+def read_statistic_patchy(
+        statistic,
+        select_filters=None,
+        slice_filters=None,
+    ):
+    if statistic == 'density_split_auto':
+       return read_ds_statistic(
+        path_to_file = DATA_PATH / f"clustering/patchy/ds/gaussian/ds_auto_xi_smu_zsplit_gaussian_Rs10_landyszalay_randomsX50.npy",
+        select_filters=select_filters,
+        slice_filters=slice_filters,
+        avg_los=False,
+    ) 
+    elif statistic == 'density_split_cross':
+       return read_ds_statistic(
+        path_to_file = DATA_PATH / f"clustering/patchy/ds/gaussian/ds_cross_xi_smu_zsplit_gaussian_Rs10_landyszalay_randomsX50.npy",
+        select_filters=select_filters,
+        slice_filters=slice_filters,
+        avg_los=False,
+    ) 
+    elif statistic == 'tpcf':
+        return read_tpcf_statistic(
+            path_to_file = DATA_PATH / f"clustering/patchy/xi_smu/xi_smu_landyszalay_randomsX50.npy",
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            avg_los=False,
+        )
+    else:
+        raise ValueError(f'{statistic} is not implemented!')
 
-def read_parameters(cosmology: int, dataset: str):
+
+def read_parameters_abacus(cosmology: int, dataset: str):
     return pd.read_csv(
         DATA_PATH / f"parameters/{dataset}/AbacusSummit_c{str(cosmology).zfill(3)}_hod1000.csv"
+    )
+
+def read_parameters_patchy():
+    return pd.read_csv(
+        DATA_PATH / f"parameters/patchy/patchy.csv"
     )
