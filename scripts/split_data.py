@@ -128,7 +128,7 @@ if __name__ == "__main__":
     quintiles = [0, 1, 3, 4]
     filter_type = "gaussian"
     corr_types = ["auto", "cross"]
-    dataset = "different_hods"
+    dataset = "different_hods_linsigma"
     with open("../data/train_test_split.json") as f:
         train_test_split = json.load(f)
     train_params = read_params_for_stage(train_test_split["train"], dataset=dataset)
