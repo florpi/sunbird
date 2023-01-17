@@ -1,5 +1,5 @@
 slice_filters:
-    s: [0.7,150.]
+    s: [20.,150.]
 select_filters:
     multipoles: [0,1]
 
@@ -15,7 +15,7 @@ theory_model:
     class: 'TPCF'
 
 inference:
-    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/tpcf/'
+    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/tpcf_smin20_no_emu_error/'
 
 priors:
     stats_module: 'scipy.stats'
