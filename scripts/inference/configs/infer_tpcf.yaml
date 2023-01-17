@@ -1,29 +1,31 @@
+
 slice_filters:
-    s: [0.7,150.]
+    s: [0.7, 151.]
 select_filters:
-    multipoles: [0,1]
+    multipoles: [0, 1]
 
 data:
-    cosmology: 0
+    cosmology: 13
     hod_idx: 0
     summaries: ['tpcf']
 
-fixed_parameters: ['nrun', 'N_ur', 'w0_fld', 'wa_fld']
+fixed_parameters: ['nrun', 'N_ur', 'w0_fld', 'wa_fld', 'alpha_c', 'alpha_s']
 
 theory_model:
-    module: 'sunbird.summaries.tpcf'
+    module: 'sunbird.summaries'
     class: 'TPCF'
 
 inference:
-    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/tpcf/'
+    output_dir: 'dynesty_results/'
 
 priors:
     stats_module: 'scipy.stats'
     omega_b:
-        distribution: 'uniform'
-        min: 0.0209
-        max: 0.0243
-
+        distribution: 'norm'
+        # min: 0.0209
+        # max: 0.0243
+        mean: 0.02268
+        dispersion: 0.00038
     omega_cdm:
         distribution: 'uniform'
         min: 0.1032
@@ -82,11 +84,10 @@ priors:
         min: 0.
         max: 0.5
 
-    logsigma:
+    sigma:
         distribution: 'uniform'
-        min: -3.
-        max: 0.
-
+        min: 0.001
+        max: 1
     kappa:
         distribution: 'uniform'
         min: 0.
