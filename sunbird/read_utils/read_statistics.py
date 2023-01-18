@@ -122,7 +122,7 @@ def read_statistics_for_covariance(
     ) 
     elif statistic == 'tpcf':
         return read_tpcf_statistic(
-            path_to_file = DATA_PATH / f"covariance/xi_smu/xi_smu_landyszalay_randomsX50.npy",
+            path_to_file = DATA_PATH / f"covariance/xi_smu/xi_smu_patchy_ngc_landyszalay_z0.46-0.6.npy",
             select_filters=select_filters,
             slice_filters=slice_filters,
         )
@@ -181,7 +181,7 @@ def read_statistic_patchy(
     ) 
     elif statistic == 'tpcf':
         return read_tpcf_statistic(
-            path_to_file = DATA_PATH / f"clustering/patchy/xi_smu/xi_smu_landyszalay_randomsX50.npy",
+            path_to_file = DATA_PATH / f"clustering/patchy/xi_smu/xi_smu_patchy_ngc_landyszalay_z0.46-0.6.npy",
             select_filters=select_filters,
             slice_filters=slice_filters,
             avg_los=False,
@@ -189,6 +189,34 @@ def read_statistic_patchy(
     else:
         raise ValueError(f'{statistic} is not implemented!')
 
+def read_statistic_cmasslowz(
+        statistic,
+        select_filters=None,
+        slice_filters=None,
+    ):
+    if statistic == 'density_split_auto':
+       return read_ds_statistic(
+           path_to_file = DATA_PATH / f"clustering/cmasslowz/ds/gaussian/ds_auto_xi_smu_zsplit_gaussian_Rs10_cmasslowztot_ngc_landyszalay.npy",
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            avg_los=False,
+        ) 
+    elif statistic == 'density_split_cross':
+       return read_ds_statistic(
+           path_to_file = DATA_PATH / f"clustering/cmasslowz/ds/gaussian/ds_cross_xi_smu_zsplit_gaussian_Rs10_cmasslowztot_ngc_landyszalay.npy",
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            avg_los=False,
+        ) 
+    elif statistic == 'tpcf':
+        return read_tpcf_statistic(
+            path_to_file = DATA_PATH / f"clustering/cmasslowz/xi_smu/xi_smu_cmasslowztot_ngc_landyszalay_z0.46-0.6.npy",
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            avg_los=False,
+        )
+    else:
+        raise ValueError(f'{statistic} is not implemented!')
 
 def read_parameters_abacus(cosmology: int, dataset: str):
     return pd.read_csv(
