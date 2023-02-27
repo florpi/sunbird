@@ -1,16 +1,10 @@
 import numpy as np
 import json
-import sys
 from pathlib import Path
 from typing import List, Dict
 
-# import xarray as xr
 import torch
-from sunbird.abacus_utils.read_statistics import (
-    read_statistics_for_covariance,
-    read_statistic,
-    read_parameters,
-)
+from sunbird.read_utils import data_utils
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
@@ -21,6 +15,8 @@ class CovarianceMatrix:
         statistics: List[str],
         slice_filters: Dict,
         select_filters: Dict,
+        covariance_data_class: str = 'Patchy',
+        emulator_data_class: str = 'Abacus',
     ):
         """Compute a covariance matrix for a list of statistics and filters in any
         dimension
@@ -30,6 +26,17 @@ class CovarianceMatrix:
             slice_filters (Dict): dictionary with slice filters on given coordinates
             select_filters (Dict): dictionary with select filters on given coordinates
         """
+        self.covariance_data_class = getattr(data_utils, covariance_data_class)(
+            statistics=statistics,
+            slice_filters=slice_filters,
+            select_filters=select_filters,
+        )
+        self.emulator_data = getattr(data_utils, emulator_data_class)(
+            dataset="different_hods_linsigma",
+            statistics=statistics,
+            slice_filters=slice_filters,
+            select_filters=select_filters,
+        )
         self.statistics = statistics
         self.slice_filters = slice_filters
         self.select_filters = select_filters
@@ -37,52 +44,15 @@ class CovarianceMatrix:
     def get_covariance_data(
         self,
         apply_hartlap_correction: bool = True,
-        fractional: bool = False,
     ) -> np.array:
         """Get the covariance matrix of the data for the specified summary statistics
 
         Returns:
             np.array: covariance matrix of the data
         """
-        summaries = []
-        for statistic in self.statistics:
-            summary = read_statistics_for_covariance(
-                statistic=statistic,
-                select_filters=self.select_filters,
-                slice_filters=self.slice_filters,
-            )
-            summary = np.array(summary.values).reshape((len(summary['phases']),-1))
-            summaries.append(summary)
-        summaries = np.hstack(summaries)
-        if apply_hartlap_correction:
-            n_mocks = len(summaries)
-            n_bins = summaries.shape[-1]
-            hartlap_factor = (n_mocks - 1) / (n_mocks - n_bins - 2)
-        else:
-            hartlap_factor = 1.
-        if fractional:
-            return hartlap_factor * np.cov(summaries / np.mean(summaries, axis=0), rowvar=False)
-        return hartlap_factor * np.cov(summaries, rowvar=False) 
-
-    def get_data_for_covariance(
-        self,
-    ) -> np.array:
-        """Get the covariance matrix of the data for the specified summary statistics
-
-        Returns:
-            np.array: covariance matrix of the data
-        """
-        summaries = []
-        for statistic in self.statistics:
-            summary = read_statistics_for_covariance(
-                statistic=statistic,
-                select_filters=self.select_filters,
-                slice_filters=self.slice_filters,
-            )
-            summary = np.array(summary.values).reshape((len(summary['phases']),-1))
-            summaries.append(summary)
-        summaries = np.hstack(summaries)
-        return summaries
+        return self.covariance_data_class.get_covariance(
+            apply_hartlap_correction=apply_hartlap_correction,
+        )
 
     def get_true_test(
         self,
@@ -101,12 +71,10 @@ class CovarianceMatrix:
         for statistic in self.statistics:
             xi_test = []
             for cosmology in test_cosmologies:
-                xi = read_statistic(
+                xi = self.emulator_data.read_statistic(
                         statistic=statistic,
                         cosmology=cosmology,
-                        dataset="different_hods_linsigma",
-                        select_filters=self.select_filters,
-                        slice_filters=self.slice_filters,
+                        phase=0,
                     ).values
                 xi_test.append(xi.reshape(xi.shape[0], -1))
             xi_test = np.asarray(xi_test)
@@ -129,8 +97,8 @@ class CovarianceMatrix:
         inputs = []
         for cosmology in test_cosmologies:
             inputs.append(
-                read_parameters(
-                    cosmology=cosmology, dataset="different_hods_linsigma"
+                self.emulator_data.get_all_parameters(
+                    cosmology=cosmology, 
                 ).to_numpy()
             )
         inputs = np.array(inputs)
@@ -156,6 +124,8 @@ class CovarianceMatrix:
                 "tpcf": TPCF(),
             }
         inputs = torch.tensor(inputs, dtype=torch.float32)
+        print('inputs')
+        print(inputs.shape)
         xi_model = []
         for statistic in self.statistics:
             xi_model.append(
@@ -166,7 +136,7 @@ class CovarianceMatrix:
                 ),
             )
         xi_model = np.hstack(xi_model)
-        return np.squeeze(np.array(xi_model))#.swapaxes(0,1)
+        return np.squeeze(np.array(xi_model))
 
     def get_covariance_emulator_error(
         self,

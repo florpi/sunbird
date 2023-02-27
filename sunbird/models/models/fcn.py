@@ -20,10 +20,7 @@ class FCN(BaseModel):
         act_fn = nn.SiLU()
         model = []
         for layer in range(n_layers):
-            if layer == 0:
-                n_left = n_input
-            else:
-                n_left = n_hidden
+            n_left = n_input if layer == 0 else n_hidden
             model.append((f"mlp{layer}", nn.Linear(n_left, n_hidden)))
             model.append((f"act{layer}", act_fn))
         model.append((f"mlp{layer+1}", nn.Linear(n_hidden, n_output)))

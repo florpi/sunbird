@@ -434,6 +434,35 @@ class Patchy(Data):
             select_from_coords={"realizations": phase},
             multiple_realizations=True,
         )
+    
+    def get_covariance(
+        self,
+        apply_hartlap_correction: bool = True,
+    )->np.array:
+        """estimate covariance matrix from the different patchy seeds 
+
+        Args:
+            apply_hartlap_correction (bool, optional): whether to apply hartlap correction.
+            Defaults to True.
+
+        Returns:
+            np.array: covariance matrix
+        """
+        summaries = []
+        for statistic in self.statistics:
+            summary = self.read_statistic(
+                statistic=statistic,
+            )
+            summary = np.array(summary.values).reshape((len(summary['realizations']),-1))
+            summaries.append(summary)
+        summaries = np.hstack(summaries)
+        if apply_hartlap_correction:
+            n_mocks = len(summaries)
+            n_bins = summaries.shape[-1]
+            hartlap_factor = (n_mocks - 1) / (n_mocks - n_bins - 2)
+        else:
+            hartlap_factor = 1.
+        return hartlap_factor * np.cov(summaries, rowvar=False) 
 
     def get_parameters_for_observation(
         self,
