@@ -6,18 +6,21 @@ select_filters:
     quintiles: [0,1,3,4,]
     multipoles: [0,1]
 
+statistics: ['density_split_auto', 'density_split_cross']
 data:
-    cosmology: 0
-    hod_idx: 0
-    summaries: ['density_split_auto', 'density_split_cross']
+    observation: 
+        class: 'Abacus'
+        args:
+            cosmology: 0
+            hod_idx: 0
+    covariance:
+        class: 'Patchy'
 
 fixed_parameters: [] #['logM1', 'logM_cut','alpha', 'alpha_s', 'alpha_c', 'kappa', 'sigma'] #'nrun', 'N_ur', 'w0_fld', 'wa_fld', 'alpha_c', 'alpha_s']
 
 theory_model:
     module: 'sunbird.summaries'
     class: 'Bundle'
-    args:
-        summaries: ['density_split_auto', 'density_split_cross']
 
 inference:
     output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/ds_cross_auto'
