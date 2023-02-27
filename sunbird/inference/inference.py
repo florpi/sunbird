@@ -7,10 +7,9 @@ from typing import Dict, List, Tuple
 from sunbird.covariance import CovarianceMatrix
 from sunbird.read_utils.read_statistics import (
     read_statistic_abacus, read_parameters_abacus,
-    read_statistic_patchy, read_parameters_patchy
+    read_statistic_patchy, read_parameters_patchy,
+    read_statistic_uchuu, read_parameters_uchuu,
 )
-import sys
-import matplotlib.pyplot as plt
 
 
 class Inference(ABC):
@@ -86,6 +85,28 @@ class Inference(ABC):
         )
 
     @classmethod
+    def from_uchuu_config(
+        cls,
+        path_to_config: Path,
+        device: str = "cpu",
+    ) -> "Inference":
+        """Read from config file to fit one of the BOSS Patchy
+        mocks
+
+        Args:
+            path_to_config (Path): path to configuration file
+            device (str, optional): device to use to run model. Defaults to "cpu".
+
+        Returns:
+            Inference: inference object
+        """
+        with open(path_to_config, "r") as f:
+            config = yaml.safe_load(f)
+        return cls.from_uchuu_config_dict(
+            config=config, device=device,
+        )
+
+    @classmethod
     def from_abacus_config_dict(cls, config: Dict, device: str = "cpu"):
         """Use dictionary config to fit one of the abacus summit
         simulations
@@ -102,6 +123,7 @@ class Inference(ABC):
         observation = cls.get_observation_for_abacus(
             cosmology=config["data"]["cosmology"],
             hod_idx=config["data"]["hod_idx"],
+            dataset=config['data']['dataset'],
             statistics=config["data"]["summaries"],
             select_filters=select_filters,
             slice_filters=slice_filters,
@@ -109,6 +131,7 @@ class Inference(ABC):
         parameters = cls.get_parameters_for_abacus(
             cosmology=config["data"]["cosmology"],
             hod_idx=config["data"]["hod_idx"],
+            dataset=config['data']['dataset'],
         )
         fixed_parameters = {}
         for k in config["fixed_parameters"]:
@@ -187,6 +210,55 @@ class Inference(ABC):
         )
 
     @classmethod
+    def from_uchuu_config_dict(cls, config: Dict, device: str = "cpu"):
+        """Use dictionary config to fit one of the abacus summit
+        simulations
+
+        Args:
+            config (Dict): dictionary with configuration
+            device (str, optional): device to use to run model. Defaults to "cpu".
+
+        Returns:
+            Inference: inference object
+        """
+        select_filters = config["select_filters"]
+        slice_filters = config["slice_filters"]
+        observation = cls.get_observation_for_uchuu(
+            statistics=config["data"]["summaries"],
+            ranking=config['data']['ranking'],
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+        )
+        parameters = cls.get_parameters_for_uchuu(
+        )
+        fixed_parameters = {}
+        for k in config["fixed_parameters"]:
+            fixed_parameters[k] = parameters[k]
+        covariance_matrix = cls.get_covariance_matrix(
+            statistics=config["data"]["summaries"],
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+        )
+        theory_model = cls.get_theory_model(
+            config["theory_model"],
+        )
+        parameters_to_fit = [
+            p for p in theory_model.parameters if p not in fixed_parameters.keys()
+        ]
+        priors = cls.get_priors(config["priors"], parameters_to_fit)
+        return cls(
+            theory_model=theory_model,
+            observation=observation,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            covariance_matrix=covariance_matrix,
+            fixed_parameters=fixed_parameters,
+            priors=priors,
+            output_dir=config["inference"]["output_dir"],
+            device=device,
+        )
+
+    @classmethod
     def get_observation_for_abacus(
         cls,
         cosmology: int,
@@ -194,6 +266,7 @@ class Inference(ABC):
         statistics: List[str],
         select_filters: Dict,
         slice_filters: Dict,
+        dataset: str = 'different_hods_lingsigma',
     ) -> np.array:
         """Use one of the cosmology boxes from abacus summit
         latin hypercube as a mock observation. Select the hod sample
@@ -218,7 +291,7 @@ class Inference(ABC):
                 read_statistic_abacus(
                     statistic=statistic,
                     cosmology=cosmology,
-                    dataset="different_hods_linsigma",
+                    dataset=dataset,
                     select_filters=select_filters,
                     slice_filters=slice_filters,
                 )
@@ -264,6 +337,43 @@ class Inference(ABC):
         return np.hstack(observation)
 
     @classmethod
+    def get_observation_for_uchuu(
+        cls,
+        statistics: List[str],
+        ranking: str,
+        select_filters: Dict,
+        slice_filters: Dict,
+    ) -> np.array:
+        """Use one of the phases (realizations) from the BOSS Patchy
+        simulations as a mock observation.
+
+        Args:
+            phase (int): id of the Patchy mock realization
+            statistics (str): list of statistics to use (the statistic has
+            to be one of either tpcf, density_split_auto or density_split_cross)
+            select_filters (Dict): dictionary with filters to select values
+            across a particular dimension
+            slice_filters (Dict): dictionary with filters to slice values across
+            a particular dimension
+
+        Returns:
+            np.array: array with observations
+        """
+        observation = []
+        for statistic in statistics:
+            observation.append(
+                (read_statistic_uchuu(
+                    statistic=statistic,
+                    ranking=ranking,
+                    select_filters=select_filters,
+                    slice_filters=slice_filters,
+                )
+                .values)
+                .reshape(-1)
+            )
+        return np.hstack(observation)
+
+    @classmethod
     def get_observation_for_patchy_mean(
         cls,
         statistics: List[str],
@@ -303,6 +413,7 @@ class Inference(ABC):
         cls,
         cosmology: int,
         hod_idx: int,
+        dataset: str,
     ) -> Dict[str, float]:
         """Read the parameters of an abacus summit simmulation
 
@@ -316,7 +427,7 @@ class Inference(ABC):
         return (
             read_parameters_abacus(
                 cosmology=cosmology,
-                dataset="different_hods_linsigma",
+                dataset=dataset,
             )
             .iloc[hod_idx]
             .to_dict()
@@ -333,6 +444,23 @@ class Inference(ABC):
         """
         return (
             read_parameters_patchy(
+            )
+            .iloc[0]
+            .to_dict()
+        )
+
+
+    @classmethod
+    def get_parameters_for_uchuu(
+        cls,
+    ) -> Dict[str, float]:
+        """Read the parameters of the BOSS Patchy mocks
+
+        Returns:
+            Dict: dictionary of parameters describing a simulation
+        """
+        return (
+            read_parameters_uchuu(
             )
             .iloc[0]
             .to_dict()
@@ -526,11 +654,6 @@ class Inference(ABC):
         params = dict(zip(list(self.priors.keys()), parameters))
         for i, fixed_param in enumerate(self.fixed_parameters.keys()):
             params[fixed_param] = self.fixed_parameters[fixed_param]
-        model = self.theory_model(
-            params,
-            select_filters=self.select_filters,
-            slice_filters=self.slice_filters,
-        )
         return self.theory_model(
             params,
             select_filters=self.select_filters,

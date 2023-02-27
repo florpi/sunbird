@@ -36,6 +36,10 @@ def convert_to_summary(
     Returns:
         xr.DataArray: data array summary
     """
+    if select_filters is not None:
+        select_filters = {k: v for k, v in select_filters.items() if k in dimensions.keys()}
+    if slice_filters is not None:
+        slice_filters= {k: v for k, v in slice_filters.items() if k in dimensions.keys()}
     summary = xr.DataArray(
         data,
         dims=list(dimensions.keys()),

@@ -13,7 +13,7 @@ def read_params(cosmo_idx, dataset):
             )
         )
     params = pd.read_csv(
-        f"../data/parameters/{dataset}/AbacusSummit_c{cosmo_idx}_hod1000.csv"
+        f"../data/parameters/{dataset}/AbacusSummit_c{str(cosmo_idx).zfill(3)}_hod1000.csv"
     )
     return params.to_numpy()
 
@@ -31,7 +31,7 @@ def read_tpcf_multipoles(
         return s, np.concatenate((same, different))
 
     data = np.load(
-        f"../data/clustering/{dataset}/xi_smu/xi_smu_c{cosmo_idx}_ph000.npy",
+        f"../data/clustering/{dataset}/xi_smu/xi_smu_c{str(cosmo_idx).zfill(3)}_ph000.npy",
         allow_pickle=True,
     ).item()
     return data["s"], np.mean(data["multipoles"], axis=1)[:, multipole]
@@ -55,7 +55,7 @@ def read_multipoles(
         return s, np.concatenate((same, different))
     else:
         data = np.load(
-            f"../data/clustering/{dataset}/ds/{filter_type}/ds_{corr_type}_xi_smu_zsplit_Rs20_c{cosmo_idx}_ph000.npy",
+            f"../data/clustering/{dataset}/ds/{filter_type}/ds_{corr_type}_xi_smu_zsplit_Rs20_c{str(cosmo_idx).zfill(3)}_ph000.npy",
             allow_pickle=True,
         ).item()
         return data["s"], np.mean(data["multipoles"], axis=1)[:, quintile, multipole]

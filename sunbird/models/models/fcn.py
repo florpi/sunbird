@@ -4,7 +4,7 @@ from torch import optim, nn
 import pytorch_lightning as pl
 
 from sunbird.models.models import BaseModel
-from sunbird.models.loss import GaussianLoglike
+from sunbird.models.loss import GaussianNLoglike
 
 
 class FCN(BaseModel):
@@ -29,7 +29,7 @@ class FCN(BaseModel):
         model.append((f"mlp{layer+1}", nn.Linear(n_hidden, n_output)))
         self.mlp = nn.Sequential(OrderedDict(model))
         if kwargs["loss"] == "gaussian":
-            self.loss = GaussianLoglike.from_file()
+            self.loss = GaussianNLoglike.from_file()
         elif kwargs["loss"] == "mse":
             self.loss = nn.MSELoss()
         elif kwargs["loss"] == "mae":

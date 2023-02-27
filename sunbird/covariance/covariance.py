@@ -6,7 +6,6 @@ from typing import List, Dict
 
 # import xarray as xr
 import torch
-from sunbird.summaries import DensitySplitAuto, DensitySplitCross, TPCF
 from sunbird.abacus_utils.read_statistics import (
     read_statistics_for_covariance,
     read_statistic,
@@ -34,11 +33,6 @@ class CovarianceMatrix:
         self.statistics = statistics
         self.slice_filters = slice_filters
         self.select_filters = select_filters
-        self.emulators = {
-            'density_split_cross': DensitySplitCross(),
-            'density_split_auto': DensitySplitAuto(),
-            "tpcf": TPCF(),
-        }
 
     def get_covariance_data(
         self,
@@ -156,6 +150,13 @@ class CovarianceMatrix:
         Returns:
             np.array: emulator prediction
         """
+        if not hasattr(self, "emulators"):
+            from sunbird.summaries import DensitySplitAuto, DensitySplitCross, TPCF
+            self.emulators = {
+                'density_split_cross': DensitySplitCross(),
+                'density_split_auto': DensitySplitAuto(),
+                "tpcf": TPCF(),
+            }
         inputs = torch.tensor(inputs, dtype=torch.float32)
         xi_model = []
         for statistic in self.statistics:

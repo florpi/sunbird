@@ -26,7 +26,7 @@ class Bundle(BaseSummary):
         return self.all_summaries['tpcf'].parameters
 
     def forward(
-        self, inputs: torch.tensor, select_filters: Dict, slice_filters: Dict
+        self, inputs: torch.tensor, select_filters: Dict=None, slice_filters: Dict=None,
     ) -> torch.tensor:
         """return a concatenated prediction of all the summaries
 
