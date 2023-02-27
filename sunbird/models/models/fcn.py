@@ -29,7 +29,11 @@ class FCN(BaseModel):
         model.append((f"mlp{layer+1}", nn.Linear(n_hidden, n_output)))
         self.mlp = nn.Sequential(OrderedDict(model))
         if kwargs["loss"] == "gaussian":
-            self.loss = GaussianNLoglike.from_file()
+            self.loss = GaussianNLoglike.from_statistics(
+                statistics=['density_split_cross',],
+                slice_filters = {'s': [0.7,150.]},
+                select_filters= {'multipoles': [0,2]},
+            )
         elif kwargs["loss"] == "mse":
             self.loss = nn.MSELoss()
         elif kwargs["loss"] == "mae":
