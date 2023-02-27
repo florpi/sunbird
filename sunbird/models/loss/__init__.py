@@ -1,1 +1,1 @@
-from .gaussian import GaussianLoglike 
+from .gaussian import GaussianNLoglike 

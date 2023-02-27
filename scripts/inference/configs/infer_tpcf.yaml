@@ -1,4 +1,3 @@
-
 slice_filters:
     s: [0.7, 151.]
 
@@ -10,7 +9,7 @@ data:
     hod_idx: 0
     summaries: ['tpcf']
 
-fixed_parameters: ['nrun', 'N_ur', 'w0_fld', 'wa_fld', 'alpha_c', 'alpha_s']
+fixed_parameters: ['alpha_c', 'alpha_s'] #'w0_fld', 'wa_fld',]
 
 theory_model:
     module: 'sunbird.summaries'

@@ -36,6 +36,10 @@ def convert_to_summary(
     Returns:
         xr.DataArray: data array summary
     """
+    if select_filters:
+        select_filters = {k: v for k, v in select_filters.items() if k in dimensions.keys()}
+    if slice_filters:
+        slice_filters= {k: v for k, v in slice_filters.items() if k in dimensions.keys()}
     summary = xr.DataArray(
         data,
         dims=list(dimensions.keys()),
@@ -99,6 +103,56 @@ def read_tpcf_statistic(
         select_filters=select_filters,
         slice_filters=slice_filters,
     )
+
+
+def read_ds_statistic_uchuu(
+    path_to_file, select_filters=None, slice_filters=None,  avg_los=False,
+) :
+    data = np.load(
+        path_to_file,
+        allow_pickle=True,
+    ).item()
+    s = data['s']
+    data = data['multipoles']
+    if avg_los:
+        data = np.mean(data,axis=0)
+    quintiles = list(range(5))
+    multipoles = list(range(3))
+    dimensions = {
+        'quintiles': quintiles,
+        'multipoles': multipoles,
+        's': s,
+    }
+    return convert_to_summary(
+        data=data,
+        dimensions=dimensions,
+        select_filters=select_filters,
+        slice_filters=slice_filters,
+    )
+
+def read_tpcf_statistic_uchuu(
+    path_to_file, select_filters=None, slice_filters=None, avg_los=False
+) :
+    data = np.load(
+        path_to_file,
+        allow_pickle=True,
+    ).item()
+    s = data['s']
+    data = data['multipoles']
+    if avg_los:
+        data = np.mean(data,axis=0)
+    multipoles = list(range(3))
+    dimensions = {
+        'multipoles': multipoles,
+        's': s,
+    }
+    return convert_to_summary(
+        data=data,
+        dimensions=dimensions,
+        select_filters=select_filters,
+        slice_filters=slice_filters,
+    )
+
 
 
 def read_statistics_for_covariance(
@@ -189,6 +243,37 @@ def read_statistic_patchy(
     else:
         raise ValueError(f'{statistic} is not implemented!')
 
+def read_statistic_uchuu(
+        statistic,
+        ranking='random',
+        select_filters=None,
+        slice_filters=None,
+    ):
+    if statistic == 'density_split_auto':
+       return read_ds_statistic_uchuu(
+        path_to_file = DATA_PATH / f"clustering/uchuu/ds/gaussian/ds_auto_xi_smu_zsplit_gaussian_Rs10_{ranking}.npy",
+        select_filters=select_filters,
+        slice_filters=slice_filters,
+        avg_los=True,
+    ) 
+    elif statistic == 'density_split_cross':
+       return read_ds_statistic_uchuu(
+        path_to_file = DATA_PATH / f"clustering/uchuu/ds/gaussian/ds_cross_xi_smu_zsplit_gaussian_Rs10_{ranking}.npy",
+        select_filters=select_filters,
+        slice_filters=slice_filters,
+        avg_los=True,
+    ) 
+    elif statistic == 'tpcf':
+        return read_tpcf_statistic_uchuu(
+            path_to_file = DATA_PATH / f"clustering/uchuu/xi_smu/xi_smu_{ranking}.npy",
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            avg_los=True,
+        )
+    else:
+        raise ValueError(f'{statistic} is not implemented!')
+
+
 
 def read_parameters_abacus(cosmology: int, dataset: str):
     return pd.read_csv(
@@ -199,3 +284,9 @@ def read_parameters_patchy():
     return pd.read_csv(
         DATA_PATH / f"parameters/patchy/patchy.csv"
     )
+
+def read_parameters_uchuu():
+    return pd.read_csv(
+        DATA_PATH / f"parameters/uchuu/uchuu.csv"
+    )
+

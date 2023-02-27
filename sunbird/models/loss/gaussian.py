@@ -1,34 +1,55 @@
-from torch import nn
-import torch
-from torch.distributions import MultivariateNormal
 import numpy as np
-from pathlib import Path
+import torch
+from torch import nn, Tensor
+from typing import List, Dict
+from sunbird.covariance import CovarianceMatrix
 
-DEFAULT_PATH_COVARIANCE = Path(
-    "/n/home11/ccuestalazaro/sunbird/data/full_ap/covariance/ds_cross_xi_smu_zsplit_Rs20_landyszalay_randomsX50.npy",
-)
 
+class GaussianNLoglike(nn.Module):
+    def __init__(self, covariance: Tensor):
+        """Class to compute the negative Gaussian log-likelihood given a covariance matrix
 
-class GaussianLoglike(nn.Module):
-    def __init__(self, covariance):
+        Args:
+            covariance (Tensor): covariance matrix
+        """
         super().__init__()
         self.covariance = covariance
+        self.inverse_covariance = torch.linalg.inv(self.covariance)
 
     @classmethod
-    def from_file(cls, path_to_cov=DEFAULT_PATH_COVARIANCE):
-        data = np.load(path_to_cov, allow_pickle=True).item()
-        data = data["multipoles"][:, 0, 0]
-        covariance = torch.tensor(np.cov(data.T), dtype=torch.float32)
-        return cls(covariance=covariance)
+    def from_statistics(
+        cls,
+        statistics: List[str],
+        slice_filters: Dict = None,
+        select_filters: Dict = None,
+    ):
+        """Initialize a Gaussian log-likelihood from a list of statistics and filters
+        Args:
+            statistics (List[str]): list of statistics to use
+            slice_filters (Dict): dictionary with slice filters on given coordinates
+            select_filters (Dict): dictionary with select filters on given coordinates
+        """
+        covariance = CovarianceMatrix(
+            statistics=statistics,
+            slice_filters=slice_filters,
+            select_filters=select_filters,
+        ).get_covariance_data()
+        return cls(covariance=Tensor(covariance.astype(np.float32)))
 
-    def __call__(self, inputs, targets):
-        # TODO: solve this more elegantly...
-        self.covariance = self.covariance.type_as(inputs)
-        return (
-            MultivariateNormal(
-                targets,
-                covariance_matrix=self.covariance,
+    def __call__(self, predictions: Tensor, targets: Tensor) -> float:
+        """Given a set of inputs and targets, estimate the negative log-likelihood of the predicted values
+
+        Args:
+            predictions (Tensor): model predictions
+            targets (Tensor): target values
+
+        Returns:
+            float: log-likelihood of the predicitons
+        """
+        diff = predictions - targets
+        right = torch.einsum("ij,kj->ki", self.inverse_covariance, diff)
+        return 0.5 * (
+            torch.einsum(
+                "...j,...j", diff, right
             )
-            .log_prob(inputs)
-            .mean()
-        )
+        ).mean()
