@@ -415,7 +415,7 @@ class Patchy(Data):
         return super().get_file_path(
             dataset="patchy",
             statistic=statistic,
-            suffix=f"landyszalay_randomsX50",
+            suffix=f"landyszalay_randomsX50_patchyX2048",
         )
 
     def get_observation(
@@ -453,7 +453,9 @@ class Patchy(Data):
             summary = self.read_statistic(
                 statistic=statistic,
             )
-            summary = np.array(summary.values).reshape((len(summary['realizations']),-1))
+            summary = np.array(summary.values).reshape(
+                (len(summary['realizations']),-1)
+            )
             summaries.append(summary)
         summaries = np.hstack(summaries)
         if apply_hartlap_correction:
