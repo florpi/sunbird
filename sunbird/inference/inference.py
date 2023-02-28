@@ -7,6 +7,7 @@ from typing import Dict, List, Tuple, Optional
 from sunbird.covariance import CovarianceMatrix
 from sunbird.read_utils import data_utils
 
+
 class Inference(ABC):
     def __init__(
         self,
@@ -20,18 +21,18 @@ class Inference(ABC):
         output_dir: Path,
         device: str = "cpu",
     ):
-        """ Given an inference algorithm, a theory model, and a dataset, get posteriors on the
+        """Given an inference algorithm, a theory model, and a dataset, get posteriors on the
         parameters of interest. It assumes a gaussian likelihood.
 
         Args:
-            theory_model (Summary): model used to predict the observable 
-            observation (np.array): observed data 
+            theory_model (Summary): model used to predict the observable
+            observation (np.array): observed data
             covariance_matrix (np.array): covariance matrix of the data
-            priors (Dict): prior distributions for each parameter 
+            priors (Dict): prior distributions for each parameter
             fixed_parameters (Dict[str, float]): dictionary of parameters that are fixed and their values
             select_filters (Dict, optional): filters to select values in coordinates. Defaults to None.
             slice_filters (Dict, optional): filters to slice values in coordinates. Defaults to None.
-            output_dir (Path): directory where results will be stored 
+            output_dir (Path): directory where results will be stored
             device (str, optional): gpu or cpu. Defaults to "cpu".
         """
         self.theory_model = theory_model
@@ -68,7 +69,8 @@ class Inference(ABC):
         with open(path_to_config, "r") as f:
             config = yaml.safe_load(f)
         return cls.from_config_dict(
-            config=config, device=device,
+            config=config,
+            device=device,
         )
 
     @classmethod
@@ -84,9 +86,9 @@ class Inference(ABC):
         """
         select_filters = config["select_filters"]
         slice_filters = config["slice_filters"]
-        statistics = config['statistics']
+        statistics = config["statistics"]
         observation, parameters = cls.get_observation_and_parameters(
-            config['data']['observation'],
+            config["data"]["observation"],
             statistics=statistics,
             select_filters=select_filters,
             slice_filters=slice_filters,
@@ -94,16 +96,15 @@ class Inference(ABC):
         fixed_parameters = {}
         for k in config["fixed_parameters"]:
             fixed_parameters[k] = parameters[k]
-        covariance_config = config['data']['covariance']
+        covariance_config = config["data"]["covariance"]
         covariance_matrix = cls.get_covariance_matrix(
-            covariance_data_class = covariance_config['class'],
-            statistics=config['statistics'],
+            covariance_data_class=covariance_config["class"],
+            statistics=config["statistics"],
             select_filters=select_filters,
             slice_filters=slice_filters,
         )
         theory_model = cls.get_theory_model(
-            config["theory_model"],
-            statistics=config['statistics']
+            config["theory_model"], statistics=config["statistics"]
         )
         parameters_to_fit = [
             p for p in theory_model.parameters if p not in fixed_parameters.keys()
@@ -123,33 +124,31 @@ class Inference(ABC):
 
     @classmethod
     def get_observation_and_parameters(
-        cls, 
+        cls,
         obs_config: Dict,
         statistics: List[str],
         select_filters: Optional[Dict] = None,
         slice_filters: Optional[Dict] = None,
-    )->Tuple[np.array]:
-        """ Get observation and parameters for a given dataset
+    ) -> Tuple[np.array]:
+        """Get observation and parameters for a given dataset
 
         Args:
-            obs_config (Dict): dictionary with configuration for the dataset 
-            statistics (List[str]): list of statistics to constrain 
+            obs_config (Dict): dictionary with configuration for the dataset
+            statistics (List[str]): list of statistics to constrain
             select_filters (Dict, optional): filters to select values in coordinates. Defaults to None.
             slice_filters (Dict, optional): filters to slice values in coordinates. Defaults to None.
 
         Returns:
-            Tuple: observation and parameters 
+            Tuple: observation and parameters
         """
 
-        obs_class = getattr(data_utils, obs_config['class'])(
+        obs_class = getattr(data_utils, obs_config["class"])(
             select_filters=select_filters,
             slice_filters=slice_filters,
             statistics=statistics,
         )
-        observation = obs_class.get_observation(**obs_config['args'])
-        parameters = obs_class.get_parameters_for_observation(
-            **obs_config['args']
-        )
+        observation = obs_class.get_observation(**obs_config["args"])
+        parameters = obs_class.get_parameters_for_observation(**obs_config["args"])
         return observation, parameters
 
     @classmethod
@@ -208,7 +207,7 @@ class Inference(ABC):
         for param in parameters_to_fit:
             config_for_param = prior_config[param]
             prior_dict[param] = cls.initialize_distribution(
-                cls, distributions_module, config_for_param
+                distributions_module, config_for_param
             )
         return prior_dict
 
@@ -257,11 +256,9 @@ class Inference(ABC):
         module = getattr(importlib.import_module(module), class_name)
         if "args" in theory_config:
             return module(
-                statistics=statistics
-                **theory_config.get("args",None),
-
+                summaries=statistics, **theory_config.get("args", None),
             )
-        return module()
+        return module(summaries=statistics,)
 
     @abstractmethod
     def __call__(
@@ -282,7 +279,6 @@ class Inference(ABC):
             np.array: inverse covariance
         """
         return np.linalg.inv(covariance_matrix)
-
 
     def get_loglikelihood_for_prediction(
         self,

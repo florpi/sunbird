@@ -23,7 +23,7 @@ theory_model:
     class: 'Bundle'
 
 inference:
-    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/ds_cross_auto'
+    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/ds_cross_auto_test'
 
 priors:
     stats_module: 'scipy.stats'
