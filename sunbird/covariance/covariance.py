@@ -26,7 +26,7 @@ class CovarianceMatrix:
             slice_filters (Dict): dictionary with slice filters on given coordinates
             select_filters (Dict): dictionary with select filters on given coordinates
         """
-        self.covariance_data_class = getattr(data_utils, covariance_data_class)(
+        self.covariance_data = getattr(data_utils, covariance_data_class)(
             statistics=statistics,
             slice_filters=slice_filters,
             select_filters=select_filters,
@@ -50,7 +50,7 @@ class CovarianceMatrix:
         Returns:
             np.array: covariance matrix of the data
         """
-        return self.covariance_data_class.get_covariance(
+        return self.covariance_data.get_covariance(
             apply_hartlap_correction=apply_hartlap_correction,
         )
 
@@ -79,8 +79,7 @@ class CovarianceMatrix:
                 xi_test.append(xi.reshape(xi.shape[0], -1))
             xi_test = np.asarray(xi_test)
             xi_tests.append(xi_test.reshape(xi_test.shape[0] * xi_test.shape[1], -1))
-        xi_tests = np.concatenate(xi_tests, axis=-1)
-        return xi_tests
+        return np.concatenate(xi_tests, axis=-1)
 
     def get_inputs_test(
         self,
@@ -124,8 +123,6 @@ class CovarianceMatrix:
                 "tpcf": TPCF(),
             }
         inputs = torch.tensor(inputs, dtype=torch.float32)
-        print('inputs')
-        print(inputs.shape)
         xi_model = []
         for statistic in self.statistics:
             xi_model.append(
