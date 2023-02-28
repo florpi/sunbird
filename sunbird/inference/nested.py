@@ -1,5 +1,4 @@
 from sunbird.inference import Inference
-import json
 import numpy as np
 import pandas as pd
 from dynesty import NestedSampler
