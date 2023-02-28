@@ -172,11 +172,11 @@ class Abacus(Data):
     def __init__(
         self,
         data_path: Optional[Path] = DATA_PATH,
-        dataset: Optional[str] = "different_hods_linsigma",
+        dataset: Optional[str] = "wideprior_AB",
         statistics: Optional[List[str]] = [
             "density_split_auto",
             "density_split_cross",
-            "tpcf",
+            #"tpcf",
         ],
         select_filters: Optional[Dict] = {
             "multipoles": [0, 2],
