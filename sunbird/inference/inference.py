@@ -3,7 +3,7 @@ from pathlib import Path
 import importlib
 import numpy as np
 import yaml
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from sunbird.covariance import CovarianceMatrix
 from sunbird.read_utils import data_utils
 
@@ -20,6 +20,20 @@ class Inference(ABC):
         output_dir: Path,
         device: str = "cpu",
     ):
+        """ Given an inference algorithm, a theory model, and a dataset, get posteriors on the
+        parameters of interest. It assumes a gaussian likelihood.
+
+        Args:
+            theory_model (Summary): model used to predict the observable 
+            observation (np.array): observed data 
+            covariance_matrix (np.array): covariance matrix of the data
+            priors (Dict): prior distributions for each parameter 
+            fixed_parameters (Dict[str, float]): dictionary of parameters that are fixed and their values
+            select_filters (Dict, optional): filters to select values in coordinates. Defaults to None.
+            slice_filters (Dict, optional): filters to slice values in coordinates. Defaults to None.
+            output_dir (Path): directory where results will be stored 
+            device (str, optional): gpu or cpu. Defaults to "cpu".
+        """
         self.theory_model = theory_model
         self.observation = observation
         self.covariance_matrix = covariance_matrix
@@ -71,20 +85,15 @@ class Inference(ABC):
         select_filters = config["select_filters"]
         slice_filters = config["slice_filters"]
         statistics = config['statistics']
-        obs_config= config['data']['observation']
-        obs_class = getattr(data_utils, obs_config['class'])(
+        observation, parameters = cls.get_observation_and_parameters(
+            config['data']['observation'],
+            statistics=statistics,
             select_filters=select_filters,
             slice_filters=slice_filters,
-            statistics=statistics,
-        )
-        observation = obs_class.get_observation(**obs_config['args'])
-        parameters = obs_class.get_parameters_for_observation(
-            **obs_config['args']
         )
         fixed_parameters = {}
         for k in config["fixed_parameters"]:
             fixed_parameters[k] = parameters[k]
-
         covariance_config = config['data']['covariance']
         covariance_matrix = cls.get_covariance_matrix(
             covariance_data_class = covariance_config['class'],
@@ -113,6 +122,37 @@ class Inference(ABC):
         )
 
     @classmethod
+    def get_observation_and_parameters(
+        cls, 
+        obs_config: Dict,
+        statistics: List[str],
+        select_filters: Optional[Dict] = None,
+        slice_filters: Optional[Dict] = None,
+    )->Tuple[np.array]:
+        """ Get observation and parameters for a given dataset
+
+        Args:
+            obs_config (Dict): dictionary with configuration for the dataset 
+            statistics (List[str]): list of statistics to constrain 
+            select_filters (Dict, optional): filters to select values in coordinates. Defaults to None.
+            slice_filters (Dict, optional): filters to slice values in coordinates. Defaults to None.
+
+        Returns:
+            Tuple: observation and parameters 
+        """
+
+        obs_class = getattr(data_utils, obs_config['class'])(
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            statistics=statistics,
+        )
+        observation = obs_class.get_observation(**obs_config['args'])
+        parameters = obs_class.get_parameters_for_observation(
+            **obs_config['args']
+        )
+        return observation, parameters
+
+    @classmethod
     def get_covariance_matrix(
         cls,
         covariance_data_class: str,
@@ -125,6 +165,7 @@ class Inference(ABC):
         """Compute covariance matrix for a list of statistics
 
         Args:
+            covariance_data_class (str): class to use to compute covariance matrix
             statistics (List[str]): list of statistics
             select_filters (Dict): filters to select values along a dimension
             slice_filters (Dict): filters to slice values along a dimension
@@ -172,6 +213,32 @@ class Inference(ABC):
         return prior_dict
 
     @classmethod
+    def initialize_distribution(
+        cls, distributions_module, dist_param: Dict[str, float]
+    ):
+        """Initialize a given prior distribution fromt he distributions_module
+
+        Args:
+            distributions_module : module form which to import distributions
+            dist_param (Dict[str, float]): parameters of the distributions
+
+        Returns:
+            prior distirbution
+        """
+        if dist_param["distribution"] == "uniform":
+            max_uniform = dist_param.pop("max")
+            min_uniform = dist_param.pop("min")
+            dist_param["loc"] = min_uniform
+            dist_param["scale"] = max_uniform - min_uniform
+        if dist_param["distribution"] == "norm":
+            mean_gaussian = dist_param.pop("mean")
+            dispersion_gaussian = dist_param.pop("dispersion")
+            dist_param["loc"] = mean_gaussian
+            dist_param["scale"] = dispersion_gaussian
+        dist = getattr(distributions_module, dist_param.pop("distribution"))
+        return dist(**dist_param)
+
+    @classmethod
     def get_theory_model(
         cls,
         theory_config: Dict,
@@ -216,30 +283,6 @@ class Inference(ABC):
         """
         return np.linalg.inv(covariance_matrix)
 
-    def initialize_distribution(
-        cls, distributions_module, dist_param: Dict[str, float]
-    ):
-        """Initialize a given prior distribution fromt he distributions_module
-
-        Args:
-            distributions_module : module form which to import distributions
-            dist_param (Dict[str, float]): parameters of the distributions
-
-        Returns:
-            prior distirbution
-        """
-        if dist_param["distribution"] == "uniform":
-            max_uniform = dist_param.pop("max")
-            min_uniform = dist_param.pop("min")
-            dist_param["loc"] = min_uniform
-            dist_param["scale"] = max_uniform - min_uniform
-        if dist_param["distribution"] == "norm":
-            mean_gaussian = dist_param.pop("mean")
-            dispersion_gaussian = dist_param.pop("dispersion")
-            dist_param["loc"] = mean_gaussian
-            dist_param["scale"] = dispersion_gaussian
-        dist = getattr(distributions_module, dist_param.pop("distribution"))
-        return dist(**dist_param)
 
     def get_loglikelihood_for_prediction(
         self,
