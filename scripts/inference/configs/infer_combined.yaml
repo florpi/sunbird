@@ -16,7 +16,7 @@ data:
     covariance:
         class: 'Patchy'
 
-fixed_parameters: [] #['logM1', 'logM_cut','alpha', 'alpha_s', 'alpha_c', 'kappa', 'sigma'] #'nrun', 'N_ur', 'w0_fld', 'wa_fld', 'alpha_c', 'alpha_s']
+fixed_parameters: [] 
 
 theory_model:
     module: 'sunbird.summaries'
@@ -31,6 +31,7 @@ priors:
         distribution: 'norm'
         mean: 0.02268
         dispersion: 0.00038
+
     omega_cdm:
         distribution: 'uniform'
         min: 0.1032
@@ -66,37 +67,48 @@ priors:
 
     logM1:
         distribution: 'uniform'
-        min: 13.2
-        max: 14.4
+        min: 12.5
+        max: 15.
 
     logM_cut:
         distribution: 'uniform'
-        min: 12.4
-        max: 13.3
+        min: 12.
+        max: 13.5
 
     alpha:
         distribution: 'uniform'
-        min: 0.7
-        max: 1.49
+        min: 0.3
+        max: 1.5
 
     alpha_s:
         distribution: 'uniform'
-        min: 0.7
-        max: 1.29
+        min: 0.
+        max: 2.
 
     alpha_c:
         distribution: 'uniform'
         min: 0.
-        max: 0.5
+        max: 1.
 
     sigma:
         distribution: 'uniform'
-        min: 0.001
-        max: 1
+        min: -7.
+        max: 0
+
     kappa:
         distribution: 'uniform'
         min: 0.
-        max: 1.49
+        max: 1.5
+
+    B_cen:
+        distribution: 'uniform'
+        min: -0.5
+        max: 0.5
+
+    B_sat:
+        distribution: 'uniform'
+        min: -1.
+        max: 1.
 
 
 

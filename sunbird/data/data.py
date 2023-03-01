@@ -5,7 +5,7 @@ import torch
 import json
 import pytorch_lightning as pl
 from torch.utils.data import TensorDataset, DataLoader
-from sunbird.read_utils.data_utils import Abacus
+from sunbird.read_utils.data_utils import Abacus, normalize_data
 
 
 class DSDataModule(pl.LightningDataModule):
@@ -14,14 +14,15 @@ class DSDataModule(pl.LightningDataModule):
         train_test_split_dict: Dict[str, int],
         statistic: str = "density_split_cross",
         select_filters: Optional[Dict] = None,
-        slice_filters: Optional[Dict] = None,
-        batch_size: int = 32,
+        slice_filters: Optional[Dict] = {'s': [0.7, 150.]},
+        batch_size: int = 256,
         standarize_outputs: bool = False,
-        normalize_outputs: bool = False,
+        normalize_outputs: bool = True,
         normalize_inputs: bool = True,
         s2_outputs: bool = False,
         abacus_dataset: Optional[str] = "wideprior_AB",
         inputs_names: Optional[List[str]] = None,
+        **kwargs,
     ):
         """Data module used to train models on Abacus data
 
@@ -55,6 +56,56 @@ class DSDataModule(pl.LightningDataModule):
             slice_filters=slice_filters,
         )
         self.inputs_names = inputs_names
+
+    @classmethod
+    def add_argparse_args(cls, parser):
+        """Add arguments to parse
+
+        Args:
+            parser (parser): parser 
+
+        Returns:
+            parser: updated parser with args and defaults 
+        """
+        parser.add_argument('--statistic', type=str, default='density_split_cross',)
+        parser.add_argument('--select_quintiles',  action='store', type=int, default=[0,],nargs='+',)
+        parser.add_argument('--select_multipoles', action='store', type=int, default=[0,1],nargs='+',)
+        parser.add_argument('--slice_s', action='store', type=float, default=[0.7,150.],nargs='+',)
+        parser.add_argument('--batch_size', type=int, default=256,)
+        parser.add_argument('--standarize_outputs', type=bool, default=False,)
+        parser.add_argument('--normalize_outputs', type=bool, default=True,)
+        parser.add_argument('--normalize_inputs', type=bool, default=True,)
+        parser.add_argument('--s2_outputs', type=bool, default=False,)
+        parser.add_argument('--abacus_dataset', type=str, default='wideprior_AB',)
+        parser.add_argument('--input_names', action='store', type=str, default=None,nargs='+',)
+        return parser
+
+    @classmethod
+    def from_argparse_args(cls, args, train_test_split_dict: Dict)->"DSDataModule":
+        """ Create data module from parsed args
+
+        Args:
+            args (args): command line arguments 
+            train_test_split_dict (Dict): train test split dictionary 
+
+        Returns:
+            DSDataModule: data module 
+        """
+        vargs = vars(args)
+        select_filters, slice_filters = {}, {}
+        for key, value in vargs.items():
+            if 'select' in key:
+                key_to_filter = key.split('_')[-1]
+                if key_to_filter != 'gpu':
+                    select_filters[key_to_filter] = value
+            elif 'slice' in key:
+                slice_filters[key.split('_')[-1]] = value
+        return cls(
+            train_test_split_dict=train_test_split_dict,
+            select_filters=select_filters,
+            slice_filters= slice_filters,
+            **vargs,
+        )
 
     def load_data(
         self,
@@ -147,27 +198,7 @@ class DSDataModule(pl.LightningDataModule):
             "y_std": np.std(data, axis=0),
         }
 
-    def normalize_data(self, params: np.array, data: np.array) -> Tuple[np.array]:
-        """normalize the data and parameters given the training data summary
 
-        Args:
-            params (np.array): parameters
-            data (np.array): data
-
-        Returns:
-            Tuple[np.array]: normalized parameters and data
-        """
-        if self.normalize_inputs:
-            params = (params - self.train_summary["x_min"]) / (
-                self.train_summary["x_max"] - self.train_summary["x_min"]
-            )
-        if self.normalize_outputs:
-            data = (data - self.train_summary["y_min"]) / (
-                self.train_summary["y_max"] - self.train_summary["y_min"]
-            )
-        elif self.standarize_outputs:
-            data = (data - self.train_summary["y_mean"]) / self.train_summary["y_std"]
-        return params, data
 
     def generate_dataset(self, x: np.array, y: np.array) -> TensorDataset:
         """Convert numpy arrays to torch tensors and generate a normalized TensorDataset
@@ -179,9 +210,20 @@ class DSDataModule(pl.LightningDataModule):
         Returns:
             TensorDataset: dataset
         """
-        x, y = self.normalize_data(
-            params=x,
+        #TODO: homogeneize normalization in class
+        x = normalize_data(
+            data=x,
+            normalization_dict=self.normalization_dict,
+            standarize=False,
+            normalize=self.normalize_inputs,
+            coord='x',
+        )
+        y = normalize_data(
             data=y,
+            normalization_dict=self.normalization_dict,
+            standarize=self.standarize_outputs,
+            normalize=self.normalize_outputs,
+            coord='y',
         )
         return TensorDataset(
             torch.tensor(x, dtype=torch.float32),
@@ -198,7 +240,7 @@ class DSDataModule(pl.LightningDataModule):
             train_params, train_data = self.load_params_and_data_for_stage(
                 stage="train",
             )
-            self.train_summary = self.summarise_training_data(
+            self.normalization_dict = self.summarise_training_data(
                 parameters=train_params,
                 data=train_data,
             )
@@ -281,5 +323,16 @@ class DSDataModule(pl.LightningDataModule):
                 return json.JSONEncoder.default(self, obj)
 
         with open(path, "w") as fd:
-            json_dump = json.dumps(self.summary, cls=NumpyEncoder)
+            json_dump = json.dumps(self.normalization_dict, cls=NumpyEncoder)
             json.dump(json_dump, fd)
+
+def load_summary_training(data_dir, statistic,):
+    with open(
+        data_dir / f"train_{statistic}_summary.json",
+        "r",
+    ) as f:
+        summary = json.load(f)
+    for k, v in summary.items():
+        if type(v) is list:
+            summary[k] = np.array(v)
+    return summary

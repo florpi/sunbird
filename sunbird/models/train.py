@@ -1,6 +1,6 @@
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
-from torch import nn
+import json
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -12,7 +12,9 @@ from sunbird.models import FCN
 
 def fit(args):
     # Setup data
-    dm = DSDataModule.from_argparse_args(args)
+    with open(args.train_test_split_path) as f:
+        train_test_split = json.load(f) 
+    dm = DSDataModule.from_argparse_args(args, train_test_split)
     dm.setup()
     # Setup model
     model_dict_args = vars(args)
@@ -22,7 +24,7 @@ def fit(args):
         **model_dict_args,
     )
     # Setup trainer
-    early_stop_callback = EarlyStopping(monitor="val_loss", patience=5, mode="min")
+    early_stop_callback = EarlyStopping(monitor="val_loss", patience=8, mode="min")
 
     logger = pl_loggers.TensorBoardLogger(save_dir=args.model_dir, name=args.run_name)
     checkpoint_dir = Path(logger.experiment.log_dir) / "checkpoints"
@@ -59,6 +61,7 @@ if __name__ == "__main__":
     parser = DSDataModule.add_argparse_args(parser)
     parser.add_argument("--model_dir", type=str, default=None)
     parser.add_argument("--run_name", type=str, default=None)
+    parser.add_argument("--train_test_split_path", type=str, default='../../data/train_test_split.json')
     parser = Trainer.add_argparse_args(parser)
     parser = FCN.add_model_specific_args(parser)
     args = parser.parse_args()

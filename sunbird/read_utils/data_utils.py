@@ -3,7 +3,7 @@ from abc import ABC
 import pandas as pd
 import xarray as xr
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
@@ -64,6 +64,27 @@ def convert_to_summary(
         summary = summary.sel(**slice_filters)
     return summary
 
+def normalize_data(data: np.array, normalization_dict: Dict, standarize: bool, normalize: bool, coord: str = 'y') -> Tuple[np.array]:
+    """normalize the data given the training data summary
+
+    Args:
+        data (np.array): data
+        normalization_dict (Dict): dictionary with normalization parameters
+        standarize (bool): if True, standarize the data
+        normalize (bool): if True, normalize the data
+        coord (str, optional): coordinate to normalize, either x for parameters or y for data. Defaults to 'y'.
+
+    Returns:
+        Tuple[np.array]: normalized parameters and data
+    """
+    if normalize:
+        return (data - normalization_dict[f"{coord}_min"]) / (
+            normalization_dict[f"{coord}_max"] - normalization_dict[f"{coord}_min"]
+        )
+    elif standarize:
+        return (data - normalization_dict[f"{coord}_mean"]) / normalization_dict[f"{coord}_std"]
+    return data
+
 
 class Data(ABC):
     def get_file_path(
@@ -119,8 +140,13 @@ class Data(ABC):
             )
             if select_from_coords is not None:
                 observed = observed.sel(select_from_coords)
-            observation.append(observed.values.reshape(-1))
-        return np.hstack(observation)
+            observation.append(observed.values)
+        observation = np.stack(observation, axis=0)
+        if hasattr(observation, 'realizations'):
+            n_realizations = len(observation.realizations)
+            return observation.values.reshape(n_realizations, -1)
+        return observation.reshape(-1)
+
 
     def read_statistic(
         self, statistic: str, multiple_realizations: bool = True, **kwargs
@@ -382,6 +408,10 @@ class Patchy(Data):
             "quintiles": [0, 1, 3, 4],
         },
         slice_filters: Optional[Dict] = {"s": [0.7, 150.0]},
+        s2_outputs: Optional[bool] = False,
+        normalization_dict: Optional[Dict] = None,
+        standarize: bool = False,
+        normalize: bool = False,
     ):
         """Patchy data class for the pathcy mocks.
 
@@ -399,6 +429,10 @@ class Patchy(Data):
         self.select_filters = select_filters
         self.slice_filters = slice_filters
         self.avg_los = False
+        self.s2_outputs = s2_outputs
+        self.normalization_dict = normalization_dict
+        self.standarize = standarize
+        self.normalize = normalize
 
     def get_file_path(
         self,
@@ -415,7 +449,7 @@ class Patchy(Data):
         return super().get_file_path(
             dataset="patchy",
             statistic=statistic,
-            suffix=f"landyszalay_randomsX50_patchyX2048",
+            suffix=f"landyszalay",
         )
 
     def get_observation(
@@ -434,6 +468,25 @@ class Patchy(Data):
             select_from_coords={"realizations": phase},
             multiple_realizations=True,
         )
+
+    def gather_summaries_for_covariance(
+        self,
+    )->np.array:        
+        summaries = []
+        for statistic in self.statistics:
+            summary = self.read_statistic(
+                statistic=statistic,
+            )
+            if self.s2_outputs:
+                summary = summary * summary.s **2
+            summary = np.array(summary.values).reshape(
+                (len(summary['realizations']),-1)
+            )
+            summary = normalize_data(
+                summary, self.normalization_dict, standarize=self.standarize, normalize=self.normalize,
+            )
+            summaries.append(summary)
+        return np.hstack(summaries)
     
     def get_covariance(
         self,
@@ -448,16 +501,7 @@ class Patchy(Data):
         Returns:
             np.array: covariance matrix
         """
-        summaries = []
-        for statistic in self.statistics:
-            summary = self.read_statistic(
-                statistic=statistic,
-            )
-            summary = np.array(summary.values).reshape(
-                (len(summary['realizations']),-1)
-            )
-            summaries.append(summary)
-        summaries = np.hstack(summaries)
+        summaries = self.gather_summaries_for_covariance()
         if apply_hartlap_correction:
             n_mocks = len(summaries)
             n_bins = summaries.shape[-1]

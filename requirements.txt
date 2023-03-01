@@ -1,2 +1,11 @@
 black
+pytorch
+pandas
+numpy
+matplotlib
+xarray
+pytorch-lightning
+optuna
+joblib
 -e .
+
