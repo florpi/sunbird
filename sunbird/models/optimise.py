@@ -8,8 +8,11 @@ from sunbird.models import FCN
 from sunbird.models.train import fit
 
 
-def objective(trial, args,):
-    same_n_hidden = False 
+def objective(
+    trial,
+    args,
+):
+    same_n_hidden = False
     lr = trial.suggest_float(
         "learning_rate",
         1.0e-3,
@@ -18,13 +21,21 @@ def objective(trial, args,):
     weight_decay = trial.suggest_float("weight_decay", 1.0e-4, 0.01)
     n_layers = trial.suggest_int("n_layers", 1, 6)
     if same_n_hidden:
-        n_hidden = [trial.suggest_int('n_hidden', 16, 1024)]*n_layers
+        n_hidden = [trial.suggest_int("n_hidden", 16, 1024)] * n_layers
     else:
         n_hidden = [
-            trial.suggest_int(f"n_hidden_{layer}", 16, 1024) for layer in range(n_layers)
+            trial.suggest_int(f"n_hidden_{layer}", 16, 1024)
+            for layer in range(n_layers)
         ]
-    dropout_rate = trial.suggest_float("dropout_rate", 0., 0.4)
-    act_fn = trial.suggest_categorical("act_fn", ['GELU', 'SiLU', 'PReLU',])
+    dropout_rate = trial.suggest_float("dropout_rate", 0.0, 0.4)
+    act_fn = trial.suggest_categorical(
+        "act_fn",
+        [
+            "GELU",
+            "SiLU",
+            "PReLU",
+        ],
+    )
     args.learning_rate = lr
     args.weight_decay = weight_decay
     args.n_hidden = n_hidden
@@ -39,7 +50,9 @@ if __name__ == "__main__":
 
     parser.add_argument("--model_dir", type=str, default="../../trained_models")
     parser.add_argument("--run_name", type=str, default="optuna")
-    parser.add_argument("--train_test_split_path", type=str, default='../../data/train_test_split.json')
+    parser.add_argument(
+        "--train_test_split_path", type=str, default="../../data/train_test_split.json"
+    )
 
     parser = Trainer.add_argparse_args(parser)
     parser = FCN.add_model_specific_args(parser)
@@ -58,4 +71,7 @@ if __name__ == "__main__":
     print("  Params: ")
     for key, value in trial.params.items():
         print("    {}: {}".format(key, value))
-    joblib.dump(study, Path(args.model_dir) / f'{args.run_name}/study.pkl',)
+    joblib.dump(
+        study,
+        Path(args.model_dir) / f"{args.run_name}/study.pkl",
+    )

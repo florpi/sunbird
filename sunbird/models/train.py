@@ -13,7 +13,7 @@ from sunbird.models import FCN
 def fit(args):
     # Setup data
     with open(args.train_test_split_path) as f:
-        train_test_split = json.load(f) 
+        train_test_split = json.load(f)
     dm = DSDataModule.from_argparse_args(args, train_test_split)
     dm.setup()
     # Setup model
@@ -38,7 +38,7 @@ def fit(args):
     trainer = Trainer.from_argparse_args(
         args,
         logger=logger,
-        accelerator='auto',
+        accelerator="auto",
         callbacks=[early_stop_callback, checkpoint_callback],
     )
     # Train
@@ -48,7 +48,7 @@ def fit(args):
     )
     dm.dump_summaries(path=Path(trainer.log_dir) / "summary.json")
     # Test
-    #trainer.test(datamodule=dm, ckpt_path="best")
+    # trainer.test(datamodule=dm, ckpt_path="best")
     return trainer.callback_metrics["val_loss"].item()
 
 
@@ -61,7 +61,9 @@ if __name__ == "__main__":
     parser = DSDataModule.add_argparse_args(parser)
     parser.add_argument("--model_dir", type=str, default=None)
     parser.add_argument("--run_name", type=str, default=None)
-    parser.add_argument("--train_test_split_path", type=str, default='../../data/train_test_split.json')
+    parser.add_argument(
+        "--train_test_split_path", type=str, default="../../data/train_test_split.json"
+    )
     parser = Trainer.add_argparse_args(parser)
     parser = FCN.add_model_specific_args(parser)
     args = parser.parse_args()
