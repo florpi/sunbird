@@ -64,7 +64,14 @@ def convert_to_summary(
         summary = summary.sel(**slice_filters)
     return summary
 
-def normalize_data(data: np.array, normalization_dict: Dict, standarize: bool, normalize: bool, coord: str = 'y') -> Tuple[np.array]:
+
+def normalize_data(
+    data: np.array,
+    normalization_dict: Dict,
+    standarize: bool,
+    normalize: bool,
+    coord: str = "y",
+) -> Tuple[np.array]:
     """normalize the data given the training data summary
 
     Args:
@@ -82,7 +89,9 @@ def normalize_data(data: np.array, normalization_dict: Dict, standarize: bool, n
             normalization_dict[f"{coord}_max"] - normalization_dict[f"{coord}_min"]
         )
     elif standarize:
-        return (data - normalization_dict[f"{coord}_mean"]) / normalization_dict[f"{coord}_std"]
+        return (data - normalization_dict[f"{coord}_mean"]) / normalization_dict[
+            f"{coord}_std"
+        ]
     return data
 
 
@@ -142,11 +151,10 @@ class Data(ABC):
                 observed = observed.sel(select_from_coords)
             observation.append(observed.values)
         observation = np.stack(observation, axis=0)
-        if hasattr(observation, 'realizations'):
+        if hasattr(observation, "realizations"):
             n_realizations = len(observation.realizations)
             return observation.values.reshape(n_realizations, -1)
         return observation.reshape(-1)
-
 
     def read_statistic(
         self, statistic: str, multiple_realizations: bool = True, **kwargs
@@ -202,7 +210,7 @@ class Abacus(Data):
         statistics: Optional[List[str]] = [
             "density_split_auto",
             "density_split_cross",
-            #"tpcf",
+            # "tpcf",
         ],
         select_filters: Optional[Dict] = {
             "multipoles": [0, 2],
@@ -471,28 +479,31 @@ class Patchy(Data):
 
     def gather_summaries_for_covariance(
         self,
-    )->np.array:        
+    ) -> np.array:
         summaries = []
         for statistic in self.statistics:
             summary = self.read_statistic(
                 statistic=statistic,
             )
             if self.s2_outputs:
-                summary = summary * summary.s **2
+                summary = summary * summary.s**2
             summary = np.array(summary.values).reshape(
-                (len(summary['realizations']),-1)
+                (len(summary["realizations"]), -1)
             )
             summary = normalize_data(
-                summary, self.normalization_dict, standarize=self.standarize, normalize=self.normalize,
+                summary,
+                self.normalization_dict,
+                standarize=self.standarize,
+                normalize=self.normalize,
             )
             summaries.append(summary)
         return np.hstack(summaries)
-    
+
     def get_covariance(
         self,
         apply_hartlap_correction: bool = True,
-    )->np.array:
-        """estimate covariance matrix from the different patchy seeds 
+    ) -> np.array:
+        """estimate covariance matrix from the different patchy seeds
 
         Args:
             apply_hartlap_correction (bool, optional): whether to apply hartlap correction.
@@ -507,8 +518,8 @@ class Patchy(Data):
             n_bins = summaries.shape[-1]
             hartlap_factor = (n_mocks - 1) / (n_mocks - n_bins - 2)
         else:
-            hartlap_factor = 1.
-        return hartlap_factor * np.cov(summaries, rowvar=False) 
+            hartlap_factor = 1.0
+        return hartlap_factor * np.cov(summaries, rowvar=False)
 
     def get_parameters_for_observation(
         self,
