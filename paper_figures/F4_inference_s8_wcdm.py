@@ -11,7 +11,7 @@ hod_idx = {
     3: 441, 
     4: 719, 
 }
-suffix = 'reduced_params' 
+suffix = 'reduced_params_new' 
 
 true_params, samples_ds = [], []
 for cosmology in hod_idx.keys():

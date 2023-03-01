@@ -1,9 +1,6 @@
 import pandas as pd
 import numpy as np
 from getdist import plots, MCSamples
-#from cosmoprimo import Cosmology 
-#from cosmoprimo.fiducial import DESI 
-
 
 labels = {
     'omega_b': r'\omega_{\rm b}', 
