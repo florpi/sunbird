@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch import nn, Tensor
-from typing import List, Dict
+from typing import List, Dict, Optional
 from sunbird.covariance import CovarianceMatrix
 
 
@@ -22,6 +22,9 @@ class GaussianNLoglike(nn.Module):
         statistics: List[str],
         slice_filters: Dict = None,
         select_filters: Dict = None,
+        standarize_covariance: bool = False,
+        normalize_covariance: bool = False,
+        normalization_dict: Optional[Dict] = None,
     ):
         """Initialize a Gaussian log-likelihood from a list of statistics and filters
         Args:
@@ -33,6 +36,9 @@ class GaussianNLoglike(nn.Module):
             statistics=statistics,
             slice_filters=slice_filters,
             select_filters=select_filters,
+            standarize_covariance=standarize_covariance,
+            normalize_covariance=normalize_covariance,
+            normalization_dict=normalization_dict,
         ).get_covariance_data()
         return cls(covariance=Tensor(covariance.astype(np.float32)))
 

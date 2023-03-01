@@ -31,6 +31,8 @@ class BaseSummary:
             "alpha_c",
             "sigma",
             "kappa",
+            "B_cen",
+            "B_sat",
         ]
 
     def __call__(self, param_dict, select_filters, slice_filters):

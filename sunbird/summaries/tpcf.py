@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 DEFAULT_PATH = (
-    Path(__file__).parent.parent.parent / "trained_models/enrique/tpcf/"
+    Path(__file__).parent.parent.parent / "trained_models/best/tpcf/"
 )
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 

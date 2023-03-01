@@ -1,7 +1,7 @@
 import numpy as np
 import json
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import torch
 from sunbird.read_utils import data_utils
@@ -17,6 +17,9 @@ class CovarianceMatrix:
         select_filters: Dict,
         covariance_data_class: str = 'Patchy',
         emulator_data_class: str = 'Abacus',
+        standarize_covariance: bool = False,
+        normalize_covariance: bool = False,
+        normalization_dict: Optional[Dict] = None
     ):
         """Compute a covariance matrix for a list of statistics and filters in any
         dimension
@@ -30,9 +33,12 @@ class CovarianceMatrix:
             statistics=statistics,
             slice_filters=slice_filters,
             select_filters=select_filters,
+            standarize=standarize_covariance,
+            normalize=normalize_covariance,
+            normalization_dict=normalization_dict,
         )
         self.emulator_data = getattr(data_utils, emulator_data_class)(
-            dataset="different_hods_linsigma",
+            dataset="wideprior_AB",
             statistics=statistics,
             slice_filters=slice_filters,
             select_filters=select_filters,
@@ -40,6 +46,9 @@ class CovarianceMatrix:
         self.statistics = statistics
         self.slice_filters = slice_filters
         self.select_filters = select_filters
+        self.standarize_covariance = standarize_covariance
+        self.normalize_covariance = normalize_covariance
+        self.normalization_dict = normalization_dict
 
     def get_covariance_data(
         self,
@@ -120,7 +129,7 @@ class CovarianceMatrix:
             self.emulators = {
                 'density_split_cross': DensitySplitCross(),
                 'density_split_auto': DensitySplitAuto(),
-                "tpcf": TPCF(),
+                #"tpcf": TPCF(),
             }
         inputs = torch.tensor(inputs, dtype=torch.float32)
         xi_model = []

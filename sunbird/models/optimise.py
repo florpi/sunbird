@@ -2,31 +2,34 @@ import optuna
 from pytorch_lightning import Trainer, seed_everything
 import joblib
 from pathlib import Path
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser
 from sunbird.data import DSDataModule
 from sunbird.models import FCN
 from sunbird.models.train import fit
 
 
-def objective(trial, args):
+def objective(trial, args,):
+    same_n_hidden = False 
     lr = trial.suggest_float(
         "learning_rate",
-        1.0e-4,
+        1.0e-3,
         0.1,
     )
     weight_decay = trial.suggest_float("weight_decay", 1.0e-4, 0.01)
     n_layers = trial.suggest_int("n_layers", 1, 6)
-    n_hidden = trial.suggest_int("n_hidden", 32, 1024)
-    batch_size = trial.suggest_int(
-        "batch_size",
-        128,
-        1024,
-    )
+    if same_n_hidden:
+        n_hidden = [trial.suggest_int('n_hidden', 16, 1024)]*n_layers
+    else:
+        n_hidden = [
+            trial.suggest_int(f"n_hidden_{layer}", 16, 1024) for layer in range(n_layers)
+        ]
+    dropout_rate = trial.suggest_float("dropout_rate", 0., 0.4)
+    act_fn = trial.suggest_categorical("act_fn", ['GELU', 'SiLU', 'PReLU',])
     args.learning_rate = lr
     args.weight_decay = weight_decay
-    args.n_layers = n_layers
     args.n_hidden = n_hidden
-    args.batch_size = batch_size
+    args.dropout_rate = dropout_rate
+    args.act_fn = act_fn
     return fit(args)
 
 
@@ -36,12 +39,12 @@ if __name__ == "__main__":
 
     parser.add_argument("--model_dir", type=str, default="../../trained_models")
     parser.add_argument("--run_name", type=str, default="optuna")
+    parser.add_argument("--train_test_split_path", type=str, default='../../data/train_test_split.json')
 
     parser = Trainer.add_argparse_args(parser)
     parser = FCN.add_model_specific_args(parser)
     args = parser.parse_args()
 
-    #args.run_name = f"{args.run_name}_ds{args.quintile}_m{args.multipole}"
     n_trials = 200
     study = optuna.create_study()
     optimize_objective = lambda trial: objective(trial, args)
@@ -51,11 +54,8 @@ if __name__ == "__main__":
 
     print("Best trial:")
     trial = study.best_trial
-
     print("  Value: {}".format(trial.value))
-
     print("  Params: ")
     for key, value in trial.params.items():
         print("    {}: {}".format(key, value))
-    
     joblib.dump(study, Path(args.model_dir) / f'{args.run_name}/study.pkl',)

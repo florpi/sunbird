@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from typing import Dict
 from pathlib import Path
 import yaml
 import pytorch_lightning as pl
@@ -8,10 +9,20 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 class BaseModel(pl.LightningModule):
     def __init__(self, *args, **kwargs):
+        """ Base pytorch lightning model
+        """
         super().__init__()
 
     @classmethod
-    def from_folder(cls, path_to_model: str):
+    def from_folder(cls, path_to_model: str)->"BaseModel":
+        """ load a model from folder
+
+        Args:
+            path_to_model (str): path to model folder
+
+        Returns:
+            model: model loaded from checkpoint 
+        """
         path_to_model = Path(path_to_model)
         with open(path_to_model / "hparams.yaml") as f:
             hparams = yaml.safe_load(f)
@@ -28,7 +39,16 @@ class BaseModel(pl.LightningModule):
         model.load_state_dict(weights_dict["state_dict"])
         return model
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx)->float:
+        """ Compute training loss
+
+        Args:
+            batch: batch 
+            batch_idx: idx of batch 
+
+        Returns:
+            float: loss 
+        """
         loss = self._compute_loss(batch=batch, batch_idx=batch_idx)
         self.log(
             "train_loss",
@@ -36,7 +56,16 @@ class BaseModel(pl.LightningModule):
         )
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx)->float:
+        """ Compute validation loss
+
+        Args:
+            batch: batch 
+            batch_idx: idx of batch 
+
+        Returns:
+            float: loss 
+        """
         loss = self._compute_loss(batch=batch, batch_idx=batch_idx)
         self.log(
             "val_loss",
@@ -45,6 +74,15 @@ class BaseModel(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
+        """ Compute test loss
+
+        Args:
+            batch: batch 
+            batch_idx: idx of batch 
+
+        Returns:
+            float: loss 
+        """
         loss = self._compute_loss(batch=batch, batch_idx=batch_idx)
         self.log(
             "test_loss",
@@ -60,7 +98,12 @@ class BaseModel(pl.LightningModule):
         x, y = batch
         return self(x)
 
-    def configure_optimizers(self):
+    def configure_optimizers(self)->Dict:
+        """ configure optimizer and learning rate scheduler
+
+        Returns:
+            Dict: dictionary with configuration 
+        """
         optimizer = torch.optim.AdamW(
             self.parameters(),
             lr=self.learning_rate,
@@ -69,7 +112,7 @@ class BaseModel(pl.LightningModule):
         scheduler = ReduceLROnPlateau(
             optimizer,
             mode="min",
-            patience=3,
+            patience=5,
             factor=0.1,
             min_lr=1.0e-6,
             verbose=True,

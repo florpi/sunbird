@@ -7,7 +7,6 @@ from typing import List
 from pathlib import Path
 import pytorch_lightning as pl
 from sunbird.models import FCN
-from sunbird.data.data import load_summary_training
 
 TRAIN_DIR = Path(__file__).parent
 
@@ -18,19 +17,17 @@ class Predictor(pl.LightningModule):
         summary_stats, 
         s,
         normalize_inputs: bool = True,
-        normalize: bool = False,
-        standarize: bool = False,
-        apply_s2: bool = False,
-        multipoles: List[int] = [0,1],
+        normalize_outputs: bool = False,
+        standarize_outputs: bool = False,
+        s2_outputs: bool = False,
     ):
         super().__init__()
         self.nn_model = nn_model
         self.summary_stats = summary_stats
         self.s = s
-        self.multipoles = multipoles
-        self.normalize = normalize
-        self.standarize = standarize
-        self.apply_s2 = apply_s2
+        self.normalize_outputs = normalize_outputs
+        self.standarize_outputs = standarize_outputs
+        self.s2_outputs = s2_outputs
         self.normalize_inputs = normalize_inputs
 
     @classmethod
@@ -50,9 +47,9 @@ class Predictor(pl.LightningModule):
             summary_stats=summary_stats,
             s=torch.tensor(s, dtype=torch.float32, requires_grad=False,),
             normalize_inputs=config['normalize_inputs'],
-            normalize=config['normalize'],
-            standarize=config['standarize'],
-            apply_s2=config['apply_s2'],
+            normalize_outputs=config['normalize_outputs'],
+            standarize_outputs=config['standarize_outputs'],
+            s2_outputs=config['s2_outputs'],
         )
 
     @classmethod
@@ -65,13 +62,13 @@ class Predictor(pl.LightningModule):
         if self.normalize_inputs:
             inputs = (inputs - self.summary_stats['x_min']) / (self.summary_stats['x_max'] - self.summary_stats['x_min'])
         prediction = self.nn_model(inputs)
-        if self.normalize:
+        if self.normalize_outputs:
             prediction = prediction*(
                 self.summary_stats['y_max'] - self.summary_stats['y_min']
             ) + self.summary_stats['y_min']
-        elif self.standarize:
+        elif self.standarize_outputs:
             prediction = prediction*self.summary_stats['y_std'] + self.summary_stats['y_mean']
-        if self.apply_s2:
+        if self.s2_outputs:
             prediction = prediction/self.s**2
         return prediction
 

@@ -16,14 +16,14 @@ class Bundle(BaseSummary):
         """
         self.summaries = summaries
         self.all_summaries = {
-            'tpcf': TPCF(),
+            #'tpcf': TPCF(),
             'density_split_cross': DensitySplitCross(),
             'density_split_auto': DensitySplitAuto(),
         }
         
     @property
     def parameters(self,):
-        return self.all_summaries['tpcf'].parameters
+        return self.all_summaries['density_split_auto'].parameters
 
     def forward(
         self, inputs: torch.tensor, select_filters: Dict=None, slice_filters: Dict=None,

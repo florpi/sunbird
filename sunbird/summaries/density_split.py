@@ -7,7 +7,7 @@ from sunbird.models import Predictor, PredictorBundle
 from sunbird.summaries.base import BaseSummary
 
 
-DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/enrique/"
+DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best/"
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 
