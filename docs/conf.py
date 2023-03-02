@@ -10,9 +10,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join('..', 'sunbird')))
+# import os
+# import sys
+# sys.path.insert(0, os.path.abspath(os.path.join('..')))
 
 
 # -- Project information -----------------------------------------------------
@@ -35,7 +35,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.extlinks',
     'sphinx.ext.napoleon',
-    'sphinx_rtd_theme'
+    'sphinx_rtd_theme',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -53,10 +53,11 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
+# html_theme = 'sphinx_book_theme'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
 
-autodoc_mock_imports = ['dynesty']
+autodoc_mock_imports = ['dynesty', 'ultranest']
