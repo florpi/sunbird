@@ -39,7 +39,7 @@ class Nested(Inference):
         num_live_points: int = 500,
         dlogz: float = 0.01,
         max_iterations: int = 50_000,
-        max_calls: int = 240_000,
+        max_calls: int = 500_000,
     ):
         """Run nested sampling
 

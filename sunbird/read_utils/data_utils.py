@@ -118,15 +118,15 @@ class Data(ABC):
         if statistic == "density_split_auto":
             return (
                 self.data_path
-                / f"clustering/{dataset}/ds/gaussian/ds_auto_xi_smu_zsplit_Rs10_{suffix}.npy"
+                / f"clustering/{dataset}/ds/gaussian/ds_auto_zsplit_Rs10_{suffix}.npy"
             )
         elif statistic == "density_split_cross":
             return (
                 self.data_path
-                / f"clustering/{dataset}/ds/gaussian/ds_cross_xi_smu_zsplit_Rs10_{suffix}.npy"
+                / f"clustering/{dataset}/ds/gaussian/ds_cross_zsplit_Rs10_{suffix}.npy"
             )
         elif statistic == "tpcf":
-            return self.data_path / f"clustering/{dataset}/xi_smu/xi_smu_{suffix}.npy"
+            return self.data_path / f"clustering/{dataset}/tpcf/tpcf_{suffix}.npy"
         raise ValueError(f"Invalid statistic {statistic}")
 
     def get_observation(
@@ -210,7 +210,7 @@ class Abacus(Data):
         statistics: Optional[List[str]] = [
             "density_split_auto",
             "density_split_cross",
-            # "tpcf",
+            "tpcf",
         ],
         select_filters: Optional[Dict] = {
             "multipoles": [0, 2],
@@ -310,6 +310,145 @@ class Abacus(Data):
             Dict: dictionary of cosmology + HOD parameters
         """
         return self.get_all_parameters(cosmology=cosmology).iloc[hod_idx].to_dict()
+
+
+class AbacusSmall(Data):
+    def __init__(
+        self,
+        data_path: Optional[Path] = DATA_PATH,
+        statistics: Optional[List[str]] = [
+            "density_split_auto",
+            "density_split_cross",
+            "tpcf",
+        ],
+        select_filters: Optional[Dict] = {
+            "multipoles": [0, 2],
+            "quintiles": [0, 1, 3, 4],
+        },
+        slice_filters: Optional[Dict] = {"s": [0.7, 150.0]},
+        s2_outputs: Optional[bool] = False,
+        normalization_dict: Optional[Dict] = None,
+        standarize: bool = False,
+        normalize: bool = False,
+    ):
+        """Patchy data class for the small AbacusSummit mocks.
+
+        Args:
+            data_path (Path, optional): path where data is stored. Defaults to DATA_PATH.
+            statistics (List[str], optional): summary statistics to read.
+            Defaults to ["density_split_auto", "density_split_cross", "tpcf"].
+            select_filters (Dict, optional): filters to select values along coordinates.
+            Defaults to {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]}.
+            slice_filters (Dict, optional): filters to slice values along coordinates.
+            Defaults to {"s": [0.7, 150.0]}.
+        """
+        self.data_path = data_path
+        self.statistics = statistics
+        self.select_filters = select_filters
+        self.slice_filters = slice_filters
+        self.avg_los = True
+        self.s2_outputs = s2_outputs
+        self.normalization_dict = normalization_dict
+        self.standarize = standarize
+        self.normalize = normalize
+
+    def get_file_path(
+        self,
+        statistic: str,
+    ):
+        """get file path where data is stored for a given statistic
+
+        Args:
+            statistic (str): summary statistic to read
+
+        Returns:
+            Path: path to where data is stored
+        """
+        return super().get_file_path(
+            dataset="abacus_small",
+            statistic=statistic,
+            suffix="c000_hodbest",
+        )
+
+    def get_observation(
+        self,
+        phase: int,
+    ) -> np.array:
+        """get array of a given observation at a given phase
+
+        Args:
+            phase (int): random phase to read
+
+        Returns:
+            np.array: flattened observation
+        """
+        return super().get_observation(
+            select_from_coords={"realizations": phase},
+            multiple_realizations=True,
+        )
+
+    def gather_summaries_for_covariance(
+        self,
+    ) -> np.array:
+        summaries = []
+        for statistic in self.statistics:
+            summary = self.read_statistic(
+                statistic=statistic,
+            )
+            if self.s2_outputs:
+                summary = summary * summary.s**2
+            summary = np.array(summary.values).reshape(
+                (len(summary["realizations"]), -1)
+            )
+            summary = normalize_data(
+                summary,
+                self.normalization_dict,
+                standarize=self.standarize,
+                normalize=self.normalize,
+            )
+            summaries.append(summary)
+        return np.hstack(summaries)
+
+    def get_covariance(
+        self,
+        apply_hartlap_correction: bool = True,
+    ) -> np.array:
+        """estimate covariance matrix from the different patchy seeds
+
+        Args:
+            apply_hartlap_correction (bool, optional): whether to apply hartlap correction.
+            Defaults to True.
+
+        Returns:
+            np.array: covariance matrix
+        """
+        summaries = self.gather_summaries_for_covariance()
+        if apply_hartlap_correction:
+            n_mocks = len(summaries)
+            n_bins = summaries.shape[-1]
+            hartlap_factor = (n_mocks - 1) / (n_mocks - n_bins - 2)
+        else:
+            hartlap_factor = 1.0
+        return hartlap_factor * np.cov(summaries, rowvar=False) / 64
+
+    def get_parameters_for_observation(
+        self,
+    ) -> Dict:
+        """get cosmological parameters for a particular observation
+
+        Returns:
+            Dict: dictionary of cosmology + HOD parameters
+        """
+        return {
+            "omega_b": 0.02213,
+            "omega_cdm": 0.11891,
+            "sigma8_m": 0.8288,
+            "n_s": 0.9611,
+            "nrun": 0.0,
+            "N_ur": 2.0328,
+            "w0_fld": -1.0,
+            "wa_fld": 0.0,
+        }
 
 
 class Uchuu(Data):
@@ -457,7 +596,7 @@ class Patchy(Data):
         return super().get_file_path(
             dataset="patchy",
             statistic=statistic,
-            suffix=f"landyszalay",
+            suffix=f"ngc_landyszalay",
         )
 
     def get_observation(
@@ -579,13 +718,14 @@ class CMASS(Data):
             Path: path to where data is stored
         """
         return super().get_file_path(
-            dataset="cmasslowz",
+            dataset="cmass",
             statistic=statistic,
-            suffix="cmasslowztot_ngc_landyszalay",
+            suffix="ngc_landyszalay",
         )
 
     def get_observation(
         self,
+        galactic_cap='ngc',
     ) -> np.array:
         """get array of a given observation at a cosmology and ranking
 
@@ -598,6 +738,7 @@ class CMASS(Data):
 
     def get_parameters_for_observation(
         self,
+        galactic_cap='ngc',
     ) -> Dict:
         """get cosmological parameters for a particular observation
 

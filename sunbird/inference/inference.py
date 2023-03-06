@@ -4,8 +4,9 @@ import importlib
 import numpy as np
 import yaml
 from typing import Dict, List, Tuple, Optional
-from sunbird.covariance import CovarianceMatrix
+from sunbird.covariance import CovarianceMatrix, normalize_cov
 from sunbird.read_utils import data_utils
+import matplotlib.pyplot as plt
 
 
 class Inference(ABC):
@@ -99,6 +100,7 @@ class Inference(ABC):
         covariance_config = config["data"]["covariance"]
         covariance_matrix = cls.get_covariance_matrix(
             covariance_data_class=covariance_config["class"],
+            add_emulator_error=covariance_config["add_emulator_error"],
             statistics=config["statistics"],
             select_filters=select_filters,
             slice_filters=slice_filters,

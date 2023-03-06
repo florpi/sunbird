@@ -31,9 +31,9 @@ def objective(
     act_fn = trial.suggest_categorical(
         "act_fn",
         [
-            "GELU",
+            # "GELU",
             "SiLU",
-            "PReLU",
+            # "PReLU",
         ],
     )
     args.learning_rate = lr
