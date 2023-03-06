@@ -29,7 +29,7 @@ class BaseSummary:
             "alpha",
             "alpha_s",
             "alpha_c",
-            "sigma",
+            "logsigma",
             "kappa",
             "B_cen",
             "B_sat",

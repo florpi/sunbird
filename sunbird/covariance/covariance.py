@@ -129,7 +129,7 @@ class CovarianceMatrix:
             self.emulators = {
                 'density_split_cross': DensitySplitCross(),
                 'density_split_auto': DensitySplitAuto(),
-                #"tpcf": TPCF(),
+                "tpcf": TPCF(),
             }
         inputs = torch.tensor(inputs, dtype=torch.float32)
         xi_model = []
