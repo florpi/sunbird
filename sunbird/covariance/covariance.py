@@ -53,6 +53,7 @@ class CovarianceMatrix:
     def get_covariance_data(
         self,
         apply_hartlap_correction: bool = True,
+        fractional: bool = False,
     ) -> np.array:
         """Get the covariance matrix of the data for the specified summary statistics
 
@@ -61,6 +62,7 @@ class CovarianceMatrix:
         """
         return self.covariance_data.get_covariance(
             apply_hartlap_correction=apply_hartlap_correction,
+            fractional=fractional,
         )
 
     def get_true_test(

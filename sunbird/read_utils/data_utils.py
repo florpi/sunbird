@@ -193,6 +193,20 @@ class Data(ABC):
                 data = np.mean(data, axis=1)
             else:
                 data = np.mean(data, axis=0)
+        # if statistic == "tpcf":
+        #     if multiple_realizations:
+        #         data[:, 0] = np.log10(1 + data[:, 0])
+        #         data[:, 1] = np.log10(1.5 + data[:, 0])
+        #     else:
+        #         data[0] = np.log10(1 + data[0])
+        #         data[1] = np.log10(1.5 + data[1])
+        # else:
+        #     if multiple_realizations:
+        #         data[:, :, 0] = np.log10(5 + data[:, :, 0])
+        #         data[:, :, 1] = np.log10(5 + data[:, :, 0])
+        #     else:
+        #         data[:, 0] = np.log10(5 + data[:, 0])
+        #         data[:, 1] = np.log10(5 + data[:, 0])
         return convert_to_summary(
             data=data,
             dimensions=dimensions,
@@ -412,6 +426,7 @@ class AbacusSmall(Data):
     def get_covariance(
         self,
         apply_hartlap_correction: bool = True,
+        fractional: bool = False,
     ) -> np.array:
         """estimate covariance matrix from the different patchy seeds
 
@@ -429,7 +444,11 @@ class AbacusSmall(Data):
             hartlap_factor = (n_mocks - 1) / (n_mocks - n_bins - 2)
         else:
             hartlap_factor = 1.0
-        return hartlap_factor * np.cov(summaries, rowvar=False) / 64
+        if fractional:
+            cov = np.cov(summaries / np.mean(summaries, axis=0), rowvar=False)
+        else:
+            cov = np.cov(summaries, rowvar=False)
+        return hartlap_factor * cov
 
     def get_parameters_for_observation(
         self,
@@ -641,6 +660,7 @@ class Patchy(Data):
     def get_covariance(
         self,
         apply_hartlap_correction: bool = True,
+        fractional: bool = False,
     ) -> np.array:
         """estimate covariance matrix from the different patchy seeds
 
@@ -658,7 +678,11 @@ class Patchy(Data):
             hartlap_factor = (n_mocks - 1) / (n_mocks - n_bins - 2)
         else:
             hartlap_factor = 1.0
-        return hartlap_factor * np.cov(summaries, rowvar=False)
+        if fractional:
+            cov = np.cov(summaries / np.mean(summaries, axis=0), rowvar=False)
+        else:
+            cov = np.cov(summaries, rowvar=False)
+        return hartlap_factor * cov
 
     def get_parameters_for_observation(
         self,
