@@ -34,6 +34,8 @@ class FCN(BaseModel):
                 slice_filters = {'s': [0.7,150.]},
                 select_filters= {'multipoles': [0,2]},
             )
+        elif kwargs["loss"] == "learned_gaussian":
+            self.loss = nn.GaussianNLLLoss()
         elif kwargs["loss"] == "mse":
             self.loss = nn.MSELoss()
         elif kwargs["loss"] == "mae":
