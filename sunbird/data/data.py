@@ -175,6 +175,7 @@ class DSDataModule(pl.LightningDataModule):
         data = self.load_data(
             cosmology_idx=cosmology_idx,
         )
+        print(np.shape(data))
         return params, data
 
     def summarise_training_data(
