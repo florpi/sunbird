@@ -193,20 +193,6 @@ class Data(ABC):
                 data = np.mean(data, axis=1)
             else:
                 data = np.mean(data, axis=0)
-        # if statistic == "tpcf":
-        #     if multiple_realizations:
-        #         data[:, 0] = np.log10(1 + data[:, 0])
-        #         data[:, 1] = np.log10(1.5 + data[:, 0])
-        #     else:
-        #         data[0] = np.log10(1 + data[0])
-        #         data[1] = np.log10(1.5 + data[1])
-        # else:
-        #     if multiple_realizations:
-        #         data[:, :, 0] = np.log10(5 + data[:, :, 0])
-        #         data[:, :, 1] = np.log10(5 + data[:, :, 0])
-        #     else:
-        #         data[:, 0] = np.log10(5 + data[:, 0])
-        #         data[:, 1] = np.log10(5 + data[:, 0])
         return convert_to_summary(
             data=data,
             dimensions=dimensions,

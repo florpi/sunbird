@@ -21,6 +21,10 @@ def fit(args):
     model = FCN(
         n_input=dm.n_input,
         n_output=dm.n_output,
+        normalization_dict=dm.normalization_dict,
+        normalize_covariance=args.normalize_outputs,
+        slice_filters=dm.slice_filters,
+        select_filters=dm.select_filters,
         **model_dict_args,
     )
     # Setup trainer
