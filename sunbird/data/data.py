@@ -49,11 +49,13 @@ class DSDataModule(pl.LightningDataModule):
         self.normalize_outputs = normalize_outputs
         self.normalize_inputs = normalize_inputs
         self.s2_outputs = s2_outputs
+        self.select_filters = select_filters
+        self.slice_filters = slice_filters
         self.data = Abacus(
             dataset=abacus_dataset,
             statistics=[self.statistic],
-            select_filters=select_filters,
-            slice_filters=slice_filters,
+            select_filters=self.select_filters,
+            slice_filters=self.slice_filters,
         )
         self.inputs_names = inputs_names
 
@@ -175,7 +177,6 @@ class DSDataModule(pl.LightningDataModule):
         data = self.load_data(
             cosmology_idx=cosmology_idx,
         )
-        print(np.shape(data))
         return params, data
 
     def summarise_training_data(
