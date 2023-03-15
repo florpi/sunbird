@@ -28,19 +28,10 @@ def objective(
             for layer in range(n_layers)
         ]
     dropout_rate = trial.suggest_float("dropout_rate", 0.0, 0.4)
-    act_fn = trial.suggest_categorical(
-        "act_fn",
-        [
-            # "GELU",
-            "SiLU",
-            # "PReLU",
-        ],
-    )
     args.learning_rate = lr
     args.weight_decay = weight_decay
     args.n_hidden = n_hidden
     args.dropout_rate = dropout_rate
-    args.act_fn = act_fn
     return fit(args)
 
 
