@@ -74,7 +74,7 @@ class DSDataModule(pl.LightningDataModule):
         parser.add_argument('--select_multipoles', action='store', type=int, default=[0,1],nargs='+',)
         parser.add_argument('--slice_s', action='store', type=float, default=[0.7,150.],nargs='+',)
         parser.add_argument('--batch_size', type=int, default=256,)
-        parser.add_argument('--standarize_outputs', type=bool, default=False,)
+        parser.add_argument('--standarize_outputs', type=bool, default=True,)
         parser.add_argument('--normalize_outputs', type=bool, default=True,)
         parser.add_argument('--normalize_inputs', type=bool, default=True,)
         parser.add_argument('--s2_outputs', type=bool, default=False,)

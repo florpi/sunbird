@@ -10,5 +10,14 @@
 
 set -e
 export SLURM_CPU_BIND="cores"
+ACT_FN=SiLU
 
-python optimise.py --abacus_dataset wideprior_AB --model_dir /global/homes/e/epaillas/pscratch/sunbird/trained_models/enrique/wideprior_AB/tpcf_v10 --statistic tpcf --normalize_outputs true --normalize_inputs true --s2_outputs false --select_multipoles 0 1 --slice_s 0.7 151 --accelerator gpu
+python optimise.py \
+--abacus_dataset wideprior_AB \
+--model_dir /global/homes/e/epaillas/pscratch/sunbird/trained_models/enrique/wideprior_AB/"$ACT_FN"/s2/tpcf \
+--statistic tpcf \
+--select_multipoles 0 1 \
+--slice_s 0.7 151 \
+--accelerator gpu \
+--act_fn "$ACT_FN" \
+--s2_outputs true \

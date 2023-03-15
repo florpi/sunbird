@@ -4,6 +4,7 @@ import pandas as pd
 import xarray as xr
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
+import matplotlib.pyplot as plt
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
@@ -411,14 +412,19 @@ class AbacusSmall(Data):
 
     def get_covariance(
         self,
+        volume_scaling: float,
         apply_hartlap_correction: bool = True,
         fractional: bool = False,
     ) -> np.array:
         """estimate covariance matrix from the different patchy seeds
 
         Args:
+            volume_scaling (float): volume scaling factor. e.g. 64.0 for a 2 Gpc/h volume, 
+            or 1.0 for a CMASS-like volume.
             apply_hartlap_correction (bool, optional): whether to apply hartlap correction.
             Defaults to True.
+            fractional (bool, optional): whether to return a fractional covariance matrix.
+            Defaults to False.
 
         Returns:
             np.array: covariance matrix
@@ -434,7 +440,7 @@ class AbacusSmall(Data):
             cov = np.cov(summaries / np.mean(summaries, axis=0), rowvar=False)
         else:
             cov = np.cov(summaries, rowvar=False)
-        return hartlap_factor * cov
+        return hartlap_factor * cov / volume_scaling
 
     def get_parameters_for_observation(
         self,
@@ -647,12 +653,16 @@ class Patchy(Data):
         self,
         apply_hartlap_correction: bool = True,
         fractional: bool = False,
+        volume_scaling: float = 1.0,
     ) -> np.array:
         """estimate covariance matrix from the different patchy seeds
 
         Args:
             apply_hartlap_correction (bool, optional): whether to apply hartlap correction.
             Defaults to True.
+            fractional (bool, optional): whether to use fractional covariance.
+            Defaults to False.
+            volume_scaling (float, optional): volume scaling factor. Defaults to 1.0 (for a CMASS-like volume).
 
         Returns:
             np.array: covariance matrix
@@ -668,7 +678,7 @@ class Patchy(Data):
             cov = np.cov(summaries / np.mean(summaries, axis=0), rowvar=False)
         else:
             cov = np.cov(summaries, rowvar=False)
-        return hartlap_factor * cov
+        return hartlap_factor * cov / volume_scaling
 
     def get_parameters_for_observation(
         self,

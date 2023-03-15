@@ -15,6 +15,9 @@ data:
             hod_idx: 0
     covariance:
         class: 'Patchy'
+        add_emulator_error: true
+        add_simulation_error: true
+        volume_scaling: 1.0
 
 fixed_parameters: [] 
 

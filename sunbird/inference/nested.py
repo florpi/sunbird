@@ -39,7 +39,7 @@ class Nested(Inference):
         num_live_points: int = 500,
         dlogz: float = 0.01,
         max_iterations: int = 50_000,
-        max_calls: int = 500_000,
+        max_calls: int = 1_000_000,
     ):
         """Run nested sampling
 
@@ -47,7 +47,7 @@ class Nested(Inference):
             num_live_points (int, optional): number of live points. Defaults to 500.
             dlogz (float, optional): allowed error on evidence. Defaults to 0.01.
             max_iterations (int, optional): maximum number of iterations. Defaults to 50_000.
-            max_calls (int, optional): maximum number of calls. Defaults to 240_000.
+            max_calls (int, optional): maximum number of calls. Defaults to 1_000_000.
         """
         self.output_dir.mkdir(parents=True, exist_ok=True)
         sampler = NestedSampler(

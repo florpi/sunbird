@@ -14,7 +14,7 @@ default_root_dir: null
 detect_anomaly: false
 deterministic: null
 devices: null
-dropout_rate: 0.025017649157972294
+dropout_rate: 8.6131345427818e-05
 enable_checkpointing: true
 enable_model_summary: true
 enable_progress_bar: true
@@ -25,7 +25,7 @@ gradient_clip_val: null
 inference_mode: true
 input_names: null
 ipus: null
-learning_rate: 0.0035810321535042983
+learning_rate: 0.007375818441617045
 limit_predict_batches: null
 limit_test_batches: null
 limit_train_batches: null
@@ -38,13 +38,14 @@ max_steps: -1
 max_time: null
 min_epochs: null
 min_steps: null
-model_dir: /global/homes/e/epaillas/pscratch/sunbird/trained_models/enrique/wideprior_AB/ds1_cross
+model_dir: /global/homes/e/epaillas/pscratch/sunbird/trained_models/enrique/wideprior_AB/SiLU/rerun_ds1_cross
 move_metrics_to_cpu: false
 multiple_trainloader_mode: max_size_cycle
 n_hidden:
-- 213
-- 799
-- 29
+- 190
+- 125
+- 43
+- 190
 n_input: 17
 n_output: 72
 normalize_inputs: true
@@ -60,7 +61,7 @@ reload_dataloaders_every_n_epochs: 0
 replace_sampler_ddp: true
 resume_from_checkpoint: null
 run_name: optuna
-s2_outputs: true
+s2_outputs: false
 select_multipoles:
 - 0
 - 1
@@ -69,7 +70,7 @@ select_quintiles:
 slice_s:
 - 0.7
 - 151.0
-standarize_outputs: false
+standarize_outputs: true
 statistic: density_split_cross
 strategy: null
 sync_batchnorm: false
@@ -77,4 +78,4 @@ tpu_cores: null
 track_grad_norm: -1
 train_test_split_path: ../../data/train_test_split.json
 val_check_interval: null
-weight_decay: 0.0012377438362612583
+weight_decay: 0.0021207353125415104

@@ -6,7 +6,6 @@ import yaml
 from typing import Dict, List, Tuple, Optional
 from sunbird.covariance import CovarianceMatrix, normalize_cov
 from sunbird.read_utils import data_utils
-import matplotlib.pyplot as plt
 
 
 class Inference(ABC):
@@ -98,9 +97,16 @@ class Inference(ABC):
         for k in config["fixed_parameters"]:
             fixed_parameters[k] = parameters[k]
         covariance_config = config["data"]["covariance"]
+        if "volume_scaling" not in covariance_config:
+            if covariance_config["class"] == "AbacusSmall":
+                raise ValueError("Volume scaling must be specified when using AbacusSmall covariance class.")
+            else:
+                covariance_config["volume_scaling"] = 1.0
         covariance_matrix = cls.get_covariance_matrix(
             covariance_data_class=covariance_config["class"],
             add_emulator_error=covariance_config["add_emulator_error"],
+            add_simulation_error=covariance_config["add_simulation_error"],
+            volume_scaling=covariance_config["volume_scaling"],
             statistics=config["statistics"],
             select_filters=select_filters,
             slice_filters=slice_filters,
@@ -161,7 +167,9 @@ class Inference(ABC):
         select_filters: Dict,
         slice_filters: Dict,
         add_emulator_error: bool = True,
-        apply_hartlap_correction=True,
+        add_simulation_error: bool = True,
+        apply_hartlap_correction: bool = True,
+        volume_scaling: float = 1.0,
     ) -> np.array:
         """Compute covariance matrix for a list of statistics
 
@@ -170,9 +178,11 @@ class Inference(ABC):
             statistics (List[str]): list of statistics
             select_filters (Dict): filters to select values along a dimension
             slice_filters (Dict): filters to slice values along a dimension
-            add_emulator_error (bool, optional): whether to add in the estimated emulator error. Defaults to True.
+            add_emulator_error (bool, optional): whether to add in the emulator error. Defaults to True.
+            add_simulation_error (bool, optional): whether to add in the simulation error. Defaults to True.
             apply_hartlap_correction (bool, optional): whether to correct the covariance matrix with the Hartlap factor
             to ensure the inverse covariance matrix is an unbiased estimator.
+            volume_scaling (float, optional): scaling factor to apply to the volume of the covariance matrix. Defaults to 1.0.
 
         Returns:
             np.array: covariance matrix
@@ -183,13 +193,19 @@ class Inference(ABC):
             select_filters=select_filters,
             slice_filters=slice_filters,
         )
-        covariance_data = covariance.get_covariance_data(
-            apply_hartlap_correction=apply_hartlap_correction
+        cov_data = covariance.get_covariance_data(
+            apply_hartlap_correction=apply_hartlap_correction,
+            volume_scaling=volume_scaling,
         )
         if add_emulator_error:
-            cov_emulator_error = covariance.get_covariance_emulator_error()
-            return covariance_data + cov_emulator_error
-        return covariance_data
+            cov_data += covariance.get_covariance_emulator(
+                covariance_data=cov_data,
+            )
+        if add_simulation_error:
+            cov_data += covariance.get_covariance_simulation(
+                apply_hartlap_correction=apply_hartlap_correction,
+            )
+        return cov_data
 
     @classmethod
     def get_priors(
