@@ -194,6 +194,8 @@ class CovarianceMatrix:
         covariance_data: np.array = None,
         fractional: bool = False,
         clip_errors: bool = False,
+        clipping_factor: float = 3.0,
+
     ) -> np.array:
         """Estimate the emulator's error on the test set
 
@@ -217,6 +219,7 @@ class CovarianceMatrix:
                 data=absolute_error,
                 covariance_data=covariance_data,
                 return_mask=True,
+                clipping_factor=clipping_factor,
             )
             xi_test = xi_test[mask]
         if fractional:
@@ -227,7 +230,7 @@ class CovarianceMatrix:
         self,
         data: np.array,
         covariance_data: np.array,
-        clip: float = 3.0,
+        clipping_factor: float = 3.0,
         return_mask: bool = False,
     ) -> np.array:
         """Clip data to remove outliers
@@ -246,7 +249,7 @@ class CovarianceMatrix:
             res = data[i]
             chi2.append(np.dot(res, np.dot(inv_cov, res)))
         chi2 = np.asarray(chi2)
-        c, low, upp = sigmaclip(chi2, low=clip, high=clip)
+        c, low, upp = sigmaclip(chi2, low=clipping_factor, high=clipping_factor)
         mask = (chi2 > low) & (chi2 < upp)
         if return_mask:
             return data[mask], mask
