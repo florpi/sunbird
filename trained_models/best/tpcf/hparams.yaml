@@ -14,7 +14,7 @@ default_root_dir: null
 detect_anomaly: false
 deterministic: null
 devices: null
-dropout_rate: 0.02846349891653261
+dropout_rate: 0.000954544134700531
 enable_checkpointing: true
 enable_model_summary: true
 enable_progress_bar: true
@@ -25,7 +25,7 @@ gradient_clip_val: null
 inference_mode: true
 input_names: null
 ipus: null
-learning_rate: 0.00892758480602972
+learning_rate: 0.004859174776984646
 limit_predict_batches: null
 limit_test_batches: null
 limit_train_batches: null
@@ -38,14 +38,16 @@ max_steps: -1
 max_time: null
 min_epochs: null
 min_steps: null
-model_dir: /global/homes/e/epaillas/pscratch/sunbird/trained_models/enrique/wideprior_AB/tpcf
+model_dir: /global/homes/e/epaillas/pscratch/sunbird/trained_models/enrique/wideprior_AB/SiLU/s2/tpcf
 move_metrics_to_cpu: false
 multiple_trainloader_mode: max_size_cycle
 n_hidden:
-- 919
-- 773
-- 928
-- 932
+- 482
+- 744
+- 744
+- 85
+- 328
+- 183
 n_input: 17
 n_output: 72
 normalize_inputs: true
@@ -70,7 +72,7 @@ select_quintiles:
 slice_s:
 - 0.7
 - 151.0
-standarize_outputs: false
+standarize_outputs: true
 statistic: tpcf
 strategy: null
 sync_batchnorm: false
@@ -78,4 +80,4 @@ tpu_cores: null
 track_grad_norm: -1
 train_test_split_path: ../../data/train_test_split.json
 val_check_interval: null
-weight_decay: 0.005947027758555839
+weight_decay: 0.002052724795283656
