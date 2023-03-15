@@ -1,6 +1,7 @@
 import numpy as np
 import json
 from pathlib import Path
+from scipy.stats import sigmaclip
 from typing import List, Dict, Optional
 
 import torch
@@ -37,12 +38,21 @@ class CovarianceMatrix:
             normalize=normalize_covariance,
             normalization_dict=normalization_dict,
         )
+        self.covariance_simulation = getattr(data_utils, "AbacusSmall")(
+            statistics=statistics,
+            slice_filters=slice_filters,
+            select_filters=select_filters,
+            standarize=standarize_covariance,
+            normalize=normalize_covariance,
+            normalization_dict=normalization_dict,
+        )
         self.emulator_data = getattr(data_utils, emulator_data_class)(
             dataset="wideprior_AB",
             statistics=statistics,
             slice_filters=slice_filters,
             select_filters=select_filters,
         )
+        self.covariance_data_class = covariance_data_class
         self.statistics = statistics
         self.slice_filters = slice_filters
         self.select_filters = select_filters
@@ -52,17 +62,29 @@ class CovarianceMatrix:
 
     def get_covariance_data(
         self,
+        volume_scaling: float = None,
         apply_hartlap_correction: bool = True,
         fractional: bool = False,
     ) -> np.array:
         """Get the covariance matrix of the data for the specified summary statistics
 
+        Args:
+            volume_scaling (float): volume scaling factor
+            apply_hartlap_correction (bool, optional): whether to apply hartlap correction. Defaults to True.
+            fractional (bool, optional): whether to return the fractional covariance matrix. Defaults to False.
+
         Returns:
             np.array: covariance matrix of the data
         """
+        if volume_scaling is None:
+            if self.covariance_data_class == 'AbacusSmall':
+                raise ValueError("Volume scaling must be specified when using AbacusSmall covariance class.")
+            else:
+                volume_scaling = 1.0
         return self.covariance_data.get_covariance(
             apply_hartlap_correction=apply_hartlap_correction,
             fractional=fractional,
+            volume_scaling=volume_scaling,
         )
 
     def get_true_test(
@@ -145,12 +167,38 @@ class CovarianceMatrix:
             )
         xi_model = np.hstack(xi_model)
         return np.squeeze(np.array(xi_model))
-
-    def get_covariance_emulator_error(
+    
+    def get_covariance_simulation(
         self,
+        apply_hartlap_correction: bool = True,
+        fractional: bool = False,
+    ) -> np.array:
+        """Get the covariance matrix associated with the finite volume
+        of the simulations used to train the emulator.
+
+        Args:
+            apply_hartlap_correction (bool, optional): whether to apply hartlap correction. Defaults to True.
+            fractional (bool, optional): whether to return the fractional covariance matrix. Defaults to False.
+
+        Returns:
+            np.array: covariance matrix of the simulations sample variance.
+        """
+        return self.covariance_simulation.get_covariance(
+            apply_hartlap_correction=apply_hartlap_correction,
+            fractional=fractional,
+            volume_scaling=64,
+        )
+
+    def get_covariance_emulator(
+        self,
+        covariance_data: np.array,
         fractional: bool = False,
     ) -> np.array:
         """Estimate the emulator's error on the test set
+
+        Args:
+            covariance_data (np.array): covariance matrix of the data
+            fractional (bool, optional): whether to return the fractional covariance matrix. Defaults to False.
 
         Returns:
             np.array: covariance of the emulator's errors
@@ -160,6 +208,16 @@ class CovarianceMatrix:
         xi_test = self.get_true_test(test_cosmologies=test_cosmologies)
         inputs = self.get_inputs_test(test_cosmologies=test_cosmologies)
         xi_model = self.get_emulator_predictions(inputs=inputs)
+        inv_cov = np.linalg.inv(covariance_data)
+        chi2 = []
+        for i in range(len(xi_model)):
+            res = xi_test[i] - xi_model[i]
+            chi2.append(np.dot(res, np.dot(inv_cov, res)))
+        chi2 = np.asarray(chi2)
+        c, low, upp = sigmaclip(chi2, low=3.0, high=3.0)
+        mask = (chi2 > low) & (chi2 < upp)
+        xi_test = xi_test[mask]
+        xi_model = xi_model[mask]
         if fractional:
             return np.cov((xi_model - xi_test)/xi_test, rowvar=False)
         return np.cov(xi_model - xi_test, rowvar=False)
