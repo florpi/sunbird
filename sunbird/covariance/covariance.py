@@ -191,8 +191,11 @@ class CovarianceMatrix:
 
     def get_covariance_emulator(
         self,
-        covariance_data: np.array,
+        covariance_data: np.array = None,
         fractional: bool = False,
+        clip_errors: bool = False,
+        clipping_factor: float = 3.0,
+
     ) -> np.array:
         """Estimate the emulator's error on the test set
 
@@ -208,19 +211,49 @@ class CovarianceMatrix:
         xi_test = self.get_true_test(test_cosmologies=test_cosmologies)
         inputs = self.get_inputs_test(test_cosmologies=test_cosmologies)
         xi_model = self.get_emulator_predictions(inputs=inputs)
+        absolute_error = xi_model - xi_test
+        if clip_errors:
+            if covariance_data is None:
+                raise ValueError("Covariance data must be specified when clipping errors.")
+            absolute_error, mask = self.clip_data(
+                data=absolute_error,
+                covariance_data=covariance_data,
+                return_mask=True,
+                clipping_factor=clipping_factor,
+            )
+            xi_test = xi_test[mask]
+        if fractional:
+            return np.cov(absolute_error/xi_test, rowvar=False)
+        return np.cov(absolute_error, rowvar=False)
+
+    def clip_data(
+        self,
+        data: np.array,
+        covariance_data: np.array,
+        clipping_factor: float = 3.0,
+        return_mask: bool = False,
+    ) -> np.array:
+        """Clip data to remove outliers
+
+        Args:
+            data (np.array): data to clip
+            covariance_data (np.array): covariance matrix of the data
+            clip (float, optional): sigma clipping value. Defaults to 3.0.
+
+        Returns:
+            np.array: clipped data
+        """
         inv_cov = np.linalg.inv(covariance_data)
         chi2 = []
-        for i in range(len(xi_model)):
-            res = xi_test[i] - xi_model[i]
+        for i in range(len(data)):
+            res = data[i]
             chi2.append(np.dot(res, np.dot(inv_cov, res)))
         chi2 = np.asarray(chi2)
-        c, low, upp = sigmaclip(chi2, low=3.0, high=3.0)
+        c, low, upp = sigmaclip(chi2, low=clipping_factor, high=clipping_factor)
         mask = (chi2 > low) & (chi2 < upp)
-        xi_test = xi_test[mask]
-        xi_model = xi_model[mask]
-        if fractional:
-            return np.cov((xi_model - xi_test)/xi_test, rowvar=False)
-        return np.cov(xi_model - xi_test, rowvar=False)
+        if return_mask:
+            return data[mask], mask
+        return data[mask]
 
 
 def normalize_cov(cov):
