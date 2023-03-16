@@ -113,8 +113,10 @@ def get_data_variance(
         statistics=[statistic],
         select_filters=select_filters,
         slice_filters=slice_filters,
+        covariance_data_class='AbacusSmall'
     )
     covariance_data = covariance.get_covariance_data(
         apply_hartlap_correction=True,
+        volume_scaling=8.,
     )
     return np.sqrt(np.diag(covariance_data))

@@ -2,12 +2,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from utils import get_emulator_and_truth, get_data_variance
+from sunbird.covariance import CovarianceMatrix
 
 plt.style.use(["science"])
 
 # 1) Get set to plot -> test
 split = "test"
 s, true_density_split, emulated_density_split, _ = get_emulator_and_truth(split=split)
+covariance = CovarianceMatrix(
+    statistics=['density_split_auto', 'density_split_cross'],
+    select_filters=select_filters,
+    slice_filters=slice_filters,
+    covariance_data_class='AbacusSmall'
+)
+covariance_data = covariance.get_covariance_data(
+    apply_hartlap_correction=True,
+    volume_scaling=64., # 2 Gpc volume
+)
 
 # 4) Get emulator error
 error = (emulated_density_split - true_density_split) / true_density_split
@@ -120,6 +131,34 @@ ds_colors = ["lightseagreen", "mediumorchid", "salmon", "royalblue", "rosybrown"
 x_range = np.arange(len(avg_error[0, :, 0].reshape(-1)))
 quintiles = [1, 2, 4, 5]
 for q in range(4):
+    ax[0].plot(
+        x_range[q * len(s) : (q + 1) * len(s)],
+        avg_error[0,:,0].reshape(-1)[
+            q * len(s) : (q + 1) * len(s)
+        ],
+        color=ds_colors[q],
+    )
+    ax[1].plot(
+        x_range[q * len(s) : (q + 1) * len(s)],
+        avg_error[0,:,1].reshape(-1)[
+            q * len(s) : (q + 1) * len(s)
+        ],
+        color=ds_colors[q],
+    )
+    ax[2].plot(
+        x_range[q * len(s) : (q + 1) * len(s)],
+        avg_error[1,:,0].reshape(-1)[
+            q * len(s) : (q + 1) * len(s)
+        ],
+        color=ds_colors[q],
+    )
+    ax[3].plot(
+        x_range[q * len(s) : (q + 1) * len(s)],
+        avg_error[1,:,1].reshape(-1)[
+            q * len(s) : (q + 1) * len(s)
+        ],
+        color=ds_colors[q],
+    )
     ax[0].fill_between(
         x_range[q * len(s) : (q + 1) * len(s)],
         (avg_error[0, :, 0].reshape(-1) - std_error[0, :, 0].reshape(-1))[
@@ -188,7 +227,7 @@ for i in range(4):
     ax[i].axhline(y=0, color="k", linestyle="dotted", alpha=0.25)
     ax[i].axhline(y=-1, color="k", linestyle="dashed", alpha=0.25)
     ax[i].axhline(y=1, color="k", linestyle="dashed", alpha=0.25)
-    ax[i].set_ylim(-2, 2)
+    ax[i].set_ylim(-20, 20)
 plt.subplots_adjust(wspace=0, hspace=0)
 
 plt.savefig(f"figures/png/Figure1_errors_std.png", dpi=600, bbox_inches="tight")

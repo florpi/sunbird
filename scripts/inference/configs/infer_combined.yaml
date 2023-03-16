@@ -14,10 +14,10 @@ data:
             cosmology: 0
             hod_idx: 0
     covariance:
-        class: 'Patchy'
+        class: 'AbacusSmall'
         add_emulator_error: true
         add_simulation_error: true
-        volume_scaling: 1.0
+        volume_scaling: 64.0
 
 fixed_parameters: [] 
 
@@ -93,7 +93,7 @@ priors:
         min: 0.
         max: 1.
 
-    sigma:
+    logsigma:
         distribution: 'uniform'
         min: -7.
         max: 0
