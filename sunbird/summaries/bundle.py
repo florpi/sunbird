@@ -16,7 +16,7 @@ class Bundle(BaseSummary):
         """
         self.summaries = summaries
         self.all_summaries = {
-            #'tpcf': TPCF(),
+            'tpcf': TPCF(),
             'density_split_cross': DensitySplitCross(),
             'density_split_auto': DensitySplitAuto(),
         }

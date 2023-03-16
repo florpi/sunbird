@@ -7,18 +7,24 @@ plt.style.use(["science"])
 chain_path = Path("/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/")
 cosmology = 0
 hod_idx = 940
-suffix = "reduced_params_new"
+suffix = None 
 true_params = get_true_params(
     cosmology=cosmology,
     hod_idx=hod_idx,
 )
-print(true_params)
 samples_ds = get_chain(
     chain_path=chain_path,
     cosmology=cosmology,
     hod_idx=hod_idx,
     suffix=suffix,
 )
+samples_tpcf = get_chain(
+    chain_path=chain_path,
+    cosmology=cosmology,
+    hod_idx=hod_idx,
+    suffix='tpcf',
+)
+
 colors = [
     "lightseagreen",
     "mediumorchid",
@@ -37,21 +43,21 @@ params_to_plot = [
     "alpha",
     "alpha_s",
     "alpha_c",
-    "sigma",
+    "logsigma",
     "kappa",
     "B_cen",
     "B_sat",
 ]
 plot_samples(
-    [samples_ds],
+    [samples_tpcf,samples_ds],
     None,
     params_to_plot,
     colors,
-    None,
+    [r'$\mathrm{TPCF}$',r'$\mathrm{DS}_\mathrm{auto+cross}$'],
     markers=[
         true_params,
     ],
-    markers_colors=colors,
+    markers_colors=['lightgray'],
 )
 plt.savefig(f"figures/png/Figure5.1_cosmo0.png", dpi=600, bbox_inches="tight")
 plt.savefig(f"figures/pdf/Figure5.1_cosmo0.pdf", dpi=600, bbox_inches="tight")
@@ -62,15 +68,15 @@ params_to_plot = [
     "n_s",
 ]
 plot_samples(
-    [samples_ds],
+    [samples_tpcf,samples_ds],
     None,
     params_to_plot,
     colors,
-    None,
+    [r'$\mathrm{TPCF}$',r'$\mathrm{DS}_\mathrm{auto+cross}$'],
     markers=[
         true_params,
     ],
-    markers_colors=colors,
+    markers_colors=['lightgray'],
 )
 plt.savefig(f"figures/png/Figure5.2_cosmo0_cosmology.png", dpi=600, bbox_inches="tight")
 plt.savefig(f"figures/pdf/Figure5.2_cosmo0_cosmology.pdf", dpi=600, bbox_inches="tight")

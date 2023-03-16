@@ -16,7 +16,7 @@ labels = {
     "alpha": r"\alpha",
     "alpha_s": r"\alpha_\mathrm{vel,s}",
     "alpha_c": r"\alpha_\mathrm{vel,c}",
-    "sigma": r"\log \sigma",
+    "logsigma": r"\log \sigma",
     "kappa": r"\kappa",
     "B_cen": r"B_\mathrm{cen}",
     "B_sat": r"B_\mathrm{sat}",
@@ -29,7 +29,10 @@ def get_true_params(cosmology, hod_idx):
             f"../data/parameters/wideprior_AB/AbacusSummit_c{str(cosmology).zfill(3)}_hod1000.csv"
         ).iloc[hod_idx]
     )
-    params["B_cen"] = params["B_cent"]
+    params['logsigma'] = params['sigma']
+    params['B_cen'] = params['B_cent']
+    params.pop('sigma')
+    print(params.keys())
     return params
 
 
@@ -54,6 +57,8 @@ def get_chain_from_full_path(full_path):
         if c
         not in ("log_likelihood", "log_weights", "log_evidence", "log_evidence_err")
     ]
+    print('in chain')
+    print(df.columns)
     weights = get_weights(df)
     return MCSamples(
         samples=df[params].values,
