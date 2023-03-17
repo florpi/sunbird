@@ -55,8 +55,9 @@ class FCN(BaseModel):
             self.loss = nn.MSELoss()
         elif kwargs["loss"] == "mae":
             self.loss = nn.L1Loss()
-        if 'normalization_dict' in kwargs:
-            kwargs.pop("normalization_dict")
+        for key in ['normalization_dict', 'slice_filters', 'select_filters']:
+            if key in kwargs:
+                kwargs.pop(key)
         self.save_hyperparameters()
 
     @staticmethod
