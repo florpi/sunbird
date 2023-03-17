@@ -191,17 +191,23 @@ class CovarianceMatrix:
 
     def get_covariance_emulator(
         self,
+        xi_data: np.array = None,
         covariance_data: np.array = None,
         fractional: bool = False,
-        clip_errors: bool = False,
+        clip_errors: bool = True,
         clipping_factor: float = 3.0,
+        return_mean: bool = False,
 
     ) -> np.array:
         """Estimate the emulator's error on the test set
 
         Args:
+            xi_data (np.array): observed data vector
             covariance_data (np.array): covariance matrix of the data
             fractional (bool, optional): whether to return the fractional covariance matrix. Defaults to False.
+            clip_errors (bool, optional): whether to clip the errors. Defaults to False.
+            clipping_factor (float, optional): clipping factor. Defaults to 3.0.
+            return_mean (bool, optional): whether to return the mean of the clipped errors. Defaults to False.
 
         Returns:
             np.array: covariance of the emulator's errors
@@ -211,24 +217,30 @@ class CovarianceMatrix:
         xi_test = self.get_true_test(test_cosmologies=test_cosmologies)
         inputs = self.get_inputs_test(test_cosmologies=test_cosmologies)
         xi_model = self.get_emulator_predictions(inputs=inputs)
-        absolute_error = xi_model - xi_test
         if clip_errors:
-            if covariance_data is None:
-                raise ValueError("Covariance data must be specified when clipping errors.")
-            absolute_error, mask = self.clip_data(
-                data=absolute_error,
+            if covariance_data is None or xi_data is None:
+                raise ValueError("Covariance data and xi_data must be specified when clipping errors.")
+            xi_test, mask = self.clip_xi_test(
+                xi_test=xi_test,
+                xi_data=xi_data,
                 covariance_data=covariance_data,
                 return_mask=True,
                 clipping_factor=clipping_factor,
             )
-            xi_test = xi_test[mask]
+            xi_model = xi_model[mask]
+        absolute_error = xi_model - xi_test
         if fractional:
+            if return_mean:
+                return np.cov(absolute_error/xi_test, rowvar=False), np.mean(absolute_error/xi_test, axis=0)
             return np.cov(absolute_error/xi_test, rowvar=False)
+        if return_mean:
+            return np.cov(absolute_error, rowvar=False), np.mean(absolute_error, axis=0)
         return np.cov(absolute_error, rowvar=False)
 
-    def clip_data(
+    def clip_xi_test(
         self,
-        data: np.array,
+        xi_test: np.array,
+        xi_data: np.array,
         covariance_data: np.array,
         clipping_factor: float = 3.0,
         return_mask: bool = False,
@@ -236,24 +248,26 @@ class CovarianceMatrix:
         """Clip data to remove outliers
 
         Args:
-            data (np.array): data to clip
+            xi_test (np.array): test set to clip
+            xi_data (np.array): observed data vector
             covariance_data (np.array): covariance matrix of the data
-            clip (float, optional): sigma clipping value. Defaults to 3.0.
+            clipping_factor (float, optional): clipping factor. Defaults to 3.0.
+            return_mask (bool, optional): whether to return the mask. Defaults to False.
 
         Returns:
             np.array: clipped data
         """
         inv_cov = np.linalg.inv(covariance_data)
         chi2 = []
-        for i in range(len(data)):
-            res = data[i]
+        for i in range(len(xi_test)):
+            res = xi_data - xi_test[i]
             chi2.append(np.dot(res, np.dot(inv_cov, res)))
         chi2 = np.asarray(chi2)
         c, low, upp = sigmaclip(chi2, low=clipping_factor, high=clipping_factor)
         mask = (chi2 > low) & (chi2 < upp)
         if return_mask:
-            return data[mask], mask
-        return data[mask]
+            return xi_test[mask], mask
+        return xi_test[mask]
 
 
 def normalize_cov(cov):
