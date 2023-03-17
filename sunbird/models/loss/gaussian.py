@@ -24,6 +24,7 @@ class GaussianNLoglike(nn.Module):
         select_filters: Dict = None,
         standarize_covariance: bool = False,
         normalize_covariance: bool = False,
+        volume_scaling: float = 8.0,  # Scale to the 2Gpc/h volme of emulator boxes, 8 would be for cmass
         normalization_dict: Optional[Dict] = None,
     ):
         """Initialize a Gaussian log-likelihood from a list of statistics and filters
@@ -39,8 +40,14 @@ class GaussianNLoglike(nn.Module):
             standarize_covariance=standarize_covariance,
             normalize_covariance=normalize_covariance,
             normalization_dict=normalization_dict,
-        ).get_covariance_data()
-        return cls(covariance=Tensor(covariance.astype(np.float32)))
+        ).get_covariance_data(
+            volume_scaling=volume_scaling,
+        )
+        return cls(
+            covariance=Tensor(
+                covariance.astype(np.float32),
+            )
+        )
 
     def __call__(self, predictions: Tensor, targets: Tensor) -> float:
         """Given a set of inputs and targets, estimate the negative log-likelihood of the predicted values
@@ -53,9 +60,7 @@ class GaussianNLoglike(nn.Module):
             float: log-likelihood of the predicitons
         """
         diff = predictions - targets
-        right = torch.einsum("ij,kj->ki", self.inverse_covariance, diff)
-        return 0.5 * (
-            torch.einsum(
-                "...j,...j", diff, right
-            )
-        ).mean()
+        # TODO: this shouldn't be necessary, buffer has been defined?
+        inverse_covariance = self.inverse_covariance.to(diff.device)
+        right = torch.einsum("ij,kj->ki", inverse_covariance, diff)
+        return 0.5 * (torch.einsum("...j,...j", diff, right)).mean()

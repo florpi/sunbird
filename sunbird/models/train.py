@@ -45,12 +45,12 @@ def fit(args):
         accelerator="auto",
         callbacks=[early_stop_callback, checkpoint_callback],
     )
+    dm.dump_summaries(path=Path(trainer.log_dir) / "summary.json")
     # Train
     trainer.fit(
         model,
         dm,
     )
-    dm.dump_summaries(path=Path(trainer.log_dir) / "summary.json")
     # Test
     # trainer.test(datamodule=dm, ckpt_path="best")
     return trainer.callback_metrics["val_loss"].item()

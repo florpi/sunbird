@@ -16,7 +16,7 @@ class CovarianceMatrix:
         statistics: List[str],
         slice_filters: Dict,
         select_filters: Dict,
-        covariance_data_class: str = 'Patchy',
+        covariance_data_class: str = 'AbacusSmall',
         emulator_data_class: str = 'Abacus',
         standarize_covariance: bool = False,
         normalize_covariance: bool = False,

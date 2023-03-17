@@ -1,7 +1,9 @@
 from typing import OrderedDict, Dict
+import numpy as np
 from torch import nn, Tensor
 
 from sunbird.models.models import BaseModel
+from sunbird.covariance import CovarianceMatrix
 from sunbird.models.loss import GaussianNLoglike
 
 
@@ -9,7 +11,6 @@ class FCN(BaseModel):
     def __init__(self, *args, **kwargs):
         """Fully connected neural network with variable architecture"""
         super().__init__()
-        self.save_hyperparameters()
         n_input = kwargs["n_input"]
         n_output = kwargs["n_output"]
         n_hidden = kwargs["n_hidden"]
@@ -28,12 +29,25 @@ class FCN(BaseModel):
         model.append((f"mlp{layer+1}", nn.Linear(n_hidden[layer], n_output)))
         self.mlp = nn.Sequential(OrderedDict(model))
         if kwargs["loss"] == "gaussian":
-            self.loss = GaussianNLoglike.from_statistics(
+            covariance = CovarianceMatrix(
                 statistics=[kwargs["statistic"]],
                 slice_filters=kwargs["slice_filters"],
                 select_filters=kwargs["select_filters"],
-                normalize_covariance=kwargs["normalize_covariance"],
-                normalization_dict=kwargs.get('normalization_dict',None),
+                normalize_covariance=kwargs["normalize_covariance"]
+                if kwargs.get("normalization_dict", None) is not None
+                else False,
+                normalization_dict=kwargs.get("normalization_dict", None),
+            ).get_covariance_data(
+                volume_scaling=8.0,
+            )
+            self.register_buffer(
+                "covariance",
+                Tensor(
+                    covariance.astype(np.float32),
+                ),
+            )
+            self.loss = GaussianNLoglike(
+                covariance=self.covariance,
             )
         elif kwargs["loss"] == "learned_gaussian":
             self.loss = nn.GaussianNLLLoss()
@@ -41,6 +55,9 @@ class FCN(BaseModel):
             self.loss = nn.MSELoss()
         elif kwargs["loss"] == "mae":
             self.loss = nn.L1Loss()
+        if 'normalization_dict' in kwargs:
+            kwargs.pop("normalization_dict")
+        self.save_hyperparameters()
 
     @staticmethod
     def add_model_specific_args(parent_parser):

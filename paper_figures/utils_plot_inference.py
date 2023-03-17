@@ -57,8 +57,6 @@ def get_chain_from_full_path(full_path):
         if c
         not in ("log_likelihood", "log_weights", "log_evidence", "log_evidence_err")
     ]
-    print('in chain')
-    print(df.columns)
     weights = get_weights(df)
     return MCSamples(
         samples=df[params].values,
