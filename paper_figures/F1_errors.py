@@ -2,23 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from utils import get_emulator_and_truth, get_data_variance
-from sunbird.covariance import CovarianceMatrix
 
 plt.style.use(["science"])
 
 # 1) Get set to plot -> test
 split = "test"
 s, true_density_split, emulated_density_split, _ = get_emulator_and_truth(split=split)
-covariance = CovarianceMatrix(
-    statistics=['density_split_auto', 'density_split_cross'],
-    select_filters=select_filters,
-    slice_filters=slice_filters,
-    covariance_data_class='AbacusSmall'
-)
-covariance_data = covariance.get_covariance_data(
-    apply_hartlap_correction=True,
-    volume_scaling=64., # 2 Gpc volume
-)
 
 # 4) Get emulator error
 error = (emulated_density_split - true_density_split) / true_density_split
