@@ -194,7 +194,7 @@ class CovarianceMatrix:
         xi_data: np.array = None,
         covariance_data: np.array = None,
         fractional: bool = False,
-        clip_errors: bool = False,
+        clip_errors: bool = True,
         clipping_factor: float = 3.0,
         return_mean: bool = False,
 
