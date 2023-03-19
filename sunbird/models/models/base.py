@@ -26,7 +26,7 @@ class BaseModel(pl.LightningModule):
         path_to_model = Path(path_to_model)
         with open(path_to_model / "hparams.yaml") as f:
             hparams = yaml.safe_load(f)
-        model = cls(**hparams)
+        model = cls.from_argparse_args(args=hparams)
         # find file with lowest validation loss
         files = list((path_to_model / "checkpoints").glob("*.ckpt"))
         file_idx = np.argmin(
