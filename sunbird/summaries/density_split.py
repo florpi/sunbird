@@ -30,7 +30,7 @@ class DensitySplitBase(BaseSummary):
             path_to_model=path_to_model,
         )
         predictors_dict = {
-            q: Predictor.from_folder(self.path_to_model / f"ds_{corr_type}/ds{q}/")
+            q: Predictor.from_folder(self.path_to_model / f"ds_{corr_type}/ds{q}/", statistic='density_split')
             for q in [0, 1, 3, 4]
         }
         self.model = PredictorBundle(

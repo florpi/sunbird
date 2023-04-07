@@ -15,6 +15,7 @@ class GaussianNLoglike(nn.Module):
         super().__init__()
         self.covariance = covariance
         self.inverse_covariance = torch.linalg.inv(self.covariance)
+        self.n_bins = self.covariance.shape[0]
 
     @classmethod
     def from_statistics(
@@ -63,4 +64,4 @@ class GaussianNLoglike(nn.Module):
         # TODO: this shouldn't be necessary, buffer has been defined?
         inverse_covariance = self.inverse_covariance.to(diff.device)
         right = torch.einsum("ij,kj->ki", inverse_covariance, diff)
-        return 0.5 * (torch.einsum("...j,...j", diff, right)).mean()
+        return 0.5 * (torch.einsum("...j,...j", diff, right)).mean() / self.n_bins

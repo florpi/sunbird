@@ -216,7 +216,7 @@ for i in range(4):
     ax[i].axhline(y=0, color="k", linestyle="dotted", alpha=0.25)
     ax[i].axhline(y=-1, color="k", linestyle="dashed", alpha=0.25)
     ax[i].axhline(y=1, color="k", linestyle="dashed", alpha=0.25)
-    ax[i].set_ylim(-20, 20)
+    ax[i].set_ylim(-2, 2)
 plt.subplots_adjust(wspace=0, hspace=0)
 
 plt.savefig(f"figures/png/Figure1_errors_std.png", dpi=600, bbox_inches="tight")

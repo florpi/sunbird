@@ -28,8 +28,9 @@ class PredictorBundle:
             keys = model_subset_list
         else:
             keys = list(self.model_dict.keys())
-        output = torch.stack([self.model_dict[k](inputs) for k in keys])
-        return torch.swapaxes(output, 0, 1)
+
+        output = np.stack([self.model_dict[k](inputs) for k in keys])
+        return np.swapaxes(output, 0, 1)
 
     @property
     def s(

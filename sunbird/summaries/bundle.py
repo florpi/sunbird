@@ -1,4 +1,5 @@
 from typing import List, Dict
+import numpy as np
 import torch
 from sunbird.summaries.base import BaseSummary
 from sunbird.summaries import TPCF, DensitySplitAuto, DensitySplitCross
@@ -16,7 +17,7 @@ class Bundle(BaseSummary):
         """
         self.summaries = summaries
         self.all_summaries = {
-            'tpcf': TPCF(),
+            #'tpcf': TPCF(),
             'density_split_cross': DensitySplitCross(),
             'density_split_auto': DensitySplitAuto(),
         }
@@ -47,4 +48,4 @@ class Bundle(BaseSummary):
                     slice_filters=slice_filters,
                 ).reshape((len(inputs), -1))
             )
-        return torch.hstack(output)
+        return np.hstack(output)
