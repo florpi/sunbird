@@ -15,21 +15,19 @@ class FCN(BaseModel):
         n_input = kwargs["n_input"]
         n_output = kwargs["n_output"]
         n_hidden = kwargs["n_hidden"]
-        n_layers = len(n_hidden)
         dropout_rate = kwargs["dropout_rate"]
         self.learning_rate = kwargs["learning_rate"]
         self.weight_decay = kwargs["weight_decay"]
         act_fn = getattr(nn, kwargs["act_fn"])()
         self.mlp = self.get_model(
             n_input=n_input,
-            n_layers=n_layers,
             n_hidden=n_hidden,
             act_fn=act_fn,
             n_output=n_output,
             dropout_rate=dropout_rate,
         )
-        if kwargs["train"]:
-            self.loss = self.load_loss(loss=kwargs["loss"], **kwargs)
+        if kwargs["load_loss"]:
+            self.load_loss(**kwargs)
             for key in ["normalization_dict", "slice_filters", "select_filters"]:
                 if key in kwargs:
                     kwargs.pop(key)
@@ -58,7 +56,7 @@ class FCN(BaseModel):
         parser.add_argument("--learning_rate", type=float, default=0.01)
         parser.add_argument("--weight_decay", type=float, default=0.001)
         parser.add_argument("--loss", type=str, default="mae")
-        parser.add_argument("--train", type=bool, default=True)
+        parser.add_argument("--load_loss", type=bool, default=True)
         return parent_parser
 
     @classmethod
@@ -92,7 +90,6 @@ class FCN(BaseModel):
     def get_model(
         self,
         n_input: int,
-        n_layers: int,
         n_hidden: List[int],
         act_fn: str,
         n_output: int,
@@ -102,7 +99,6 @@ class FCN(BaseModel):
 
         Args:
             n_input (int): dimensionality input 
-            n_layers (int): number of layers 
             n_hidden (List[int]): number of hidden units per layer 
             act_fn (str): activation function 
             n_output (int): number of outputs 
@@ -113,7 +109,7 @@ class FCN(BaseModel):
         """
         dropout = nn.Dropout(dropout_rate)
         model = []
-        for layer in range(n_layers):
+        for layer in range(len(n_hidden)):
             n_left = n_input if layer == 0 else n_hidden[layer - 1]
             model.append((f"mlp{layer}", nn.Linear(n_left, n_hidden[layer])))
             model.append((f"act{layer}", act_fn))
@@ -139,20 +135,25 @@ class FCN(BaseModel):
             ).get_covariance_data(
                 volume_scaling=64.0,
             )
+            covariance = Tensor(
+                covariance.astype(np.float32),
+            )
             if loss == 'gaussian':
-                self.loss = GaussianNLoglike(
+                self.loss_fct = GaussianNLoglike(
                     covariance=covariance,
                 )
-            elif loss == 'weighted_l1':
-                self.loss = WeightedL1Loss(variance=torch.sqrt(torch.diagonal(covariance)))
+            elif loss == 'weighted_mae':
+                self.loss_fct = WeightedL1Loss(variance=torch.sqrt(torch.diagonal(covariance)))
             elif loss == 'weighted_mse':
-                self.loss = WeightedMSELoss(variance=torch.diagonal(covariance))
+                self.loss_fct = WeightedMSELoss(variance=torch.diagonal(covariance))
         elif loss == "learned_gaussian":
-            self.loss = nn.GaussianNLLLoss()
+            self.loss_fct = nn.GaussianNLLLoss()
         elif loss == "mse":
-            self.loss = nn.MSELoss()
+            self.loss_fct = nn.MSELoss()
         elif loss == "mae":
-            self.loss = nn.L1Loss()
+            self.loss_fct = nn.L1Loss()
+        else:
+            raise NotImplementedError(f"Loss {loss} not implemented")
 
     def forward(self, x: Tensor) -> Tensor:
         """Run the forward model
@@ -177,4 +178,4 @@ class FCN(BaseModel):
         """
         x, y = batch
         y_pred = self.forward(x)
-        return self.loss(y, y_pred)
+        return self.loss_fct(y, y_pred)

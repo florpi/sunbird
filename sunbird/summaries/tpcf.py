@@ -1,5 +1,5 @@
 from pathlib import Path
-from sunbird.models.predictor import Predictor
+#from sunbird.models.predictor import Predictor
 from sunbird.summaries.base import BaseSummary
 import numpy as np
 import matplotlib.pyplot as plt

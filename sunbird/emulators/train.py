@@ -6,15 +6,15 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning import loggers as pl_loggers
 
-from sunbird.data import DSDataModule
-from sunbird.models import FCN
+from sunbird.data import AbacusDataModule
+from sunbird.emulators import FCN
 
 
 def fit(args):
     # Setup data
     with open(args.train_test_split_path) as f:
         train_test_split = json.load(f)
-    dm = DSDataModule.from_argparse_args(args, train_test_split)
+    dm = AbacusDataModule.from_argparse_args(args, train_test_split)
     dm.setup()
     # Setup model
     model_dict_args = vars(args)
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     seed_everything(0)
 
     parser = ArgumentParser()
-    parser = DSDataModule.add_argparse_args(parser)
+    parser = AbacusDataModule.add_argparse_args(parser)
     parser.add_argument("--model_dir", type=str, default='../../trained_models/')
     parser.add_argument("--run_name", type=str, default=None)
     parser.add_argument(
