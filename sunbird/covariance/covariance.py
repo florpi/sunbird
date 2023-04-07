@@ -2,7 +2,7 @@ import numpy as np
 import json
 from pathlib import Path
 from scipy.stats import sigmaclip
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Callable
 
 import torch
 from sunbird.data import data_readers
@@ -14,13 +14,14 @@ class CovarianceMatrix:
     def __init__(
         self,
         statistics: List[str],
-        slice_filters: Dict,
-        select_filters: Dict,
+        slice_filters: Dict = None,
+        select_filters: Dict = None,
         covariance_data_class: str = 'AbacusSmall',
         emulator_data_class: str = 'Abacus',
         standarize_covariance: bool = False,
         normalize_covariance: bool = False,
-        normalization_dict: Optional[Dict] = None
+        normalization_dict: Optional[Dict] = None,
+        transforms: Optional[Callable] = None,
     ):
         """Compute a covariance matrix for a list of statistics and filters in any
         dimension
@@ -30,7 +31,7 @@ class CovarianceMatrix:
             slice_filters (Dict): dictionary with slice filters on given coordinates
             select_filters (Dict): dictionary with select filters on given coordinates
         """
-        self.covariance_data = getattr(data_utils, covariance_data_class)(
+        self.data_reader = getattr(data_readers, covariance_data_class)(
             statistics=statistics,
             slice_filters=slice_filters,
             select_filters=select_filters,
@@ -38,7 +39,7 @@ class CovarianceMatrix:
             normalize=normalize_covariance,
             normalization_dict=normalization_dict,
         )
-        self.covariance_simulation = getattr(data_utils, "AbacusSmall")(
+        self.covariance_simulations_reader = getattr(data_readers, "AbacusSmall")(
             statistics=statistics,
             slice_filters=slice_filters,
             select_filters=select_filters,
@@ -46,7 +47,7 @@ class CovarianceMatrix:
             normalize=normalize_covariance,
             normalization_dict=normalization_dict,
         )
-        self.emulator_data = getattr(data_utils, emulator_data_class)(
+        self.training_simulations_reader = getattr(data_readers, emulator_data_class)(
             dataset="wideprior_AB",
             statistics=statistics,
             slice_filters=slice_filters,
@@ -77,11 +78,9 @@ class CovarianceMatrix:
             np.array: covariance matrix of the data
         """
         if volume_scaling is None:
-            if self.covariance_data_class == 'AbacusSmall':
-                raise ValueError("Volume scaling must be specified when using AbacusSmall covariance class.")
-            else:
-                volume_scaling = 1.0
-        return self.covariance_data.get_covariance(
+            volume_scaling = 1.0
+        return self.estimate_covariance_from_data_reader(
+            data_reader=self.data_reader,
             apply_hartlap_correction=apply_hartlap_correction,
             fractional=fractional,
             volume_scaling=volume_scaling,
@@ -104,7 +103,7 @@ class CovarianceMatrix:
         for statistic in self.statistics:
             xi_test = []
             for cosmology in test_cosmologies:
-                xi = self.emulator_data.read_statistic(
+                xi = self.training_simulations_reader.read_statistic(
                         statistic=statistic,
                         cosmology=cosmology,
                         phase=0,
@@ -129,7 +128,7 @@ class CovarianceMatrix:
         inputs = []
         for cosmology in test_cosmologies:
             inputs.append(
-                self.emulator_data.get_all_parameters(
+                self.training_simulations_reader.get_all_parameters(
                     cosmology=cosmology, 
                 ).to_numpy()
             )
@@ -168,6 +167,33 @@ class CovarianceMatrix:
         xi_model = np.hstack(xi_model)
         return np.squeeze(np.array(xi_model))
     
+    def estimate_covariance_from_data_reader(self, data_reader: data_readers.DataReader, apply_hartlap_correction: bool =True, fractional: bool =False, volume_scaling: float =1.0):
+        """estimate covariance matrix from a set of simulations read by data_reader
+
+        Args:
+            data_reader (data_readers.DataReader): data reader, will load the necessary simulations
+            apply_hartlap_correction (bool, optional): whether to apply hartlap correction.
+            Defaults to True.
+            fractional (bool, optional): whether to use fractional covariance.
+            Defaults to False.
+            volume_scaling (float, optional): volume scaling factor. Defaults to 1.0 (for a CMASS-like volume).
+
+        Returns:
+            np.array: covariance matrix
+        """
+        summaries = data_reader.gather_summaries_for_covariance()
+        if apply_hartlap_correction:
+            n_mocks = len(summaries)
+            n_bins = summaries.shape[-1]
+            hartlap_factor = (n_mocks - 1) / (n_mocks - n_bins - 2)
+        else:
+            hartlap_factor = 1.0
+        if fractional:
+            cov = np.cov(summaries / np.mean(summaries, axis=0), rowvar=False)
+        else:
+            cov = np.cov(summaries, rowvar=False)
+        return hartlap_factor * cov / volume_scaling
+
     def get_covariance_simulation(
         self,
         apply_hartlap_correction: bool = True,
@@ -183,7 +209,8 @@ class CovarianceMatrix:
         Returns:
             np.array: covariance matrix of the simulations sample variance.
         """
-        return self.covariance_simulation.get_covariance(
+        return self.estimate_covariance_from_data_reader(
+            data_reader=self.covariance_simulations_reader,
             apply_hartlap_correction=apply_hartlap_correction,
             fractional=fractional,
             volume_scaling=64,
