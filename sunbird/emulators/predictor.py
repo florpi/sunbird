@@ -40,11 +40,7 @@ class Predictor(pl.LightningModule):
         nn_model.eval()
         summary_stats = cls.load_summary(path_to_model)
         for k, v in summary_stats.items():
-            if k == 'coordinates':
-                del summary_stats['coordinates']['quintiles']
-                del summary_stats['coordinates']['realizations']
-            else:
-                summary_stats[k] = torch.tensor(v, dtype=torch.float32, requires_grad=False)
+            summary_stats[k] = torch.tensor(v, dtype=torch.float32, requires_grad=False)
         return cls(
             nn_model=nn_model,
             statistic=statistic,

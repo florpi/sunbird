@@ -14,7 +14,7 @@ class BaseModel(pl.LightningModule):
         super().__init__()
 
     @classmethod
-    def from_folder(cls, path_to_model: str)->"BaseModel":
+    def from_folder(cls, path_to_model: str, load_loss: bool = False,)->"BaseModel":
         """ load a model from folder
 
         Args:
@@ -26,7 +26,8 @@ class BaseModel(pl.LightningModule):
         path_to_model = Path(path_to_model)
         with open(path_to_model / "hparams.yaml") as f:
             hparams = yaml.safe_load(f)
-        model = cls(**hparams)
+            del hparams["load_loss"]
+        model = cls(**hparams, load_loss=False)
         # find file with lowest validation loss
         files = list((path_to_model / "checkpoints").glob("*.ckpt"))
         file_idx = np.argmin(
@@ -36,7 +37,7 @@ class BaseModel(pl.LightningModule):
             files[file_idx],
             map_location=torch.device("cpu"),
         )
-        state_dict = {k: v for k, v in weights_dict['state_dict'].items() if k != 'covariance'}
+        state_dict = weights_dict['state_dict']
         model.load_state_dict(state_dict, strict=False)
         return model
 

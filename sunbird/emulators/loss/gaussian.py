@@ -62,6 +62,6 @@ class GaussianNLoglike(nn.Module):
         """
         diff = predictions - targets
         # TODO: this shouldn't be necessary, buffer has been defined?
-        inverse_covariance = self.inverse_covariance.to(diff.device)
-        right = torch.einsum("ij,kj->ki", inverse_covariance, diff)
+        self.inverse_covariance = self.inverse_covariance.to(diff.device)
+        right = torch.einsum("ij,kj->ki", self.inverse_covariance, diff)
         return 0.5 * (torch.einsum("...j,...j", diff, right)).mean() / self.n_bins

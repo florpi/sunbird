@@ -21,6 +21,7 @@ class WeightedL1Loss(nn.Module):
         Returns:
             float: weighted L1 loss
         """
+        self.variance = self.variance.to(predictions.device)
         return torch.mean(
             torch.abs(
                 (predictions - targets) / self.variance
@@ -47,6 +48,7 @@ class WeightedMSELoss(nn.Module):
         Returns:
             float: weighted mse loss
         """
+        self.variance = self.variance.to(predictions.device)
         return torch.mean(
             torch.square(
                 (predictions - targets) / self.variance

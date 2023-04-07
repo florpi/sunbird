@@ -3,7 +3,7 @@ from typing import Optional, Dict
 import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
-from sunbird.models import Predictor, PredictorBundle
+#from sunbird.models import Predictor, PredictorBundle
 from sunbird.summaries.base import BaseSummary
 
 
