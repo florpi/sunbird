@@ -1,10 +1,11 @@
 from typing import OrderedDict, Dict, List
 import numpy as np
 from torch import nn, Tensor
+import torch
 
-from sunbird.models.models import BaseModel
+from sunbird.emulators.models import BaseModel
 from sunbird.covariance import CovarianceMatrix
-from sunbird.models.loss import GaussianNLoglike
+from sunbird.emulators.loss import GaussianNLoglike, WeightedL1Loss, WeightedMSELoss
 
 
 class FCN(BaseModel):
@@ -126,7 +127,7 @@ class FCN(BaseModel):
         Args:
             loss (str): loss to load 
         """
-        if loss == "gaussian":
+        if loss == "gaussian" or 'weighted' in loss:
             covariance = CovarianceMatrix(
                 statistics=[kwargs["statistic"]],
                 slice_filters=kwargs.get("slice_filters", None),
@@ -136,17 +137,16 @@ class FCN(BaseModel):
                 else False,
                 normalization_dict=kwargs.get("normalization_dict", None),
             ).get_covariance_data(
-                volume_scaling=8.0,
+                volume_scaling=64.0,
             )
-            self.register_buffer(
-                "covariance",
-                Tensor(
-                    covariance.astype(np.float32),
-                ),
-            )
-            self.loss = GaussianNLoglike(
-                covariance=self.covariance,
-            )
+            if loss == 'gaussian':
+                self.loss = GaussianNLoglike(
+                    covariance=covariance,
+                )
+            elif loss == 'weighted_l1':
+                self.loss = WeightedL1Loss(variance=torch.sqrt(torch.diagonal(covariance)))
+            elif loss == 'weighted_mse':
+                self.loss = WeightedMSELoss(variance=torch.diagonal(covariance))
         elif loss == "learned_gaussian":
             self.loss = nn.GaussianNLLLoss()
         elif loss == "mse":
