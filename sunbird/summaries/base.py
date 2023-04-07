@@ -8,21 +8,8 @@ from pathlib import Path
 from sunbird.emulators import FCN, FlaxFCN
 from flax.core.frozen_dict import freeze
 
-from flax.traverse_util import  unflatten_dict
-
 
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
-
-def convert_state_dict_from_pt(
-    model, state,
-):
-    """
-    Converts a PyTorch parameter state dict to an equivalent Flax parameter state dict
-    """
-    state = {k: v.numpy() for k, v in state.items()}
-    state = model.convert_from_pytorch(state,)
-    state = unflatten_dict({tuple(k.split(".")): v for k, v in state.items()})
-    return state
 
 
 class BaseSummary:
@@ -30,10 +17,10 @@ class BaseSummary:
         self,
         model,
         summary_stats,
-        normalize_inputs: bool = True, 
-        normalize_outputs: bool=True,
+        normalize_inputs: bool = True,
+        normalize_outputs: bool = True,
         standarize_outputs: bool = False,
-        flax_params = None
+        flax_params=None,
     ):
         self.model = model
         self.flax_params = flax_params
@@ -66,29 +53,23 @@ class BaseSummary:
         ]
 
     @classmethod
-    def from_folder(cls, path_to_model: Path, flax: bool = False,):
+    def from_folder(
+        cls,
+        path_to_model: Path,
+        flax: bool = False,
+    ):
         path_to_model = Path(path_to_model)
         with open(path_to_model / "hparams.yaml") as f:
             config = yaml.safe_load(f)
         if flax:
-            nn_model = FlaxFCN(
-                n_input = config['n_input'],
-                n_hidden= config['n_hidden'],
-                act_fn= config['act_fn'],
-                n_output= config['n_output'],
+            nn_model, flax_params = FlaxFCN.from_folder(
+                path_to_model,
             )
-            files = list((path_to_model / "checkpoints").glob("*.ckpt"))
-            file_idx = np.argmin(
-                [float(str(file).split(".ckpt")[0].split("=")[-1]) for file in files]
-            )
-            weights_dict = torch.load(
-                files[file_idx],
-                map_location=torch.device("cpu"),
-            )
-            state_dict = weights_dict['state_dict']
-            flax_params = convert_state_dict_from_pt(model=nn_model, state=state_dict,)
         else:
-            nn_model = FCN.from_folder(path_to_model, load_loss=False,)
+            nn_model = FCN.from_folder(
+                path_to_model,
+                load_loss=False,
+            )
             nn_model.eval()
             flax_params = None
         summary_stats = cls.load_summary(path_to_model)
@@ -96,7 +77,9 @@ class BaseSummary:
             if flax:
                 summary_stats[k] = np.array(v)
             else:
-                summary_stats[k] = torch.tensor(v, dtype=torch.float32, requires_grad=False)
+                summary_stats[k] = torch.tensor(
+                    v, dtype=torch.float32, requires_grad=False
+                )
         return cls(
             model=nn_model,
             summary_stats=summary_stats,
@@ -106,15 +89,19 @@ class BaseSummary:
             flax_params=flax_params,
         )
 
-
     @classmethod
     def load_summary(cls, path_to_model):
         with open(path_to_model / "summary.json") as fd:
             summary = json.load(fd)
         return eval(summary)
 
-
-    def forward(self, inputs: torch.tensor, select_filters, slice_filters, return_xarray: bool = False,):
+    def forward(
+        self,
+        inputs: torch.tensor,
+        select_filters,
+        slice_filters,
+        return_xarray: bool = False,
+    ):
         if self.normalize_inputs:
             inputs = (inputs - self.summary_stats["x_min"]) / (
                 self.summary_stats["x_max"] - self.summary_stats["x_min"]
@@ -133,17 +120,17 @@ class BaseSummary:
                 prediction * self.summary_stats["y_std"] + self.summary_stats["y_mean"]
             )
         # Undo transforms
-        #self.summary_stats['coordinates']['realizations'] = range(len(prediction))
+        # self.summary_stats['coordinates']['realizations'] = range(len(prediction))
         return prediction
-        #prediction = xr.DataArray(
+        # prediction = xr.DataArray(
         #    prediction.detach().numpy().reshape((len(prediction), -1, len(self.s))),
         #    dims =['realizations', 'multipoles', 's'],
         #    coords=self.summary_stats['coordinates'],
-        #)
-        #prediction = inverse_transform_summary(prediction, statistic=self.statistic)
-        #if return_xarray:
+        # )
+        # prediction = inverse_transform_summary(prediction, statistic=self.statistic)
+        # if return_xarray:
         #    return prediction
-        #return prediction.values
+        # return prediction.values
 
     def __call__(self, param_dict, select_filters=None, slice_filters=None):
         inputs = torch.tensor(
@@ -157,10 +144,8 @@ class BaseSummary:
 
     def get_for_sample(self, inputs, select_filters, slice_filters):
         if self.flax:
-            return (
-                self.forward(
-                    inputs, select_filters=select_filters, slice_filters=slice_filters
-                )
+            return self.forward(
+                inputs, select_filters=select_filters, slice_filters=slice_filters
             )
         else:
             return (
@@ -170,8 +155,6 @@ class BaseSummary:
                 .detach()
                 .numpy()
             )
-
-
 
     def get_for_batch(
         self,
