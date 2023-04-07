@@ -173,8 +173,8 @@ class DataReader(ABC):
             select_filters=self.select_filters,
             slice_filters=self.slice_filters,
         )
-        if self.transforms is not None:
-            summary = self.tranforms[statistic].transform(summary)
+        if self.transforms is not None and statistic in self.transforms.keys():
+            summary = self.transforms[statistic].transform(summary)
         return summary
 
 

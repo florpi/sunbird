@@ -22,7 +22,7 @@ class AbacusDataModule(pl.LightningDataModule):
         normalize_outputs: bool = True,
         normalize_inputs: bool = True,
         abacus_dataset: Optional[str] = "wideprior_AB",
-        inputs_names: Optional[List[str]] = None,
+        input_parameters: Optional[List[str]] = None,
         transform: Optional[BaseTransform] = None,
         **kwargs,
     ):
@@ -40,7 +40,7 @@ class AbacusDataModule(pl.LightningDataModule):
             s2_outputs (bool, optional): whether to multiply outputs by s squared (s is pair separation, useful
             on large scales). Defaults to False.
             abacus_dataset (Optional[str], optional): what abacus dataset to use. Defaults to 'wideprior_AB'.
-            inputs_names (Optional[List[str]], optional): names of parameters to use as inputs, if None it will
+            input_parameters (Optional[List[str]], optional): names of parameters to use as inputs, if None it will
             use all cosmology + HOD parameters. Defaults to None.
             transforms (Callable, optional): transforms to apply to data. Defaults to None.
         """
@@ -58,9 +58,9 @@ class AbacusDataModule(pl.LightningDataModule):
             statistics=[self.statistic],
             select_filters=self.select_filters,
             slice_filters=self.slice_filters,
-            transforms={self.statistic: transform},
+            transforms={self.statistic: transform} if transform else None,
         )
-        self.inputs_names = inputs_names
+        self.input_parameters = input_parameters
 
     @classmethod
     def add_argparse_args(cls, parser):
@@ -81,7 +81,7 @@ class AbacusDataModule(pl.LightningDataModule):
         parser.add_argument('--normalize_outputs', type=bool, default=True,)
         parser.add_argument('--normalize_inputs', type=bool, default=True,)
         parser.add_argument('--abacus_dataset', type=str, default='wideprior_AB',)
-        parser.add_argument('--input_names', action='store', type=str, default=None,nargs='+',)
+        parser.add_argument('--input_parameters', action='store', type=str, default=None,nargs='+',)
         return parser
 
     @classmethod
@@ -153,8 +153,8 @@ class AbacusDataModule(pl.LightningDataModule):
             params_df = self.data.get_all_parameters(
                 cosmology=cosmology,
             )
-            if self.inputs_names is not None:
-                params_df = params_df[self.inputs_names]
+            if self.input_parameters is not None:
+                params_df = params_df[self.input_parameters]
             params += list(params_df.values)
         return np.array(params)
 
