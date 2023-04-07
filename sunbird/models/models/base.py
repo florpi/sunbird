@@ -36,7 +36,8 @@ class BaseModel(pl.LightningModule):
             files[file_idx],
             map_location=torch.device("cpu"),
         )
-        model.load_state_dict(weights_dict["state_dict"])
+        state_dict = {k: v for k, v in weights_dict['state_dict'].items() if k != 'covariance'}
+        model.load_state_dict(state_dict, strict=False)
         return model
 
     def training_step(self, batch, batch_idx)->float:

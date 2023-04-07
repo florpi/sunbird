@@ -4,9 +4,21 @@ import pandas as pd
 import xarray as xr
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
-import matplotlib.pyplot as plt
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/"
+
+
+def transform_summary(summary, statistic: str = 'tpcf'):
+    if statistic == 'tpcf':
+        summary.loc[{'multipoles':0}] = np.log10(summary.sel(multipoles=0)+0.011)
+        summary.loc[{'multipoles':1}] = (summary.sel(multipoles=1) + 30.)**0.5
+    return summary
+
+def inverse_transform_summary(summary, statistic: str = 'tpcf'):
+    if statistic == 'tpcf':
+        summary.loc[{'multipoles':0}] = 10**(summary.sel(multipoles=0)-0.011)
+        summary.loc[{'multipoles':1}] = (summary.sel(multipoles=1) - 30.)**2
+    return summary
 
 
 def transform_filters_to_slices(filters: Dict) -> Dict:
@@ -156,6 +168,27 @@ class Data(ABC):
             n_realizations = len(observation.realizations)
             return observation.values.reshape(n_realizations, -1)
         return observation.reshape(-1)
+
+    def gather_summaries_for_covariance(
+        self,
+    ) -> np.array:
+        summaries = []
+        for statistic in self.statistics:
+            summary = self.read_statistic(
+                statistic=statistic,
+            )
+            summary = transform_summary(summary, statistic=statistic)
+            summary = np.array(summary.values).reshape(
+                (len(summary["realizations"]), -1)
+            )
+            summary = normalize_data(
+                summary,
+                self.normalization_dict,
+                standarize=self.standarize,
+                normalize=self.normalize,
+            )
+            summaries.append(summary)
+        return np.hstack(summaries)
 
     def read_statistic(
         self, statistic: str, multiple_realizations: bool = True, **kwargs
@@ -327,7 +360,6 @@ class AbacusSmall(Data):
             "quintiles": [0, 1, 3, 4],
         },
         slice_filters: Optional[Dict] = {"s": [0.7, 150.0]},
-        s2_outputs: Optional[bool] = False,
         normalization_dict: Optional[Dict] = None,
         standarize: bool = False,
         normalize: bool = False,
@@ -348,7 +380,6 @@ class AbacusSmall(Data):
         self.select_filters = select_filters
         self.slice_filters = slice_filters
         self.avg_los = True
-        self.s2_outputs = s2_outputs
         self.normalization_dict = normalization_dict
         self.standarize = standarize
         self.normalize = normalize
@@ -387,28 +418,6 @@ class AbacusSmall(Data):
             select_from_coords={"realizations": phase},
             multiple_realizations=True,
         )
-
-    def gather_summaries_for_covariance(
-        self,
-    ) -> np.array:
-        summaries = []
-        for statistic in self.statistics:
-            summary = self.read_statistic(
-                statistic=statistic,
-            )
-            if self.s2_outputs:
-                summary = summary * summary.s**2
-            summary = np.array(summary.values).reshape(
-                (len(summary["realizations"]), -1)
-            )
-            summary = normalize_data(
-                summary,
-                self.normalization_dict,
-                standarize=self.standarize,
-                normalize=self.normalize,
-            )
-            summaries.append(summary)
-        return np.hstack(summaries)
 
     def get_covariance(
         self,
@@ -566,7 +575,6 @@ class Patchy(Data):
             "quintiles": [0, 1, 3, 4],
         },
         slice_filters: Optional[Dict] = {"s": [0.7, 150.0]},
-        s2_outputs: Optional[bool] = False,
         normalization_dict: Optional[Dict] = None,
         standarize: bool = False,
         normalize: bool = False,
@@ -587,7 +595,6 @@ class Patchy(Data):
         self.select_filters = select_filters
         self.slice_filters = slice_filters
         self.avg_los = False
-        self.s2_outputs = s2_outputs
         self.normalization_dict = normalization_dict
         self.standarize = standarize
         self.normalize = normalize
@@ -627,27 +634,7 @@ class Patchy(Data):
             multiple_realizations=True,
         )
 
-    def gather_summaries_for_covariance(
-        self,
-    ) -> np.array:
-        summaries = []
-        for statistic in self.statistics:
-            summary = self.read_statistic(
-                statistic=statistic,
-            )
-            if self.s2_outputs:
-                summary = summary * summary.s**2
-            summary = np.array(summary.values).reshape(
-                (len(summary["realizations"]), -1)
-            )
-            summary = normalize_data(
-                summary,
-                self.normalization_dict,
-                standarize=self.standarize,
-                normalize=self.normalize,
-            )
-            summaries.append(summary)
-        return np.hstack(summaries)
+
 
     def get_covariance(
         self,

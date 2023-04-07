@@ -5,7 +5,7 @@ import torch
 import json
 import pytorch_lightning as pl
 from torch.utils.data import TensorDataset, DataLoader
-from sunbird.read_utils.data_utils import Abacus, normalize_data
+from sunbird.read_utils.data_utils import Abacus, normalize_data, transform_summary
 
 
 class DSDataModule(pl.LightningDataModule):
@@ -19,7 +19,6 @@ class DSDataModule(pl.LightningDataModule):
         standarize_outputs: bool = False,
         normalize_outputs: bool = True,
         normalize_inputs: bool = True,
-        s2_outputs: bool = False,
         abacus_dataset: Optional[str] = "wideprior_AB",
         inputs_names: Optional[List[str]] = None,
         **kwargs,
@@ -48,7 +47,6 @@ class DSDataModule(pl.LightningDataModule):
         self.standarize_outputs = standarize_outputs
         self.normalize_outputs = normalize_outputs
         self.normalize_inputs = normalize_inputs
-        self.s2_outputs = s2_outputs
         self.select_filters = select_filters
         self.slice_filters = slice_filters
         self.data = Abacus(
@@ -77,7 +75,6 @@ class DSDataModule(pl.LightningDataModule):
         parser.add_argument('--standarize_outputs', type=bool, default=False,)
         parser.add_argument('--normalize_outputs', type=bool, default=True,)
         parser.add_argument('--normalize_inputs', type=bool, default=True,)
-        parser.add_argument('--s2_outputs', type=bool, default=False,)
         parser.add_argument('--abacus_dataset', type=str, default='wideprior_AB',)
         parser.add_argument('--input_names', action='store', type=str, default=None,nargs='+',)
         return parser
@@ -129,10 +126,12 @@ class DSDataModule(pl.LightningDataModule):
                 cosmology=cosmology,
                 phase=0,
             )
-            if self.s2_outputs:
-                summary = summary * summary.s**2
+            summary = transform_summary(summary=summary, statistic=self.statistic)
             n_realizations = len(summary.realizations)
             data += list(summary.values.reshape((n_realizations, -1)))
+        self.coordinates_dict = {
+            idx: summary.coords[idx].values for idx in list(summary.indexes)
+        }
         return np.array(data)
 
     def load_params(
@@ -317,7 +316,8 @@ class DSDataModule(pl.LightningDataModule):
         Args:
             path (Path): path to store data
         """
-
+        # Add coordinates to normalization dict
+        self.normalization_dict['coordinates'] = self.coordinates_dict
         class NumpyEncoder(json.JSONEncoder):
             def default(self, obj):
                 if isinstance(obj, np.ndarray):

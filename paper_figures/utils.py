@@ -95,8 +95,6 @@ def get_emulator_and_truth_for_cosmo(
             parameters,
             select_filters=select_filters,
         )
-        .detach()
-        .numpy()
     )
     return s, true_density_split, emulated_density_split, parameters
 

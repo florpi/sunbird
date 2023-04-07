@@ -19,7 +19,7 @@ class TPCF(BaseSummary):
             path_to_data=path_to_data,
             path_to_model=path_to_model,
         )
-        self.model = Predictor.from_folder(path_to_model)
+        self.model = Predictor.from_folder(path_to_model, statistic='tpcf')
 
     def forward(self, inputs, select_filters, slice_filters):
         output = self.model(inputs)

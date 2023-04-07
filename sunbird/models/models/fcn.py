@@ -31,8 +31,8 @@ class FCN(BaseModel):
         if kwargs["loss"] == "gaussian":
             covariance = CovarianceMatrix(
                 statistics=[kwargs["statistic"]],
-                slice_filters=kwargs["slice_filters"],
-                select_filters=kwargs["select_filters"],
+                slice_filters=kwargs.get("slice_filters",None),
+                select_filters=kwargs.get("select_filters",None),
                 normalize_covariance=kwargs["normalize_covariance"]
                 if kwargs.get("normalization_dict", None) is not None
                 else False,
