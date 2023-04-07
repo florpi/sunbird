@@ -4,13 +4,51 @@ from abc import ABC
 import pandas as pd
 import xarray as xr
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
-from sunbird.data.data_utils import convert_to_summary
+from typing import List, Dict, Optional, Callable 
+from sunbird.data.data_utils import convert_to_summary, normalize_data
+from sunbird.data.transforms import BaseTransform
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 
 class DataReader(ABC):
+    def __init__(
+        self,
+        data_path: Optional[Path] = DATA_PATH,
+        statistics: Optional[List[str]] = [
+            "density_split_auto",
+            "density_split_cross",
+            "tpcf",
+        ],
+        select_filters: Optional[Dict] = {
+            "multipoles": [0, 2],
+            "quintiles": [0, 1, 3, 4],
+        },
+        slice_filters: Optional[Dict] = {"s": [0.7, 150.0]},
+        transforms: Optional[Dict[str, BaseTransform]] = None,
+        avg_los: bool = True,
+    ):
+        """ Base class for data readers
+
+        Args:
+            data_path (Path, optional): path where data is stored. Defaults to DATA_PATH.
+            statistics (List[str], optional): summary statistics to read.
+            Defaults to ["density_split_auto", "density_split_cross", "tpcf"].
+            select_filters (Dict, optional): filters to select values along coordinates.
+            Defaults to {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]}.
+            slice_filters (Dict, optional): filters to slice values along coordinates.
+            Defaults to {"s": [0.7, 150.0]}.
+            transforms (Dict, optional): transforms to apply to data. Defaults to None.
+            avg_los (bool, optional): whether to average along line of sight. Defaults to True.
+        """
+        self.data_path = data_path
+        self.transforms=transforms
+        self.statistics = statistics
+        self.select_filters = select_filters
+        self.slice_filters = slice_filters
+        self.avg_los = avg_los
+
+
     def get_file_path(
         self,
         dataset: str,
@@ -75,12 +113,17 @@ class DataReader(ABC):
     def gather_summaries_for_covariance(
         self,
     ) -> np.array:
+        """
+        Gather summaries for covariance matrix estimation
+
+        Returns:
+            np.array: flattened summaries
+        """
         summaries = []
         for statistic in self.statistics:
             summary = self.read_statistic(
                 statistic=statistic,
             )
-            summary = transform_summary(summary, statistic=statistic)
             summary = np.array(summary.values).reshape(
                 (len(summary["realizations"]), -1)
             )
@@ -123,13 +166,16 @@ class DataReader(ABC):
                 data = np.mean(data, axis=1)
             else:
                 data = np.mean(data, axis=0)
-        return convert_to_summary(
+        summary = convert_to_summary(
             data=data,
             dimensions=dimensions,
             coords=coords,
             select_filters=self.select_filters,
             slice_filters=self.slice_filters,
         )
+        if self.transforms is not None:
+            summary = self.tranforms[statistic].transform(summary)
+        return summary
 
 
 class Abacus(DataReader):
@@ -147,6 +193,7 @@ class Abacus(DataReader):
             "quintiles": [0, 1, 3, 4],
         },
         slice_filters: Optional[Dict] = {"s": [0.7, 150.0]},
+        transforms: Optional[Dict[str, BaseTransform]] = None,
     ):
         """Abacus data class for the abacus summit latin hypercube of simulations.
 
@@ -159,13 +206,17 @@ class Abacus(DataReader):
             Defaults to {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]}.
             slice_filters (Dict, optional): filters to slice values along coordinates.
             Defaults to {"s": [0.7, 150.0]}.
+            transforms (Dict, optional): transforms to apply to data. Defaults to None.
         """
-        self.data_path = data_path
+        super().__init__(
+            data_path=data_path,
+            statistics=statistics,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            transforms=transforms,
+            avg_los = True,
+        )
         self.dataset = dataset
-        self.statistics = statistics
-        self.select_filters = select_filters
-        self.slice_filters = slice_filters
-        self.avg_los = True
 
     def get_file_path(
         self,
@@ -259,23 +310,16 @@ class AbacusSmall(DataReader):
         normalization_dict: Optional[Dict] = None,
         standarize: bool = False,
         normalize: bool = False,
+        transforms: Optional[Dict[str,BaseTransform]] = None,
     ):
-        """Patchy data class for the small AbacusSummit mocks.
-
-        Args:
-            data_path (Path, optional): path where data is stored. Defaults to DATA_PATH.
-            statistics (List[str], optional): summary statistics to read.
-            Defaults to ["density_split_auto", "density_split_cross", "tpcf"].
-            select_filters (Dict, optional): filters to select values along coordinates.
-            Defaults to {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]}.
-            slice_filters (Dict, optional): filters to slice values along coordinates.
-            Defaults to {"s": [0.7, 150.0]}.
-        """
-        self.data_path = data_path
-        self.statistics = statistics
-        self.select_filters = select_filters
-        self.slice_filters = slice_filters
-        self.avg_los = True
+        super().__init__(
+            data_path=data_path,
+            statistics=statistics,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            transforms=transforms,
+            avg_los = True,
+        )
         self.normalization_dict = normalization_dict
         self.standarize = standarize
         self.normalize = normalize
@@ -315,38 +359,6 @@ class AbacusSmall(DataReader):
             multiple_realizations=True,
         )
 
-    def get_covariance(
-        self,
-        volume_scaling: float,
-        apply_hartlap_correction: bool = True,
-        fractional: bool = False,
-    ) -> np.array:
-        """estimate covariance matrix from the different patchy seeds
-
-        Args:
-            volume_scaling (float): volume scaling factor. e.g. 64.0 for a 2 Gpc/h volume, 
-            or 1.0 for a CMASS-like volume.
-            apply_hartlap_correction (bool, optional): whether to apply hartlap correction.
-            Defaults to True.
-            fractional (bool, optional): whether to return a fractional covariance matrix.
-            Defaults to False.
-
-        Returns:
-            np.array: covariance matrix
-        """
-        summaries = self.gather_summaries_for_covariance()
-        if apply_hartlap_correction:
-            n_mocks = len(summaries)
-            n_bins = summaries.shape[-1]
-            hartlap_factor = (n_mocks - 1) / (n_mocks - n_bins - 2)
-        else:
-            hartlap_factor = 1.0
-        if fractional:
-            cov = np.cov(summaries / np.mean(summaries, axis=0), rowvar=False)
-        else:
-            cov = np.cov(summaries, rowvar=False)
-        return hartlap_factor * cov / volume_scaling
-
     def get_parameters_for_observation(
         self,
     ) -> Dict:
@@ -381,6 +393,7 @@ class Uchuu(DataReader):
             "quintiles": [0, 1, 3, 4],
         },
         slice_filters: Optional[Dict] = {"s": [0.7, 150.0]},
+        transforms: Optional[Dict[str, BaseTransform]] = None,
     ):
         """Uchuu data class to read Uchuu results
 
@@ -393,12 +406,16 @@ class Uchuu(DataReader):
             Defaults to {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]}.
             slice_filters (Dict, optional): filters to slice values along coordinates.
             Defaults to {"s": [0.7, 150.0]}.
+            transforms (Dict, optional): transforms to apply to data. Defaults to None.
         """
-        self.data_path = data_path
-        self.statistics = statistics
-        self.select_filters = select_filters
-        self.slice_filters = slice_filters
-        self.avg_los = True
+        super().__init__(
+            data_path=data_path,
+            statistics=statistics,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            transforms=transforms,
+            avg_los = True,
+        )
 
     def get_file_path(
         self,
@@ -474,6 +491,7 @@ class Patchy(DataReader):
         normalization_dict: Optional[Dict] = None,
         standarize: bool = False,
         normalize: bool = False,
+        transforms: Optional[Dict[str,BaseTransform]] = None,
     ):
         """Patchy data class for the pathcy mocks.
 
@@ -485,12 +503,16 @@ class Patchy(DataReader):
             Defaults to {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]}.
             slice_filters (Dict, optional): filters to slice values along coordinates.
             Defaults to {"s": [0.7, 150.0]}.
+            transforms (Dict, optional): transforms to apply to data. Defaults to None.
         """
-        self.data_path = data_path
-        self.statistics = statistics
-        self.select_filters = select_filters
-        self.slice_filters = slice_filters
-        self.avg_los = False
+        super().__init__(
+            data_path=data_path,
+            statistics=statistics,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            transforms=transforms,
+            avg_los = False,
+        )
         self.normalization_dict = normalization_dict
         self.standarize = standarize
         self.normalize = normalize
@@ -530,39 +552,6 @@ class Patchy(DataReader):
             multiple_realizations=True,
         )
 
-
-
-    def get_covariance(
-        self,
-        apply_hartlap_correction: bool = True,
-        fractional: bool = False,
-        volume_scaling: float = 1.0,
-    ) -> np.array:
-        """estimate covariance matrix from the different patchy seeds
-
-        Args:
-            apply_hartlap_correction (bool, optional): whether to apply hartlap correction.
-            Defaults to True.
-            fractional (bool, optional): whether to use fractional covariance.
-            Defaults to False.
-            volume_scaling (float, optional): volume scaling factor. Defaults to 1.0 (for a CMASS-like volume).
-
-        Returns:
-            np.array: covariance matrix
-        """
-        summaries = self.gather_summaries_for_covariance()
-        if apply_hartlap_correction:
-            n_mocks = len(summaries)
-            n_bins = summaries.shape[-1]
-            hartlap_factor = (n_mocks - 1) / (n_mocks - n_bins - 2)
-        else:
-            hartlap_factor = 1.0
-        if fractional:
-            cov = np.cov(summaries / np.mean(summaries, axis=0), rowvar=False)
-        else:
-            cov = np.cov(summaries, rowvar=False)
-        return hartlap_factor * cov / volume_scaling
-
     def get_parameters_for_observation(
         self,
     ) -> Dict:
@@ -590,6 +579,7 @@ class CMASS(DataReader):
         statistics: List[str] = ["density_split_auto", "density_split_cross", "tpcf"],
         select_filters: Dict = {"multipoles": [0, 2,], "quintiles": [0, 1, 3, 4]},
         slice_filters: Dict = {"s": [0.7, 150.0]},
+        transforms: Optional[Dict[str,BaseTransform]] = None,
     ):
         """CMASS data class to read CMASS data
 
@@ -601,12 +591,16 @@ class CMASS(DataReader):
             Defaults to {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]}.
             slice_filters (Dict, optional): filters to slice values along coordinates.
             Defaults to {"s": [0.7, 150.0]}.
+            transforms (Dict, optional): transforms to apply to data. Defaults to None.
         """
-        self.data_path = data_path
-        self.statistics = statistics
-        self.select_filters = select_filters
-        self.slice_filters = slice_filters
-        self.avg_los = True 
+        super().__init__(
+            data_path=data_path,
+            statistics=statistics,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            transforms=transforms,
+            avg_los = True,
+        )
 
     def get_file_path(
         self,

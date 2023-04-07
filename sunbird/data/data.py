@@ -1,4 +1,4 @@
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List, Tuple, Callable
 from pathlib import Path
 import numpy as np
 import torch
@@ -6,10 +6,11 @@ import json
 import pytorch_lightning as pl
 from torch.utils.data import TensorDataset, DataLoader
 from sunbird.data.data_readers import Abacus
-from sunbird.data.data_utils import normalize_data, transform_summary
+from sunbird.data.data_utils import normalize_data
+from sunbird.data.transforms import BaseTransform
 
 
-class DSDataModule(pl.LightningDataModule):
+class AbacusDataModule(pl.LightningDataModule):
     def __init__(
         self,
         train_test_split_dict: Dict[str, int],
@@ -22,6 +23,7 @@ class DSDataModule(pl.LightningDataModule):
         normalize_inputs: bool = True,
         abacus_dataset: Optional[str] = "wideprior_AB",
         inputs_names: Optional[List[str]] = None,
+        transform: Optional[BaseTransform] = None,
         **kwargs,
     ):
         """Data module used to train models on Abacus data
@@ -40,6 +42,7 @@ class DSDataModule(pl.LightningDataModule):
             abacus_dataset (Optional[str], optional): what abacus dataset to use. Defaults to 'wideprior_AB'.
             inputs_names (Optional[List[str]], optional): names of parameters to use as inputs, if None it will
             use all cosmology + HOD parameters. Defaults to None.
+            transforms (Callable, optional): transforms to apply to data. Defaults to None.
         """
         super().__init__()
         self.train_test_split_dict = train_test_split_dict
@@ -55,6 +58,7 @@ class DSDataModule(pl.LightningDataModule):
             statistics=[self.statistic],
             select_filters=self.select_filters,
             slice_filters=self.slice_filters,
+            transforms={self.statistic: transform},
         )
         self.inputs_names = inputs_names
 
@@ -81,7 +85,7 @@ class DSDataModule(pl.LightningDataModule):
         return parser
 
     @classmethod
-    def from_argparse_args(cls, args, train_test_split_dict: Dict)->"DSDataModule":
+    def from_argparse_args(cls, args, train_test_split_dict: Dict)->"AbacusDataModule":
         """ Create data module from parsed args
 
         Args:
@@ -127,12 +131,8 @@ class DSDataModule(pl.LightningDataModule):
                 cosmology=cosmology,
                 phase=0,
             )
-            summary = transform_summary(summary=summary, statistic=self.statistic)
             n_realizations = len(summary.realizations)
             data += list(summary.values.reshape((n_realizations, -1)))
-        self.coordinates_dict = {
-            idx: summary.coords[idx].values for idx in list(summary.indexes)
-        }
         return np.array(data)
 
     def load_params(
@@ -212,7 +212,6 @@ class DSDataModule(pl.LightningDataModule):
         Returns:
             TensorDataset: dataset
         """
-        #TODO: homogeneize normalization in class
         x = normalize_data(
             data=x,
             normalization_dict=self.normalization_dict,
@@ -317,8 +316,6 @@ class DSDataModule(pl.LightningDataModule):
         Args:
             path (Path): path to store data
         """
-        # Add coordinates to normalization dict
-        self.normalization_dict['coordinates'] = self.coordinates_dict
         class NumpyEncoder(json.JSONEncoder):
             def default(self, obj):
                 if isinstance(obj, np.ndarray):
