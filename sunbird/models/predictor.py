@@ -6,7 +6,7 @@ from typing import List
 from pathlib import Path
 import pytorch_lightning as pl
 import xarray as xr
-from sunbird.read_utils.data_utils import inverse_transform_summary
+from sunbird.data.data_utils import inverse_transform_summary
 from sunbird.models import FCN
 
 TRAIN_DIR = Path(__file__).parent

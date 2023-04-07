@@ -1,114 +1,16 @@
 import numpy as np
+import json
 from abc import ABC
 import pandas as pd
 import xarray as xr
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
+from sunbird.data.data_utils import convert_to_summary
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 
-def transform_summary(summary, statistic: str = 'tpcf'):
-    if statistic == 'tpcf':
-        summary.loc[{'multipoles':0}] = np.log10(summary.sel(multipoles=0)+0.011)
-        summary.loc[{'multipoles':1}] = (summary.sel(multipoles=1) + 30.)**0.5
-    return summary
-
-def inverse_transform_summary(summary, statistic: str = 'tpcf'):
-    if statistic == 'tpcf':
-        summary.loc[{'multipoles':0}] = 10**(summary.sel(multipoles=0)-0.011)
-        summary.loc[{'multipoles':1}] = (summary.sel(multipoles=1) - 30.)**2
-    return summary
-
-
-def transform_filters_to_slices(filters: Dict) -> Dict:
-    """Transform a dictionary of filters into slices that select from min to max
-
-    Example:
-        filters = {'r': (10,100)} , will select the summary statistics for 10 < r < 100
-
-    Args:
-        filters (Dict): dictionary of filters.
-    Returns:
-        Dict: dictionary of filters with slices
-    """
-    slice_filters = filters.copy()
-    for filter, (min, max) in filters.items():
-        slice_filters[filter] = slice(min, max)
-    return slice_filters
-
-
-def convert_to_summary(
-    data: np.array,
-    dimensions: List[str],
-    coords: Dict,
-    select_filters: Optional[Dict] = None,
-    slice_filters: Optional[Dict] = None,
-) -> xr.DataArray:
-    """Convert numpy array to DataArray summary to filter and select from
-
-    Example:
-        slice_filters = {'s': (0, 0.5),}, select_filters = {'multipoles': (0, 2),}
-        will return the summary statistics for 0 < s < 0.5 and multipoles 0 and 2
-
-    Args:
-        data (np.array): numpy array containing data
-        dimensions (List[str]): dimensions names (need to have the same ordering as in data array)
-        coords (Dict): coordinates for each dimension
-        select_filters (Dict, optional): filters to select values in coordinates. Defaults to None.
-        slice_filters (Dict, optional): filters to slice values in coordinates. Defaults to None.
-
-    Returns:
-        xr.DataArray: data array summary
-    """
-    if select_filters:
-        select_filters = {k: v for k, v in select_filters.items() if k in dimensions}
-    if slice_filters:
-        slice_filters = {k: v for k, v in slice_filters.items() if k in dimensions}
-    summary = xr.DataArray(
-        data,
-        dims=dimensions,
-        coords=coords,
-    )
-    if select_filters:
-        summary = summary.sel(**select_filters)
-    if slice_filters:
-        slice_filters = transform_filters_to_slices(slice_filters)
-        summary = summary.sel(**slice_filters)
-    return summary
-
-
-def normalize_data(
-    data: np.array,
-    normalization_dict: Dict,
-    standarize: bool,
-    normalize: bool,
-    coord: str = "y",
-) -> Tuple[np.array]:
-    """normalize the data given the training data summary
-
-    Args:
-        data (np.array): data
-        normalization_dict (Dict): dictionary with normalization parameters
-        standarize (bool): if True, standarize the data
-        normalize (bool): if True, normalize the data
-        coord (str, optional): coordinate to normalize, either x for parameters or y for data. Defaults to 'y'.
-
-    Returns:
-        Tuple[np.array]: normalized parameters and data
-    """
-    if normalize:
-        return (data - normalization_dict[f"{coord}_min"]) / (
-            normalization_dict[f"{coord}_max"] - normalization_dict[f"{coord}_min"]
-        )
-    elif standarize:
-        return (data - normalization_dict[f"{coord}_mean"]) / normalization_dict[
-            f"{coord}_std"
-        ]
-    return data
-
-
-class Data(ABC):
+class DataReader(ABC):
     def get_file_path(
         self,
         dataset: str,
@@ -119,7 +21,7 @@ class Data(ABC):
 
         Args:
             dataset (str): dataset to read
-            statistic (str): summary statistic to read
+            statistic (str): summary statistic to read, one of: density_split_auto, density_split_cross, tpcf
             suffix (str): suffix
 
         Raises:
@@ -162,12 +64,13 @@ class Data(ABC):
             )
             if select_from_coords is not None:
                 observed = observed.sel(select_from_coords)
-            observation.append(observed.values)
-        observation = np.stack(observation, axis=0)
-        if hasattr(observation, "realizations"):
-            n_realizations = len(observation.realizations)
-            return observation.values.reshape(n_realizations, -1)
-        return observation.reshape(-1)
+            if hasattr(observation, "realizations"):
+                n_realizations = len(observation.realizations)
+                observed = observed.values.reshape(n_realizations, -1)
+            else:
+                observed = observed.values.reshape(-1)
+            observation.append(observed)
+        return np.hstack(observation)
 
     def gather_summaries_for_covariance(
         self,
@@ -203,25 +106,18 @@ class Data(ABC):
         Returns:
             xr.DataArray: data array
         """
-        if statistic == "tpcf":
-            coords = {
-                "multipoles": np.arange(3),
-            }
-            dimensions = ["multipoles", "s"]
-        elif "density_split" in statistic:
-            coords = {"multipoles": np.arange(3), "quintiles": np.arange(5)}
-            dimensions = ["quintiles", "multipoles", "s"]
+        with open(self.data_path / f"coordinates/{statistic}.json", "r") as f:
+            coords = json.load(f)
+        dimensions = list(coords.keys())
         path_to_file = self.get_file_path(statistic=statistic, **kwargs)
         data = np.load(
             path_to_file,
             allow_pickle=True,
         ).item()
-        s = data["s"]
         data = np.asarray(data["multipoles"])
         if multiple_realizations:
             dimensions.insert(0, "realizations")
             coords["realizations"] = np.arange(data.shape[0])
-        coords["s"] = s
         if self.avg_los:
             if multiple_realizations:
                 data = np.mean(data, axis=1)
@@ -236,7 +132,7 @@ class Data(ABC):
         )
 
 
-class Abacus(Data):
+class Abacus(DataReader):
     def __init__(
         self,
         data_path: Optional[Path] = DATA_PATH,
@@ -346,7 +242,7 @@ class Abacus(Data):
         return self.get_all_parameters(cosmology=cosmology).iloc[hod_idx].to_dict()
 
 
-class AbacusSmall(Data):
+class AbacusSmall(DataReader):
     def __init__(
         self,
         data_path: Optional[Path] = DATA_PATH,
@@ -471,7 +367,7 @@ class AbacusSmall(Data):
         }
 
 
-class Uchuu(Data):
+class Uchuu(DataReader):
     def __init__(
         self,
         data_path: Optional[Path] = DATA_PATH,
@@ -561,7 +457,7 @@ class Uchuu(Data):
         }
 
 
-class Patchy(Data):
+class Patchy(DataReader):
     def __init__(
         self,
         data_path: Optional[Path] = DATA_PATH,
@@ -687,12 +583,12 @@ class Patchy(Data):
         }
 
 
-class CMASS(Data):
+class CMASS(DataReader):
     def __init__(
         self,
         data_path=DATA_PATH,
         statistics: List[str] = ["density_split_auto", "density_split_cross", "tpcf"],
-        select_filters: Dict = {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]},
+        select_filters: Dict = {"multipoles": [0, 2,], "quintiles": [0, 1, 3, 4]},
         slice_filters: Dict = {"s": [0.7, 150.0]},
     ):
         """CMASS data class to read CMASS data
@@ -710,7 +606,7 @@ class CMASS(Data):
         self.statistics = statistics
         self.select_filters = select_filters
         self.slice_filters = slice_filters
-        self.avg_los = True
+        self.avg_los = True 
 
     def get_file_path(
         self,

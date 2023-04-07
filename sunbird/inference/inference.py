@@ -5,7 +5,7 @@ import numpy as np
 import yaml
 from typing import Dict, List, Tuple, Optional
 from sunbird.covariance import CovarianceMatrix, normalize_cov
-from sunbird.read_utils import data_utils
+from sunbird.data import data_readers 
 
 
 class Inference(ABC):

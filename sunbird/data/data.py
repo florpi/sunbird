@@ -5,7 +5,8 @@ import torch
 import json
 import pytorch_lightning as pl
 from torch.utils.data import TensorDataset, DataLoader
-from sunbird.read_utils.data_utils import Abacus, normalize_data, transform_summary
+from sunbird.data.data_readers import Abacus
+from sunbird.data.data_utils import normalize_data, transform_summary
 
 
 class DSDataModule(pl.LightningDataModule):

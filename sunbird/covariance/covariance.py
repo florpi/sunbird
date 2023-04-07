@@ -5,7 +5,7 @@ from scipy.stats import sigmaclip
 from typing import List, Dict, Optional
 
 import torch
-from sunbird.read_utils import data_utils
+from sunbird.data import data_readers
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
