@@ -25,7 +25,7 @@ class GaussianNLoglike(nn.Module):
         select_filters: Dict = None,
         standarize_covariance: bool = False,
         normalize_covariance: bool = False,
-        volume_scaling: float = 8.0,  # Scale to the 2Gpc/h volme of emulator boxes, 8 would be for cmass
+        volume_scaling: float = 8.0,  # Scale by 64. to the 2Gpc/h volme of emulator boxes, 8 would be for cmass
         normalization_dict: Optional[Dict] = None,
     ):
         """Initialize a Gaussian log-likelihood from a list of statistics and filters
