@@ -13,7 +13,7 @@ def dr():
         },
     )
 
-@pytest.mark.parametrize("transform", [LogSqrt(), Normalize(), Standarize()])
+@pytest.mark.parametrize("transform", [LogSqrt(min_monopole=0., min_quadrupole=0.), Normalize(), Standarize()])
 def test_inverse_works(transform, dr):
     if hasattr(transform, 'fit'):
         transform.fit(dr,)
@@ -30,12 +30,21 @@ def test_transfom_over_dimension(dr):
 
 
 def test_combine_transforms(dr):
-    logsqrt = LogSqrt()
+    logsqrt = LogSqrt(min_monopole=0., min_quadrupole=0.)
     norm = Normalize(training_min=dr.min(), training_max=dr.max())
     transforms = Transforms([logsqrt, norm])
     tranformed_dr = transforms.transform(dr)
     should_dr =  norm.transform(logsqrt.transform(dr))
     np.testing.assert_allclose(tranformed_dr.values, should_dr.values)
+
+def test_combine_transforms_inverse(dr):
+    logsqrt = LogSqrt(min_monopole=0., min_quadrupole=0.)
+    norm = Normalize(training_min=dr.min(), training_max=dr.max())
+    transforms = Transforms([logsqrt, norm])
+    tranformed_dr = transforms.transform(dr)
+    inverse_transformed_dr = transforms.inverse_transform(tranformed_dr)
+    np.testing.assert_allclose(inverse_transformed_dr.values, dr.values)
+
 
 def test_store_and_load_transforms(dr):
     logsqrt = LogSqrt()

@@ -18,11 +18,11 @@ def fit(args):
     dm.setup()
     # Setup model
     model_dict_args = vars(args)
+    del model_dict_args['output_transforms']
     model = FCN(
         n_input=dm.n_input,
         n_output=dm.n_output,
-        normalization_dict=dm.normalization_dict,
-        normalize_covariance=args.normalize_outputs,
+        output_transforms=dm.output_transforms,
         slice_filters=dm.slice_filters,
         select_filters=dm.select_filters,
         **model_dict_args,

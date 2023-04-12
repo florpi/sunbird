@@ -28,7 +28,7 @@ class FCN(BaseModel):
         )
         if kwargs["load_loss"]:
             self.load_loss(**kwargs)
-            for key in ["normalization_dict", "slice_filters", "select_filters"]:
+            for key in ["output_transforms", "input_transforms", "select_filters", "slice_filters"]:
                 if key in kwargs:
                     kwargs.pop(key)
             self.save_hyperparameters()
@@ -128,10 +128,7 @@ class FCN(BaseModel):
                 statistics=[kwargs["statistic"]],
                 slice_filters=kwargs.get("slice_filters", None),
                 select_filters=kwargs.get("select_filters", None),
-                normalize_covariance=kwargs["normalize_covariance"]
-                if kwargs.get("normalization_dict", None) is not None
-                else False,
-                normalization_dict=kwargs.get("normalization_dict", None),
+                transforms={kwargs['statistic']: kwargs['output_transform']},
             ).get_covariance_data(
                 volume_scaling=64.0,
             )
