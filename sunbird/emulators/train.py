@@ -45,7 +45,7 @@ def fit(args):
         accelerator="auto",
         callbacks=[early_stop_callback, checkpoint_callback],
     )
-    dm.dump_summaries(path=Path(trainer.log_dir) / "summary.json")
+    dm.store_transforms(path=Path(trainer.log_dir) / "transforms")
     # Train
     trainer.fit(
         model,
