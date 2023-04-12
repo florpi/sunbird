@@ -58,8 +58,8 @@ def test__base_summary_from_folder_batched():
         flax=False,
     )
     inputs = np.random.random((10,len(bs.input_names)))
-    bs_output = bs.get_for_batch_inputs(inputs)
-    assert bs_output.shape == (10,72)
+    bs_output = bs.get_for_batch_inputs(inputs, select_filters={'multipoles':[0,]})
+    assert bs_output.shape == (10,36)
     
 def test__base_summary_flax():
     bs = BaseSummary.from_folder(
