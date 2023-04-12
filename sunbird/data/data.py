@@ -3,12 +3,14 @@ from pathlib import Path
 import numpy as np
 import torch
 import json
+import xarray as xr
 import pytorch_lightning as pl
 from torch.utils.data import TensorDataset, DataLoader
 from sunbird.data.data_readers import Abacus
-from sunbird.data.data_utils import normalize_data
-from sunbird.data.transforms import BaseTransform
+from sunbird.data.data_utils import convert_selection_to_filters
+from sunbird.data import transforms
 
+DEFAULT_DATA_DIR = Path(__file__).parent.parent.parent / "data/"
 
 class AbacusDataModule(pl.LightningDataModule):
     def __init__(
@@ -18,12 +20,10 @@ class AbacusDataModule(pl.LightningDataModule):
         select_filters: Optional[Dict] = None,
         slice_filters: Optional[Dict] = {'s': [0.7, 150.]},
         batch_size: int = 256,
-        standarize_outputs: bool = False,
-        normalize_outputs: bool = True,
-        normalize_inputs: bool = True,
         abacus_dataset: Optional[str] = "wideprior_AB",
         input_parameters: Optional[List[str]] = None,
-        transform: Optional[BaseTransform] = None,
+        input_transforms: Optional[transforms.Transforms] = transforms.Transforms([transforms.Normalize()]),
+        output_transforms: Optional[transforms.Transforms] = transforms.Transforms([transforms.Normalize()]),
         **kwargs,
     ):
         """Data module used to train models on Abacus data
@@ -34,31 +34,24 @@ class AbacusDataModule(pl.LightningDataModule):
             select_filters (Dict, optional): filters to select values in coordinates. Defaults to None.
             slice_filters (Dict, optional): filters to slice values in coordinates. Defaults to None.
             batch_size (int, optional): size of batch. Defaults to 32.
-            standarize_outputs (bool, optional):  whether to standarize outputs. Defaults to False.
-            normalize_outputs (bool, optional): whether to normalize outputs. Defaults to False.
-            normalize_inputs (bool, optional): whether to normalize inputs. Defaults to True.
-            s2_outputs (bool, optional): whether to multiply outputs by s squared (s is pair separation, useful
-            on large scales). Defaults to False.
             abacus_dataset (Optional[str], optional): what abacus dataset to use. Defaults to 'wideprior_AB'.
             input_parameters (Optional[List[str]], optional): names of parameters to use as inputs, if None it will
             use all cosmology + HOD parameters. Defaults to None.
-            transforms (Callable, optional): transforms to apply to data. Defaults to None.
+            output_transforms (str, optional): transforms to apply to data. Defaults to None.
         """
         super().__init__()
         self.train_test_split_dict = train_test_split_dict
         self.statistic = statistic
         self.batch_size = batch_size
-        self.standarize_outputs = standarize_outputs
-        self.normalize_outputs = normalize_outputs
-        self.normalize_inputs = normalize_inputs
         self.select_filters = select_filters
         self.slice_filters = slice_filters
+        self.input_transforms = input_transforms
+        self.output_transforms = output_transforms
         self.data = Abacus(
             dataset=abacus_dataset,
             statistics=[self.statistic],
             select_filters=self.select_filters,
             slice_filters=self.slice_filters,
-            transforms={self.statistic: transform} if transform else None,
         )
         self.input_parameters = input_parameters
 
@@ -77,15 +70,13 @@ class AbacusDataModule(pl.LightningDataModule):
         parser.add_argument('--select_multipoles', action='store', type=int, default=[0,1],nargs='+',)
         parser.add_argument('--slice_s', action='store', type=float, default=[0.7,150.],nargs='+',)
         parser.add_argument('--batch_size', type=int, default=256,)
-        parser.add_argument('--standarize_outputs', type=bool, default=False,)
-        parser.add_argument('--normalize_outputs', type=bool, default=True,)
-        parser.add_argument('--normalize_inputs', type=bool, default=True,)
         parser.add_argument('--abacus_dataset', type=str, default='wideprior_AB',)
         parser.add_argument('--input_parameters', action='store', type=str, default=None,nargs='+',)
+        parser.add_argument('--indepedent_avg_scale', action='store', type=bool, default=False,)
         return parser
 
     @classmethod
-    def from_argparse_args(cls, args, train_test_split_dict: Dict)->"AbacusDataModule":
+    def from_argparse_args(cls, args, train_test_split_dict: Dict, data_dir: Path = DEFAULT_DATA_DIR,)->"AbacusDataModule":
         """ Create data module from parsed args
 
         Args:
@@ -96,18 +87,32 @@ class AbacusDataModule(pl.LightningDataModule):
             DSDataModule: data module 
         """
         vargs = vars(args)
-        select_filters, slice_filters = {}, {}
-        for key, value in vargs.items():
-            if 'select' in key:
-                key_to_filter = key.split('_')[-1]
-                if key_to_filter != 'gpu':
-                    select_filters[key_to_filter] = value
-            elif 'slice' in key:
-                slice_filters[key.split('_')[-1]] = value
+        select_filters, slice_filters = convert_selection_to_filters(vargs)
+        if vargs(input_transforms) is not None:
+            input_transforms = transforms.Transforms(
+                [getattr(transforms, transform)() for transform in input_transforms]
+            )
+        else:
+            input_transforms = None
+        if output_transforms is not None:
+            dimensions_to_exclude_from_average = list(select_filters.keys())
+            if vargs['independent_avg_scale']:
+                dimensions_to_exclude_from_average += ['s']
+            with open(data_dir / f'coordinates/{vargs["statistic"]}.json') as f:
+                dims = list(json.load(f).keys())
+            dimensions = [dim for dim in dims if not dimensions_to_exclude_from_average]
+            output_transforms = transforms.Transforms(
+                [getattr(transforms, transform)(dimensions=dimensions) for transform in output_transforms]
+            )
+        else:
+            output_transforms = None
+        vargs = {k: v for k,v in vargs.items() if k not in ('input_transforms', 'output_transforms')}
         return cls(
             train_test_split_dict=train_test_split_dict,
             select_filters=select_filters,
             slice_filters= slice_filters,
+            input_transforms = input_transforms,
+            output_transforms = output_transforms,
             **vargs,
         )
 
@@ -131,9 +136,8 @@ class AbacusDataModule(pl.LightningDataModule):
                 cosmology=cosmology,
                 phase=0,
             )
-            n_realizations = len(summary.realizations)
-            data += list(summary.values.reshape((n_realizations, -1)))
-        return np.array(data)
+            data += [summary]
+        return xr.concat(data, dim='cosmology')
 
     def load_params(
         self,
@@ -179,30 +183,7 @@ class AbacusDataModule(pl.LightningDataModule):
         )
         return params, data
 
-    def summarise_training_data(
-        self, parameters: np.array, data: np.array
-    ) -> Dict[str, np.array]:
-        """Summarise the trianing data, used to normalize inputs and outputs
-
-        Args:
-            parameters (np.array): input parameters
-            data (np.array): data to fit
-
-        Returns:
-            Dict: dictionary with stats
-        """
-        return {
-            "x_min": np.min(parameters, axis=0),
-            "x_max": np.max(parameters, axis=0),
-            "y_min": np.min(data),
-            "y_max": np.max(data),
-            "y_mean": np.mean(data, axis=0),
-            "y_std": np.std(data, axis=0),
-        }
-
-
-
-    def generate_dataset(self, x: np.array, y: np.array) -> TensorDataset:
+    def generate_dataset(self, x: np.array, y: np.array, stage: str ='train') -> TensorDataset:
         """Convert numpy arrays to torch tensors and generate a normalized TensorDataset
 
         Args:
@@ -212,23 +193,15 @@ class AbacusDataModule(pl.LightningDataModule):
         Returns:
             TensorDataset: dataset
         """
-        x = normalize_data(
-            data=x,
-            normalization_dict=self.normalization_dict,
-            standarize=False,
-            normalize=self.normalize_inputs,
-            coord='x',
-        )
-        y = normalize_data(
-            data=y,
-            normalization_dict=self.normalization_dict,
-            standarize=self.standarize_outputs,
-            normalize=self.normalize_outputs,
-            coord='y',
-        )
+        if stage == 'train':
+            x = self.input_transforms.fit_transform(x,)
+            y = self.output_transforms.fit_transform(y,)
+        else:
+            x = self.input_transforms.transform(x)
+            y = self.output_transforms.transform(y)
         return TensorDataset(
-            torch.tensor(x, dtype=torch.float32),
-            torch.tensor(y, dtype=torch.float32),
+            torch.tensor(x.values, dtype=torch.float32),
+            torch.tensor(y.values, dtype=torch.float32),
         )
 
     def setup(self, stage: Optional[str] = None):
@@ -241,13 +214,10 @@ class AbacusDataModule(pl.LightningDataModule):
             train_params, train_data = self.load_params_and_data_for_stage(
                 stage="train",
             )
-            self.normalization_dict = self.summarise_training_data(
-                parameters=train_params,
-                data=train_data,
-            )
             self.ds_train = self.generate_dataset(
                 train_params,
                 train_data,
+                stage='train',
             )
         if not stage or stage == "train" or stage == "fit":
             val_params, val_data = self.load_params_and_data_for_stage(
@@ -256,6 +226,7 @@ class AbacusDataModule(pl.LightningDataModule):
             self.ds_val = self.generate_dataset(
                 val_params,
                 val_data,
+                stage='val',
             )
 
         if not stage or stage == "test":
@@ -265,6 +236,7 @@ class AbacusDataModule(pl.LightningDataModule):
             self.ds_test = self.generate_dataset(
                 test_params,
                 test_data,
+                stage = 'test'
             )
         try:
             self.n_output = self.ds_train.tensors[1].shape[-1]
@@ -309,30 +281,11 @@ class AbacusDataModule(pl.LightningDataModule):
             shuffle=False,
         )
 
-    def dump_summaries(self, path: Path):
-        """Store the summary of the training data,
-        used to normalize inputs and outputs
+    def store_transforms(self, path: Path):
+        """Store transforms
 
         Args:
             path (Path): path to store data
         """
-        class NumpyEncoder(json.JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, np.ndarray):
-                    return obj.tolist()
-                return json.JSONEncoder.default(self, obj)
-
-        with open(path, "w") as fd:
-            json_dump = json.dumps(self.normalization_dict, cls=NumpyEncoder)
-            json.dump(json_dump, fd)
-
-def load_summary_training(data_dir, statistic,):
-    with open(
-        data_dir / f"train_{statistic}_summary.json",
-        "r",
-    ) as f:
-        summary = json.load(f)
-    for k, v in summary.items():
-        if type(v) is list:
-            summary[k] = np.array(v)
-    return summary
+        self.input_transforms.store_transform_params(path / '_input.pkl')
+        self.output_transforms.store_transform_params(path / '_output.pkl')
