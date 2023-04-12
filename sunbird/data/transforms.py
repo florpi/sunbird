@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional
+import torch
 import xarray as xr
 import numpy as np
 import sys
@@ -156,6 +157,7 @@ class Transforms:
         Returns:
             xr.DataArray: original summary
         """
+        summary = summary.copy()
         for transform in self.transforms[::-1]:
             summary = transform.inverse_transform(summary)
         return summary
@@ -253,8 +255,8 @@ class Standarize(BaseTransform):
 class LogSqrt(BaseTransform):
     def __init__(
         self,
-        min_monopole: float = 0.011,
-        min_quadrupole: float = -30.0,
+        min_monopole = None,
+        min_quadrupole = None,
         **kwargs,
     ):
         """Transform the monopole and quadrupole to log and sqrt, respectively
@@ -265,6 +267,25 @@ class LogSqrt(BaseTransform):
         """
         self.min_monopole = min_monopole
         self.min_quadrupole = min_quadrupole
+
+    def fit(self, summary: xr.DataArray):
+        """ Fit the transform
+
+        Args:
+            summary (xr.DataArray): summary to fit the transform to 
+        """
+        min_monopole = summary.sel(multipoles=0).min()
+        min_quadrupole = summary.sel(multipoles=2).min()
+        if min_monopole < 0.:
+            self.min_monopole = 1.01*min_monopole
+        elif min_monopole == 0.:
+            self.min_monopole = -0.01
+        else:
+            self.min_monopole = 0.
+        if min_quadrupole < 0:
+            self.min_quadrupole = min_quadrupole
+        else:
+            self.min_quadrupole = 0.
 
     def transform(self, summary: xr.DataArray) -> xr.DataArray:
         """Transform a summary
@@ -278,8 +299,8 @@ class LogSqrt(BaseTransform):
         summary.loc[{"multipoles": 0}] = np.log10(
             summary.sel(multipoles=0) - self.min_monopole
         )
-        summary.loc[{"multipoles": 1}] = (
-            summary.sel(multipoles=1) - self.min_quadrupole
+        summary.loc[{"multipoles": 2}] = (
+            summary.sel(multipoles=2) - self.min_quadrupole
         ) ** 0.5
         return summary
 
@@ -292,10 +313,6 @@ class LogSqrt(BaseTransform):
         Returns:
             xr.DataArray: original summary
         """
-        summary.loc[{"multipoles": 0}] = 10 ** (
-            summary.sel(multipoles=0) + self.min_monopole
-        )
-        summary.loc[{"multipoles": 1}] = (
-            summary.sel(multipoles=1) + self.min_quadrupole
-        ) ** 2
+        summary.loc[{"multipoles": 0}] = 10 ** summary.sel(multipoles=0) + self.min_monopole
+        summary.loc[{"multipoles": 2}] = summary.sel(multipoles=2)**2 + self.min_quadrupole
         return summary

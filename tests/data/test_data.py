@@ -120,7 +120,6 @@ def test_from_argparse_args_independent_scale():
     dm.setup('train')
     multipoles = dm.ds_train.tensors[1].reshape((-1, 2, 36))
 
-    print(torch.min(multipoles[:,0,:],axis=0))
     assert all(torch.min(multipoles[:,0,:], axis=0).values == 0.0)
     assert all(torch.max(multipoles[:,0,:], axis=0).values == 1.0)
 

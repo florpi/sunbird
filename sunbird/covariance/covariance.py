@@ -18,10 +18,7 @@ class CovarianceMatrix:
         select_filters: Dict = None,
         covariance_data_class: str = 'AbacusSmall',
         emulator_data_class: str = 'Abacus',
-        standarize_covariance: bool = False,
-        normalize_covariance: bool = False,
-        normalization_dict: Optional[Dict] = None,
-        transforms: Optional[Callable] = None,
+        output_transforms: Optional[Callable] = None,
     ):
         """Compute a covariance matrix for a list of statistics and filters in any
         dimension
@@ -35,17 +32,13 @@ class CovarianceMatrix:
             statistics=statistics,
             slice_filters=slice_filters,
             select_filters=select_filters,
-            standarize=standarize_covariance,
-            normalize=normalize_covariance,
-            normalization_dict=normalization_dict,
+            transforms=output_transforms,
         )
         self.covariance_simulations_reader = getattr(data_readers, "AbacusSmall")(
             statistics=statistics,
             slice_filters=slice_filters,
             select_filters=select_filters,
-            standarize=standarize_covariance,
-            normalize=normalize_covariance,
-            normalization_dict=normalization_dict,
+            tranforms=output_transforms,
         )
         self.training_simulations_reader = getattr(data_readers, emulator_data_class)(
             dataset="wideprior_AB",
@@ -57,9 +50,6 @@ class CovarianceMatrix:
         self.statistics = statistics
         self.slice_filters = slice_filters
         self.select_filters = select_filters
-        self.standarize_covariance = standarize_covariance
-        self.normalize_covariance = normalize_covariance
-        self.normalization_dict = normalization_dict
 
     def get_covariance_data(
         self,

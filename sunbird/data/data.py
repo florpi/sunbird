@@ -125,20 +125,20 @@ class AbacusDataModule(pl.LightningDataModule):
             nargs="+",
         )
         parser.add_argument(
-            "--indepedent_avg_scale",
+            "--independent_avg_scale",
             action="store",
             type=bool,
             default=False,
         )
         parser.add_argument(
-            "--input_tranforms",
+            "--input_transforms",
             action="store",
             type=str,
             default=['Normalize'],
             nargs="+",
         )
         parser.add_argument(
-            "--output_tranforms",
+            "--output_transforms",
             action="store",
             type=str,
             default=['Normalize'],
@@ -373,5 +373,5 @@ class AbacusDataModule(pl.LightningDataModule):
         Args:
             path (Path): path to store data
         """
-        self.input_transforms.store_transform_params(path / "_input.pkl")
-        self.output_transforms.store_transform_params(path / "_output.pkl")
+        self.input_transforms.store_transform_params(path.parent / (path.name + '_input.pkl'))
+        self.output_transforms.store_transform_params(path.parent / (path.name + '_output.pkl'))
