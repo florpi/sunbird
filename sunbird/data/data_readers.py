@@ -4,7 +4,7 @@ from abc import ABC
 import pandas as pd
 import xarray as xr
 from pathlib import Path
-from typing import List, Dict, Optional, Callable 
+from typing import List, Dict, Optional, Callable
 from sunbird.data.data_utils import convert_to_summary, normalize_data
 from sunbird.data.transforms import BaseTransform
 
@@ -28,7 +28,7 @@ class DataReader(ABC):
         transforms: Optional[Dict[str, BaseTransform]] = None,
         avg_los: bool = True,
     ):
-        """ Base class for data readers
+        """Base class for data readers
 
         Args:
             data_path (Path, optional): path where data is stored. Defaults to DATA_PATH.
@@ -42,12 +42,11 @@ class DataReader(ABC):
             avg_los (bool, optional): whether to average along line of sight. Defaults to True.
         """
         self.data_path = data_path
-        self.transforms=transforms
+        self.transforms = transforms
         self.statistics = statistics
         self.select_filters = select_filters
         self.slice_filters = slice_filters
         self.avg_los = avg_los
-
 
     def get_file_path(
         self,
@@ -214,7 +213,7 @@ class Abacus(DataReader):
             select_filters=select_filters,
             slice_filters=slice_filters,
             transforms=transforms,
-            avg_los = True,
+            avg_los=True,
         )
         self.dataset = dataset
 
@@ -310,7 +309,7 @@ class AbacusSmall(DataReader):
         normalization_dict: Optional[Dict] = None,
         standarize: bool = False,
         normalize: bool = False,
-        transforms: Optional[Dict[str,BaseTransform]] = None,
+        transforms: Optional[Dict[str, BaseTransform]] = None,
     ):
         super().__init__(
             data_path=data_path,
@@ -318,7 +317,7 @@ class AbacusSmall(DataReader):
             select_filters=select_filters,
             slice_filters=slice_filters,
             transforms=transforms,
-            avg_los = True,
+            avg_los=True,
         )
         self.normalization_dict = normalization_dict
         self.standarize = standarize
@@ -414,7 +413,7 @@ class Uchuu(DataReader):
             select_filters=select_filters,
             slice_filters=slice_filters,
             transforms=transforms,
-            avg_los = True,
+            avg_los=True,
         )
 
     def get_file_path(
@@ -491,7 +490,7 @@ class Patchy(DataReader):
         normalization_dict: Optional[Dict] = None,
         standarize: bool = False,
         normalize: bool = False,
-        transforms: Optional[Dict[str,BaseTransform]] = None,
+        transforms: Optional[Dict[str, BaseTransform]] = None,
     ):
         """Patchy data class for the pathcy mocks.
 
@@ -511,7 +510,7 @@ class Patchy(DataReader):
             select_filters=select_filters,
             slice_filters=slice_filters,
             transforms=transforms,
-            avg_los = False,
+            avg_los=False,
         )
         self.normalization_dict = normalization_dict
         self.standarize = standarize
@@ -577,9 +576,15 @@ class CMASS(DataReader):
         self,
         data_path=DATA_PATH,
         statistics: List[str] = ["density_split_auto", "density_split_cross", "tpcf"],
-        select_filters: Dict = {"multipoles": [0, 2,], "quintiles": [0, 1, 3, 4]},
+        select_filters: Dict = {
+            "multipoles": [
+                0,
+                2,
+            ],
+            "quintiles": [0, 1, 3, 4],
+        },
         slice_filters: Dict = {"s": [0.7, 150.0]},
-        transforms: Optional[Dict[str,BaseTransform]] = None,
+        transforms: Optional[Dict[str, BaseTransform]] = None,
     ):
         """CMASS data class to read CMASS data
 
@@ -599,7 +604,7 @@ class CMASS(DataReader):
             select_filters=select_filters,
             slice_filters=slice_filters,
             transforms=transforms,
-            avg_los = True,
+            avg_los=True,
         )
 
     def get_file_path(
@@ -622,7 +627,7 @@ class CMASS(DataReader):
 
     def get_observation(
         self,
-        galactic_cap='ngc',
+        galactic_cap="ngc",
     ) -> np.array:
         """get array of a given observation at a cosmology and ranking
 
@@ -635,7 +640,7 @@ class CMASS(DataReader):
 
     def get_parameters_for_observation(
         self,
-        galactic_cap='ngc',
+        galactic_cap="ngc",
     ) -> Dict:
         """get cosmological parameters for a particular observation
 
