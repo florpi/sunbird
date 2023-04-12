@@ -162,6 +162,7 @@ class BaseSummary:
         inputs: torch.tensor,
         select_filters=None,
         slice_filters=None,
+        batch: bool = False,
         return_xarray: bool = False,
     ):
         if self.input_transforms is not None:
@@ -176,6 +177,7 @@ class BaseSummary:
             prediction=prediction,
             select_filters=select_filters,
             slice_filters=slice_filters,
+            batch=batch,
         )
         if self.output_transforms is not None:
             prediction = self.output_transforms.inverse_transform(prediction)
@@ -183,14 +185,22 @@ class BaseSummary:
             return prediction
         return prediction.values.reshape(-1)
 
-    def apply_filters(self, prediction, select_filters, slice_filters):
-        data = prediction.reshape(self.coordinates_shape)
+    def apply_filters(self, prediction, select_filters, slice_filters, batch):
+        if batch:
+            dimensions=['batch'] + list(self.coordinates.keys())
+            coordinates = self.coordinates.copy()
+            coordinates['batch'] = range(len(prediction))
+            data = prediction.reshape((len(prediction), *self.coordinates_shape,))
+        else:
+            dimensions=list(self.coordinates.keys())
+            coordinates = self.coordinates
+            data = prediction.reshape(self.coordinates_shape)
         if type(data) is torch.Tensor:
             data = data.detach().numpy()
         return convert_to_summary(
             data=data,
-            dimensions=list(self.coordinates.keys()),
-            coords=self.coordinates,
+            dimensions=dimensions,
+            coords=coordinates,
             select_filters=select_filters,
             slice_filters=slice_filters,
         )
@@ -212,8 +222,6 @@ class BaseSummary:
                 self.forward(
                     inputs, select_filters=select_filters, slice_filters=slice_filters
                 )
-                # .detach()
-                # .numpy()
             )
 
     def get_for_batch(
@@ -243,8 +251,7 @@ class BaseSummary:
                 inputs,
                 select_filters=select_filters,
                 slice_filters=slice_filters,
+                batch=True,
             )
-            .detach()
-            .numpy()
         )
         return outputs.reshape((len(inputs), -1))
