@@ -15,7 +15,6 @@ from sunbird.data.data_utils import convert_selection_to_filters, convert_to_sum
 
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
-
 class BaseSummary:
     def __init__(
         self,

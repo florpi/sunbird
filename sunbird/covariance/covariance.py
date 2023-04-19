@@ -3,8 +3,6 @@ import json
 from pathlib import Path
 from scipy.stats import sigmaclip
 from typing import List, Dict, Optional, Callable
-
-import torch
 from sunbird.data import data_readers
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/"
@@ -140,11 +138,10 @@ class CovarianceMatrix:
         if not hasattr(self, "emulators"):
             from sunbird.summaries import DensitySplitAuto, DensitySplitCross, TPCF
             self.emulators = {
-                'density_split_cross': DensitySplitCross(),
-                'density_split_auto': DensitySplitAuto(),
-                "tpcf": TPCF(),
+                'density_split_cross': DensitySplitCross,
+                'density_split_auto': DensitySplitAuto,
+                "tpcf": TPCF,
             }
-        inputs = torch.tensor(inputs, dtype=torch.float32)
         xi_model = []
         for statistic in self.statistics:
             xi_model.append(
