@@ -58,14 +58,6 @@ def get_emulator_and_truth_for_cosmo(
                 phase=0,
             ).values
         )
-        # true_density_split_cross.append(
-        #    read_statistic_abacus(
-        #        statistic='density_split_cross',
-        #        cosmology=cosmo,
-        #        dataset=dataset,
-        #        select_filters=select_filters,
-        #    ).values
-        # )
     true_density_split_auto = np.array(true_density_split_auto)
     true_density_split_auto = true_density_split_auto.reshape(
         (

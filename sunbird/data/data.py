@@ -280,15 +280,19 @@ class AbacusDataModule(pl.LightningDataModule):
             TensorDataset: dataset
         """
         if stage == "train":
-            x = self.input_transforms.fit_transform(
-                x,
-            )
-            y = self.output_transforms.fit_transform(
-                y,
-            )
+            if self.input_transforms is not None:
+                x = self.input_transforms.fit_transform(
+                    x,
+                )
+            if self.output_transforms is not None:
+                y = self.output_transforms.fit_transform(
+                    y,
+                )
         else:
-            x = self.input_transforms.transform(x)
-            y = self.output_transforms.transform(y)
+            if self.input_transforms is not None:
+                x = self.input_transforms.transform(x)
+            if self.output_transforms is not None:
+                y = self.output_transforms.transform(y)
         return TensorDataset(
             torch.tensor(x, dtype=torch.float32),
             torch.tensor(y.values.reshape((len(x), -1)), dtype=torch.float32),

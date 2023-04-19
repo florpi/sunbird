@@ -3,9 +3,9 @@ from pytorch_lightning import Trainer, seed_everything
 import joblib
 from pathlib import Path
 from argparse import ArgumentParser
-from sunbird.data import DSDataModule
-from sunbird.models import FCN
-from sunbird.models.train import fit
+from sunbird.data import AbacusDataModule
+from sunbird.emulators import FCN
+from sunbird.emulators.train import fit
 
 
 def objective(
@@ -37,7 +37,7 @@ def objective(
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser = DSDataModule.add_argparse_args(parser)
+    parser = AbacusDataModule.add_argparse_args(parser)
 
     parser.add_argument("--model_dir", type=str, default="../../trained_models")
     parser.add_argument("--run_name", type=str, default="optuna")
