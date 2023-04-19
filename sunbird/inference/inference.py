@@ -6,6 +6,7 @@ import yaml
 from typing import Dict, List, Tuple, Optional
 from sunbird.covariance import CovarianceMatrix
 from sunbird.data import data_readers 
+from sunbird.summaries import Bundle
 
 
 class Inference(ABC):
@@ -273,9 +274,14 @@ class Inference(ABC):
         module = theory_config.pop("module")
         class_name = theory_config.pop("class")
         if class_name == 'Bundle':
-            return module(
-                summaries=statistics, **theory_config.get("args", None),
-            )
+            if 'args' in theory_config:
+                return Bundle(
+                    summaries=statistics, **theory_config.get("args", None),
+                )
+            else:
+                return Bundle(
+                    summaries=statistics,
+                )
         else:
             return getattr(importlib.import_module(module), class_name)
 

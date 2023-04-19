@@ -4,7 +4,7 @@ slice_filters:
 
 select_filters:
     quintiles: [0,1,3,4,]
-    multipoles: [0,1]
+    multipoles: [0,2]
 
 statistics: ['density_split_auto', 'density_split_cross', 'tpcf']
 data:

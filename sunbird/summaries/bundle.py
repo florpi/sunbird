@@ -14,6 +14,7 @@ class Bundle(BaseSummary):
             summaries (List[str]): list of summaries to combine
         """
         self.summaries = summaries
+        self.flax = False
         self.all_summaries = {
             'tpcf': TPCF,
             'density_split_cross': DensitySplitCross,
@@ -21,8 +22,8 @@ class Bundle(BaseSummary):
         }
         
     @property
-    def parameters(self,):
-        return self.all_summaries['density_split_auto'].parameters
+    def input_names(self,):
+        return self.all_summaries['density_split_auto'].input_names
 
     def forward(
         self, inputs: np.array, select_filters: Dict=None, slice_filters: Dict=None,
