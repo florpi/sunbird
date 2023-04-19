@@ -131,7 +131,8 @@ class BaseSummary:
         coordinates = {k: np.array(v) for k, v in coordinates.items()}
         select_filters, slice_filters = convert_selection_to_filters(config)
         for key, values in select_filters.items():
-            coordinates[key] = [v for v in coordinates[key] if v in values]
+            if key in coordinates:
+                coordinates[key] = [v for v in coordinates[key] if v in values]
         for key, values in slice_filters.items():
             min_value, max_value = slice_filters[key]
             coordinates[key] = coordinates[key][
@@ -159,7 +160,7 @@ class BaseSummary:
 
     def forward(
         self,
-        inputs: torch.tensor,
+        inputs: np.array,
         select_filters=None,
         slice_filters=None,
         batch: bool = False,

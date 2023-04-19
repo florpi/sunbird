@@ -124,10 +124,6 @@ def test__base_summary_with_transforms():
 
         
 """
-
-
-"""
-"""
 def test__tpcf():
     tpcf = TPCF()
     inputs = np.random.random((len(tpcf.parameters)))

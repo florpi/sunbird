@@ -38,7 +38,7 @@ class CovarianceMatrix:
             statistics=statistics,
             slice_filters=slice_filters,
             select_filters=select_filters,
-            tranforms=output_transforms,
+            transforms=output_transforms,
         )
         self.training_simulations_reader = getattr(data_readers, emulator_data_class)(
             dataset="wideprior_AB",

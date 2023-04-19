@@ -18,22 +18,23 @@ def fit(args):
     dm.setup()
     # Setup model
     model_dict_args = vars(args)
-    del model_dict_args['output_transforms']
+    filtered_model_dict_args = {k:v for k,v in model_dict_args.items() if k != 'output_transforms'}
     model = FCN(
         n_input=dm.n_input,
         n_output=dm.n_output,
         output_transforms=dm.output_transforms,
         slice_filters=dm.slice_filters,
         select_filters=dm.select_filters,
-        **model_dict_args,
+        **filtered_model_dict_args,
     )
     # Setup trainer
-    early_stop_callback = EarlyStopping(monitor="val_loss", patience=8, mode="min")
+    early_stop_callback = EarlyStopping(monitor="val_loss", patience=16, mode="min")
 
     logger = pl_loggers.TensorBoardLogger(save_dir=args.model_dir, name=args.run_name)
     checkpoint_dir = Path(logger.experiment.log_dir) / "checkpoints"
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,
+        every_n_epochs=1,
         save_top_k=1,
         monitor="val_loss",
         mode="min",
@@ -43,7 +44,8 @@ def fit(args):
         args,
         logger=logger,
         accelerator="auto",
-        callbacks=[early_stop_callback, checkpoint_callback],
+        callbacks=[checkpoint_callback, early_stop_callback],
+        gradient_clip_val=0.5,
     )
     dm.store_transforms(path=Path(trainer.log_dir) / "transforms")
     # Train
