@@ -4,7 +4,7 @@ import importlib
 import numpy as np
 import yaml
 from typing import Dict, List, Tuple, Optional
-from sunbird.covariance import CovarianceMatrix, normalize_cov
+from sunbird.covariance import CovarianceMatrix
 from sunbird.data import data_readers 
 
 
@@ -115,7 +115,7 @@ class Inference(ABC):
             config["theory_model"], statistics=config["statistics"]
         )
         parameters_to_fit = [
-            p for p in theory_model.parameters if p not in fixed_parameters.keys()
+            p for p in theory_model.input_names if p not in fixed_parameters.keys()
         ]
         priors = cls.get_priors(config["priors"], parameters_to_fit)
         return cls(
@@ -150,7 +150,7 @@ class Inference(ABC):
             Tuple: observation and parameters
         """
 
-        obs_class = getattr(data_utils, obs_config["class"])(
+        obs_class = getattr(data_readers, obs_config["class"])(
             select_filters=select_filters,
             slice_filters=slice_filters,
             statistics=statistics,
@@ -200,6 +200,7 @@ class Inference(ABC):
         if add_emulator_error:
             cov_data += covariance.get_covariance_emulator(
                 covariance_data=cov_data,
+                clip_errors=False,
             )
         if add_simulation_error:
             cov_data += covariance.get_covariance_simulation(
@@ -271,12 +272,12 @@ class Inference(ABC):
         """
         module = theory_config.pop("module")
         class_name = theory_config.pop("class")
-        module = getattr(importlib.import_module(module), class_name)
-        if "args" in theory_config:
+        if class_name == 'Bundle':
             return module(
                 summaries=statistics, **theory_config.get("args", None),
             )
-        return module(summaries=statistics,)
+        else:
+            return getattr(importlib.import_module(module), class_name)
 
     @abstractmethod
     def __call__(
