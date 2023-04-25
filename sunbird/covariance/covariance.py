@@ -16,6 +16,7 @@ class CovarianceMatrix:
         select_filters: Dict = None,
         covariance_data_class: str = 'AbacusSmall',
         emulator_data_class: str = 'Abacus',
+        dataset: str = 'wideprior_AB',
         output_transforms: Optional[Callable] = None,
     ):
         """Compute a covariance matrix for a list of statistics and filters in any
@@ -31,15 +32,17 @@ class CovarianceMatrix:
             slice_filters=slice_filters,
             select_filters=select_filters,
             transforms=output_transforms,
+            dataset=dataset,
         )
         self.covariance_simulations_reader = getattr(data_readers, "AbacusSmall")(
             statistics=statistics,
             slice_filters=slice_filters,
             select_filters=select_filters,
             transforms=output_transforms,
+            dataset=dataset,
         )
         self.training_simulations_reader = getattr(data_readers, emulator_data_class)(
-            dataset="wideprior_AB",
+            dataset=dataset,
             statistics=statistics,
             slice_filters=slice_filters,
             select_filters=select_filters,

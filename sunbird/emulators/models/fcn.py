@@ -28,9 +28,6 @@ class FCN(BaseModel):
         )
         if kwargs["load_loss"]:
             self.load_loss(**kwargs)
-            #for key in ["output_transforms", "input_transforms", "select_filters", "slice_filters"]:
-            #    if key in kwargs:
-            #        kwargs.pop(key)
             self.save_hyperparameters(
                ignore=["output_transforms", "input_transforms", "select_filters", "slice_filters"], 
             )
@@ -131,13 +128,13 @@ class FCN(BaseModel):
                 slice_filters=kwargs.get("slice_filters", None),
                 select_filters=kwargs.get("select_filters", None),
                 output_transforms={kwargs['statistic']: kwargs['output_transforms']},
+                dataset=kwargs['abacus_dataset'],
             ).get_covariance_data(
                 volume_scaling=64.0,
             )
             covariance = Tensor(
                 covariance.astype(np.float32),
             )
-            print('Nans in covariance = ',torch.isnan(covariance).sum())
             if loss == 'gaussian':
                 self.loss_fct = GaussianNLoglike(
                     covariance=covariance,

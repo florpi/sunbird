@@ -89,8 +89,26 @@ class BaseSummary:
             BaseSummary: summary 
         """
         path_to_model = Path(path_to_model)
+        model, flax_params = cls.load_model(
+            path_to_model=path_to_model,
+            flax=flax,
+        )
+        input_transforms, output_transforms = cls.load_transforms(
+            path_to_model=path_to_model
+        )
         with open(path_to_model / "hparams.yaml") as f:
             config = yaml.safe_load(f)
+        coordinates = cls.load_coordinates(config=config, path_to_data=path_to_data)
+        return cls(
+            model=model,
+            coordinates=coordinates,
+            input_transforms=input_transforms,
+            output_transforms=output_transforms,
+            flax_params=flax_params,
+        )
+
+    @classmethod
+    def load_model(cls, path_to_model, flax: bool):
         if flax:
             nn_model, flax_params = FlaxFCN.from_folder(
                 path_to_model,
@@ -102,17 +120,7 @@ class BaseSummary:
             )
             nn_model.eval()
             flax_params = None
-        input_transforms, output_transforms = cls.load_transforms(
-            path_to_model=path_to_model
-        )
-        coordinates = cls.load_coordinates(config=config, path_to_data=path_to_data)
-        return cls(
-            model=nn_model,
-            coordinates=coordinates,
-            input_transforms=input_transforms,
-            output_transforms=output_transforms,
-            flax_params=flax_params,
-        )
+        return nn_model, flax_params
 
     @classmethod
     def load_coordinates(cls, config: Dict, path_to_data: Path = DEFAULT_DATA_PATH)-> Dict[str, np.array]:
@@ -125,6 +133,7 @@ class BaseSummary:
         Returns:
             Dict[str, np.array]: dictionary with coordinates 
         """
+
         with open(path_to_data / f'coordinates/{config["statistic"]}.json') as fd:
             coordinates = json.load(fd)
         coordinates = {k: np.array(v) for k, v in coordinates.items()}

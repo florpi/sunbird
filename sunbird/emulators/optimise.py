@@ -1,5 +1,5 @@
 import optuna
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import Trainer
 import joblib
 from pathlib import Path
 from argparse import ArgumentParser
