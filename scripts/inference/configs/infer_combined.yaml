@@ -6,7 +6,7 @@ select_filters:
     quintiles: [0,1,3,4,]
     multipoles: [0,2]
 
-statistics: ['density_split_auto', 'density_split_cross', 'tpcf']
+statistics: ['density_split_auto', 'density_split_cross',]
 data:
     observation: 
         class: 'Abacus'
@@ -26,7 +26,7 @@ theory_model:
     class: 'Bundle'
 
 inference:
-    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/all_combined'
+    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/ds_auto_cross'
 
 priors:
     stats_module: 'scipy.stats'

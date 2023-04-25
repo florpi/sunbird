@@ -215,7 +215,7 @@ class Abacus(DataReader):
             transforms=transforms,
             avg_los=True,
         )
-        self.dataset = dataset
+        self.dataset = f'abacus/{dataset}'
 
     def get_file_path(
         self,
@@ -295,6 +295,7 @@ class Abacus(DataReader):
 class AbacusSmall(DataReader):
     def __init__(
         self,
+        dataset: str = 'wideprior_AB',
         data_path: Optional[Path] = DATA_PATH,
         statistics: Optional[List[str]] = [
             "density_split_auto",
@@ -317,8 +318,9 @@ class AbacusSmall(DataReader):
             select_filters=select_filters,
             slice_filters=slice_filters,
             transforms=transforms,
-            avg_los=True,
+            avg_los=True if dataset == 'widreprior_AB' else False,
         )
+        self.dataset = f"abacus_small/{dataset}"
         self.normalization_dict = normalization_dict
         self.standarize = standarize
         self.normalize = normalize
@@ -336,7 +338,7 @@ class AbacusSmall(DataReader):
             Path: path to where data is stored
         """
         return super().get_file_path(
-            dataset="abacus_small",
+            dataset=self.dataset,
             statistic=statistic,
             suffix="c000_hodbest",
         )
@@ -657,3 +659,77 @@ class CMASS(DataReader):
             "w0_fld": -1.0,
             "wa_fld": 0.0,
         }
+
+class Beyond2pt(DataReader):
+    def __init__(
+        self,
+        data_path=DATA_PATH,
+        statistics: List[str] = ["density_split_auto", "density_split_cross", "tpcf"],
+        select_filters: Dict = {
+            "multipoles": [
+                0,
+                2,
+            ],
+            "quintiles": [0, 1, 3, 4],
+        },
+        slice_filters: Dict = {"s": [0.7, 150.0]},
+        transforms: Optional[Dict[str, BaseTransform]] = None,
+    ):
+        """data class to read Beyond2pt challenge data
+
+        Args:
+            data_path (Path, optional): path where data is stored. Defaults to DATA_PATH.
+            statistics (List[str], optional): summary statistics to read.
+            Defaults to ["density_split_auto", "density_split_cross", "tpcf"].
+            select_filters (Dict, optional): filters to select values along coordinates.
+            Defaults to {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]}.
+            slice_filters (Dict, optional): filters to slice values along coordinates.
+            Defaults to {"s": [0.7, 150.0]}.
+            transforms (Dict, optional): transforms to apply to data. Defaults to None.
+        """
+        super().__init__(
+            data_path=data_path,
+            statistics=statistics,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            transforms=transforms,
+            avg_los=True,
+        )
+
+    def get_file_path(
+        self,
+        statistic: str,
+    ) -> Path:
+        """get file path where data is stored for a given statistic, cosmology, and phase
+
+        Args:
+            statistic (str): summary statistic to read
+
+        Returns:
+            Path: path to where data is stored
+        """
+        if statistic == "density_split_auto":
+            return (
+                self.data_path
+                / f"clustering/beyond2pt/ds/gaussian/ds_auto_zsplit_Rs10_lcdm_redshift_space.npy"
+            )
+        elif statistic == "density_split_cross":
+            return (
+                self.data_path
+                / f"clustering/beyond2pt/ds/gaussian/ds_cross_zsplit_Rs10_lcdm_redshift_space.npy"
+            )
+        elif statistic == "tpcf":
+            return self.data_path / f"clustering/beyond2pt/tpcf/tpcf.npy"
+        raise ValueError(f"Invalid statistic {statistic}")
+
+    def get_observation(
+        self, 
+    ) -> np.array:
+        """get array of a given observation at a cosmology and ranking
+
+        Returns:
+            np.array: flattened observation
+        """
+        return super().get_observation(
+            multiple_realizations=False,
+        )
