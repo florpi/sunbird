@@ -30,6 +30,7 @@ class FCN(BaseModel):
             self.load_loss(**kwargs)
             self.save_hyperparameters(
                ignore=["output_transforms", "input_transforms", "select_filters", "slice_filters"], 
+
             )
 
     @staticmethod
@@ -71,7 +72,10 @@ class FCN(BaseModel):
         Returns:
             FCN: fully connected neural network
         """
-        vargs = vars(args)
+        if type(args) is not dict:
+            vargs = vars(args)
+        else:
+            vargs = args
         select_filters, slice_filters = {}, {}
         for key, value in vargs.items():
             if "select" in key:
