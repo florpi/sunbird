@@ -22,7 +22,7 @@ def get_data_errors(dataset, statistics, select_filters, slice_filters, volume_s
     return np.sqrt(np.diag(covariance_data))
 
 def get_abacus_parameters(dataset, split='test'):
-    with open("../data/train_test_split.json") as f:
+    with open("../../data/train_test_split.json") as f:
         train_test_split = json.load(f)
     abacus = Abacus(
         dataset=dataset,
@@ -39,7 +39,7 @@ def get_abacus_parameters(dataset, split='test'):
     )
 
 def get_abacus_corrs(dataset, statistics, select_filters, slice_filters,split='test'):
-    with open("../data/train_test_split.json") as f:
+    with open("../../data/train_test_split.json") as f:
         train_test_split = json.load(f)
     abacus = Abacus(
         dataset=dataset,
