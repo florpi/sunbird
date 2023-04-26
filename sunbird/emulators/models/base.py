@@ -26,12 +26,8 @@ class BaseModel(pl.LightningModule):
         path_to_model = Path(path_to_model)
         with open(path_to_model / "hparams.yaml") as f:
             hparams = yaml.safe_load(f)
-<<<<<<< HEAD:sunbird/emulators/models/base.py
             del hparams["load_loss"]
         model = cls(**hparams, load_loss=False)
-=======
-        model = cls.from_argparse_args(args=hparams)
->>>>>>> 00fac6615e71f6972e47f704207c72293dc9aac3:sunbird/models/models/base.py
         # find file with lowest validation loss
         files = list((path_to_model / "checkpoints").glob("*.ckpt"))
         file_idx = np.argmin(
