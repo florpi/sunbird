@@ -752,4 +752,8 @@ class Beyond2pt(DataReader):
             "N_ur": 2.0328,
             "w0_fld": -1.0,
             "wa_fld": 0.0,
+            "B_cen": 0.,
+            "B_sat": 0.,
+            "alpha_s": 0.,
+            "alpha_c": 0.,
         }
