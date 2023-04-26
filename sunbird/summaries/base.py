@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import List, Optional, Union, Dict, Tuple
 import json
 import yaml
+import jax
 import numpy as np
-import xarray as xr
 import jax.numpy as jnp
 import torch
 import flax
@@ -62,6 +62,9 @@ class BaseSummary:
         self.flax_params = flax_params
         if self.flax_params is not None:
             self.flax = True
+            self.flax_params = freeze({'params': self.flax_params})
+            self.model_apply = jax.jit(lambda params, inputs: model.apply(params, inputs))
+
         else:
             self.flax = False
         self.input_transforms = input_transforms
@@ -177,7 +180,7 @@ class BaseSummary:
         if self.input_transforms is not None:
             inputs = self.input_transforms.transform(inputs)
         if self.flax:
-            prediction = self.model.apply(freeze({"params": self.flax_params}), inputs)
+            prediction = self.model_apply(self.flax_params, inputs)
         else:
             inputs = torch.tensor(inputs, dtype=torch.float32)
             prediction = self.model(inputs)

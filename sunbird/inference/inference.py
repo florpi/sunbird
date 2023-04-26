@@ -105,6 +105,7 @@ class Inference(ABC):
                 covariance_config["volume_scaling"] = 1.0
         covariance_matrix = cls.get_covariance_matrix(
             covariance_data_class=covariance_config["class"],
+            covariance_dataset=covariance_config["dataset"],
             add_emulator_error=covariance_config["add_emulator_error"],
             add_simulation_error=covariance_config["add_simulation_error"],
             volume_scaling=covariance_config["volume_scaling"],
@@ -155,15 +156,17 @@ class Inference(ABC):
             select_filters=select_filters,
             slice_filters=slice_filters,
             statistics=statistics,
+            **obs_config.get('args',{}),
         )
-        observation = obs_class.get_observation(**obs_config["args"])
-        parameters = obs_class.get_parameters_for_observation(**obs_config["args"])
+        observation = obs_class.get_observation(**obs_config.get("get_obs_args",{}))
+        parameters = obs_class.get_parameters_for_observation(**obs_config.get("get_obs_args",{}))
         return observation, parameters
 
     @classmethod
     def get_covariance_matrix(
         cls,
         covariance_data_class: str,
+        covariance_dataset: str,
         statistics: List[str],
         select_filters: Dict,
         slice_filters: Dict,
@@ -190,6 +193,7 @@ class Inference(ABC):
         """
         covariance = CovarianceMatrix(
             covariance_data_class=covariance_data_class,
+            dataset=covariance_dataset,
             statistics=statistics,
             select_filters=select_filters,
             slice_filters=slice_filters,
@@ -222,7 +226,9 @@ class Inference(ABC):
         Returns:
             Dict: dictionary with initialized priors
         """
-        distributions_module = importlib.import_module(prior_config.pop("stats_module"))
+        distributions_module = importlib.import_module(
+            prior_config.pop("stats_module")
+        )
         prior_dict = {}
         for param in parameters_to_fit:
             config_for_param = prior_config[param]
@@ -273,17 +279,14 @@ class Inference(ABC):
         """
         module = theory_config.pop("module")
         class_name = theory_config.pop("class")
-        if class_name == 'Bundle':
-            if 'args' in theory_config:
-                return Bundle(
-                    summaries=statistics, **theory_config.get("args", None),
-                )
-            else:
-                return Bundle(
-                    summaries=statistics,
-                )
+        if 'args' in theory_config:
+            return getattr(importlib.import_module(module), class_name)(
+                summaries=statistics, **theory_config.get("args", None),
+            )
         else:
-            return getattr(importlib.import_module(module), class_name)
+            return getattr(importlib.import_module(module), class_name)(
+                summaries=statistics,
+            )
 
     @abstractmethod
     def __call__(
@@ -336,6 +339,16 @@ class Inference(ABC):
         right = np.einsum("ik,...k", self.inverse_covariance_matrix, diff)
         return -0.5 * np.einsum("ki,ji", diff, right)[:, 0]
 
+    def sample_parameters_from_prior(
+        self,
+    ):
+        params = {}
+        for param, dist in self.priors.items():
+            params[param] = dist.rvs()
+        for p, v in self.fixed_parameters.items():
+            params[p] = v
+        return params
+
     def sample_from_prior(
         self,
     ) -> Tuple:
@@ -344,11 +357,7 @@ class Inference(ABC):
         Returns:
             Tuple: tuple of parameters and theory model predictions
         """
-        params = {}
-        for param, dist in self.priors.items():
-            params[param] = dist.rvs()
-        for p, v in self.fixed_parameters.items():
-            params[p] = v
+        params = self.sample_parameters_from_prior()
         return params, self.theory_model(
             params, select_filters=self.select_filters, slice_filters=self.slice_filters
         )

@@ -733,3 +733,23 @@ class Beyond2pt(DataReader):
         return super().get_observation(
             multiple_realizations=False,
         )
+
+
+    def get_parameters_for_observation(
+        self,
+    ) -> Dict:
+        """ Assume a fiducial model for when fixing parameters
+
+        Returns:
+            Dict: dictionary of cosmology + HOD parameters
+        """
+        return {
+            "omega_b": 0.02213,
+            "omega_cdm": 0.11891,
+            "sigma8_m": 0.8288,
+            "n_s": 0.9611,
+            "nrun": 0.0,
+            "N_ur": 2.0328,
+            "w0_fld": -1.0,
+            "wa_fld": 0.0,
+        }

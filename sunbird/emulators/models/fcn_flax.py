@@ -2,6 +2,7 @@ from typing import Tuple, Sequence, Dict
 from pathlib import Path
 import numpy as np
 import yaml
+import jax
 import torch
 from flax.traverse_util import  unflatten_dict
 import jax.numpy as jnp

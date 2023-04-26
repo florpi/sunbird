@@ -2,7 +2,7 @@ from pathlib import Path
 from sunbird.summaries.base import BaseSummary
 
 DEFAULT_PATH = (
-    Path(__file__).parent.parent.parent / "trained_models/best/"
+    Path(__file__).parent.parent.parent / "trained_models/best/boss_wideprior/"
 )
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 

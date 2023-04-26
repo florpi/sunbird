@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional, List
 import yaml
 from sunbird.summaries.base import BaseSummary
 
@@ -12,11 +13,13 @@ class DensitySplit(BaseSummary):
         self,
         correlation: str,
         dataset: str,
+        loss: str= 'mae',
         path_to_models: Path = DEFAULT_PATH,
         path_to_data: Path = DEFAULT_DATA_PATH,
         flax: bool = False,
+        **kwargs,
     ):
-        path_to_model = path_to_models / f"best/ds_{correlation}_{dataset}"
+        path_to_model = path_to_models / f"best/{dataset}/{loss}/ds_{correlation}"
         model, flax_params = self.load_model(
             path_to_model=path_to_model,
             flax=flax,
@@ -40,12 +43,15 @@ class DensitySplitCross(DensitySplit):
     def __init__(
         self,
         dataset: str = "boss_wideprior",
+        loss: str = 'mae',
         path_to_models: Path = DEFAULT_PATH,
         path_to_data: Path = DEFAULT_DATA_PATH,
         flax: bool = False,
+        **kwargs,
     ):
         super().__init__(
             correlation="cross",
+            loss=loss,
             dataset=dataset,
             path_to_models=path_to_models,
             path_to_data=path_to_data,
@@ -57,12 +63,15 @@ class DensitySplitAuto(DensitySplit):
     def __init__(
         self,
         dataset: str = "boss_wideprior",
+        loss: str = 'mae',
         path_to_models: Path = DEFAULT_PATH,
         path_to_data: Path = DEFAULT_DATA_PATH,
         flax: bool = False,
+        **kwargs,
     ):
         super().__init__(
             correlation="auto",
+            loss=loss,
             dataset=dataset,
             path_to_models=path_to_models,
             path_to_data=path_to_data,

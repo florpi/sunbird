@@ -205,7 +205,10 @@ class Normalize(BaseTransform):
         return (summary - self.training_min) / (self.training_max - self.training_min)
 
     def inverse_transform(self, summary: xr.DataArray) -> xr.DataArray:
-        return summary * (self.training_max - self.training_min) + self.training_min
+        if type(summary) is xr.DataArray:
+            return summary * (self.training_max - self.training_min) + self.training_min
+        else:
+            return summary * (self.training_max.values.reshape(-1) - self.training_min.values.reshape(-1)) + self.training_min.values.reshape(-1)
 
 
 class Standarize(BaseTransform):
