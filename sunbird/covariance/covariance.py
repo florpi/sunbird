@@ -27,6 +27,7 @@ class CovarianceMatrix:
             slice_filters (Dict): dictionary with slice filters on given coordinates
             select_filters (Dict): dictionary with select filters on given coordinates
         """
+        self.dataset = dataset
         self.data_reader = getattr(data_readers, covariance_data_class)(
             statistics=statistics,
             slice_filters=slice_filters,
@@ -141,15 +142,15 @@ class CovarianceMatrix:
         if not hasattr(self, "emulators"):
             from sunbird.summaries import DensitySplitAuto, DensitySplitCross, TPCF
             self.emulators = {
-                'density_split_cross': DensitySplitCross,
-                'density_split_auto': DensitySplitAuto,
-                "tpcf": TPCF,
+                'density_split_cross': DensitySplitCross(dataset=self.dataset),
+                'density_split_auto': DensitySplitAuto(dataset=self.dataset),
+                #"tpcf": TPCF,
             }
         xi_model = []
         for statistic in self.statistics:
             xi_model.append(
                 self.emulators[statistic].get_for_batch_inputs(
-                    inputs,
+                    inputs=inputs,
                     select_filters=self.select_filters,
                     slice_filters=self.slice_filters,
                 ),
