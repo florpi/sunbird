@@ -131,19 +131,20 @@ def plot_samples(
                         )
     return g
 
-chain_ds = '../../scripts/inference/chains/blind_beyond2pt_ds_auto_cross/results.csv'
-chain_ds = get_chain_from_full_path(chain_ds)
-true_params = get_true_params(4,0)
-plot_samples(
-    [chain_ds],
-    true_params=None,
-    params=['omega_b', 'omega_cdm', 'sigma8_m', 'n_s'],
-    colors=['lightseagreen', 'mediumorchid'],
-    labels=[r'$\mathrm{DS}_\mathrm{auto+cross}$',],
-    markers=[
-        true_params,
-    ],
-    markers_colors=['lightgray'],
-)
-plt.savefig(f"figures/png/Fit_data.png", dpi=600, bbox_inches="tight")
-plt.savefig(f"figures/pdf/Fit_data.pdf", dpi=600, bbox_inches="tight")
+if __name__ == '__main__':
+    chain_ds = '../../scripts/inference/chains/beyond2pt_smin0.70_smax150.00_q0134_m02_density_split_cross_density_split_auto/results.csv'
+    chain_ds = get_chain_from_full_path(chain_ds)
+    true_params = get_true_params(4,0)
+    plot_samples(
+        [chain_ds],
+        true_params=None,
+        params=['omega_b', 'omega_cdm', 'sigma8_m', 'n_s'],
+        colors=['lightseagreen', 'mediumorchid'],
+        labels=[r'$\mathrm{DS}_\mathrm{auto+cross}$',],
+        markers=[
+            true_params,
+        ],
+        markers_colors=['lightgray'],
+    )
+    plt.savefig(f"figures/png/Fit_data.png", dpi=600, bbox_inches="tight")
+    plt.savefig(f"figures/pdf/Fit_data.pdf", dpi=600, bbox_inches="tight")
