@@ -217,22 +217,24 @@ class BaseSummary:
             slice_filters=slice_filters,
         )
 
-    def __call__(self, param_dict, select_filters=None, slice_filters=None):
+    def __call__(self, param_dict, select_filters=None, slice_filters=None, return_xarray: bool = False):
         inputs = np.array([param_dict[k] for k in self.input_names]).reshape(1, -1)
         output = self.get_for_sample(
-            inputs, select_filters=select_filters, slice_filters=slice_filters
+            inputs, select_filters=select_filters, slice_filters=slice_filters, return_xarray=return_xarray
         )
+        if return_xarray:
+            return output
         return output.reshape(-1)
 
-    def get_for_sample(self, inputs, select_filters, slice_filters):
+    def get_for_sample(self, inputs, select_filters, slice_filters, return_xarray):
         if self.flax:
             return self.forward(
-                inputs, select_filters=select_filters, slice_filters=slice_filters
+                inputs, select_filters=select_filters, slice_filters=slice_filters, return_xarray=return_xarray,
             )
         else:
             return (
                 self.forward(
-                    inputs, select_filters=select_filters, slice_filters=slice_filters
+                    inputs, select_filters=select_filters, slice_filters=slice_filters, return_xarray=return_xarray,
                 )
             )
 

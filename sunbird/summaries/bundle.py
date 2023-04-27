@@ -30,7 +30,7 @@ class Bundle(BaseSummary):
         return self.all_summaries['density_split_auto'].input_names
 
     def forward(
-        self, inputs: np.array, select_filters: Dict=None, slice_filters: Dict=None, batch: bool = False,
+        self, inputs: np.array, select_filters: Dict=None, slice_filters: Dict=None, batch: bool = False, return_xarray: bool = False,
     ) -> np.array:
         """return a concatenated prediction of all the summaries
 
@@ -44,12 +44,16 @@ class Bundle(BaseSummary):
         """
         output = []
         for summary in self.summaries:
-            output.append(
-                self.all_summaries[summary].forward(
+            pred = self.all_summaries[summary].forward(
                     inputs=inputs,
                     select_filters=select_filters,
                     slice_filters=slice_filters,
                     batch=batch,
-                ).reshape((len(inputs), -1))
-            )
+                    return_xarray=return_xarray,
+                )
+            if not return_xarray:
+                pred = pred.reshape((len(inputs), -1))
+            output.append(pred)
+        if return_xarray:
+            return output
         return np.hstack(output)

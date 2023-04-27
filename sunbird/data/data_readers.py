@@ -744,10 +744,10 @@ class Beyond2pt(DataReader):
             Dict: dictionary of cosmology + HOD parameters
         """
         return {
-            "omega_b": 0.02213,
-            "omega_cdm": 0.11891,
-            "sigma8_m": 0.8288,
-            "n_s": 0.9611,
+            "omega_b": 0.02237,
+            "omega_cdm": 0.1200,
+            "sigma8_m": 0.749999,
+            "n_s": 0.9649,
             "nrun": 0.0,
             "N_ur": 2.0328,
             "w0_fld": -1.0,
