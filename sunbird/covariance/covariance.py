@@ -144,7 +144,7 @@ class CovarianceMatrix:
             self.emulators = {
                 'density_split_cross': DensitySplitCross(dataset=self.dataset),
                 'density_split_auto': DensitySplitAuto(dataset=self.dataset),
-                #"tpcf": TPCF,
+                'tpcf': TPCF(dataset=self.dataset),
             }
         xi_model = []
         for statistic in self.statistics:

@@ -13,6 +13,7 @@ from sunbird.emulators import FCN, FlaxFCN
 from sunbird.data import transforms
 from sunbird.data.data_utils import convert_selection_to_filters, convert_to_summary
 
+DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/"
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 class BaseSummary:
@@ -269,3 +270,38 @@ class BaseSummary:
             )
         )
         return outputs.reshape((len(inputs), -1))
+
+class BaseSummaryFolder(BaseSummary):
+    def __init__(
+        self,
+        statistic: str,
+        dataset: str,
+        loss: str= 'mae',
+        n_hod_realizations: Optional[int] = None,
+        path_to_models: Path = DEFAULT_PATH,
+        path_to_data: Path = DEFAULT_DATA_PATH,
+        flax: bool = False,
+        **kwargs,
+    ):
+        if n_hod_realizations is not None:
+            path_to_model = path_to_models / f"best/{dataset}/{loss}/{statistic}_hod{n_hod_realizations}"
+        else:
+            path_to_model = path_to_models / f"best/{dataset}/{loss}/{statistic}"
+        model, flax_params = self.load_model(
+            path_to_model=path_to_model,
+            flax=flax,
+        )
+        input_transforms, output_transforms = self.load_transforms(
+            path_to_model=path_to_model
+        )
+        with open(path_to_model / "hparams.yaml") as f:
+            config = yaml.safe_load(f)
+        coordinates = self.load_coordinates(config=config, path_to_data=path_to_data)
+        super().__init__(
+            model=model,
+            coordinates=coordinates,
+            input_transforms=input_transforms,
+            output_transforms=output_transforms,
+            flax_params=flax_params,
+        )
+

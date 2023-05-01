@@ -1,5 +1,4 @@
-from typing import List, Dict
-import time
+from typing import List, Dict, Optional
 import numpy as np
 from sunbird.summaries.base import BaseSummary
 from sunbird.summaries import TPCF, DensitySplitAuto, DensitySplitCross
@@ -9,6 +8,7 @@ class Bundle(BaseSummary):
         self,
         summaries: List[str],
         dataset: str = 'boss_wideprior',
+        n_hod_realizations: Optional[int] = None,
         loss: str = 'mae',
         flax: bool = False,
     ):
@@ -20,9 +20,9 @@ class Bundle(BaseSummary):
         self.summaries = summaries
         self.flax = False
         self.all_summaries = {
-            #'tpcf': TPCF,
-            'density_split_cross': DensitySplitCross(dataset=dataset, loss=loss,flax=flax,),
-            'density_split_auto': DensitySplitAuto(dataset=dataset, loss=loss,flax=flax,),
+            'tpcf': TPCF(dataset=dataset, loss=loss, flax=flax, n_hod_realizations=n_hod_realizations),
+            'density_split_cross': DensitySplitCross(dataset=dataset, loss=loss,flax=flax,n_hod_realizations=n_hod_realizations),
+            'density_split_auto': DensitySplitAuto(dataset=dataset, loss=loss,flax=flax,n_hod_realizations=n_hod_realizations),
         }
         
     @property

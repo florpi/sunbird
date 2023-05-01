@@ -38,6 +38,7 @@ class AbacusDataModule(pl.LightningDataModule):
                 )
             ]
         ),
+        n_hod_realizations: Optional[int] = None,
         **kwargs,
     ):
         """Data module used to train models on Abacus data
@@ -68,6 +69,7 @@ class AbacusDataModule(pl.LightningDataModule):
             slice_filters=self.slice_filters,
         )
         self.input_parameters = input_parameters
+        self.n_hod_realizations = n_hod_realizations
 
     @classmethod
     def add_argparse_args(cls, parser):
@@ -129,6 +131,12 @@ class AbacusDataModule(pl.LightningDataModule):
             action="store",
             type=bool,
             default=False,
+        )
+        parser.add_argument(
+            "--n_hod_realizations",
+            action="store",
+            type=int,
+            default=None,
         )
         parser.add_argument(
             "--input_transforms",
@@ -220,6 +228,10 @@ class AbacusDataModule(pl.LightningDataModule):
                 cosmology=cosmology,
                 phase=0,
             )
+            if self.n_hod_realizations is not None:
+                summary = summary.sel(
+                    realizations=slice(self.n_hod_realizations-1)
+                )
             data += [summary]
         return xr.concat(data, dim="cosmology")
 
@@ -243,7 +255,11 @@ class AbacusDataModule(pl.LightningDataModule):
             )
             if self.input_parameters is not None:
                 params_df = params_df[self.input_parameters]
-            params += list(params_df.values)
+            if self.n_hod_realizations is not None:
+                params_values = params_df.values[:self.n_hod_realizations]
+            else:
+                params_values = params_df.values
+            params += list(params_values)
         return np.array(params)
 
     def load_params_and_data_for_stage(
