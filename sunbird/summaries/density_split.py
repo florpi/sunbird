@@ -1,79 +1,51 @@
 from pathlib import Path
-from typing import Optional, List
-import yaml
-from sunbird.summaries.base import BaseSummary
+from typing import Optional
+from sunbird.summaries.base import BaseSummaryFolder
 
 
 DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/"
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 
-class DensitySplit(BaseSummary):
-    def __init__(
-        self,
-        correlation: str,
-        dataset: str,
-        loss: str= 'mae',
-        path_to_models: Path = DEFAULT_PATH,
-        path_to_data: Path = DEFAULT_DATA_PATH,
-        flax: bool = False,
-        **kwargs,
-    ):
-        path_to_model = path_to_models / f"best/{dataset}/{loss}/ds_{correlation}"
-        model, flax_params = self.load_model(
-            path_to_model=path_to_model,
-            flax=flax,
-        )
-        input_transforms, output_transforms = self.load_transforms(
-            path_to_model=path_to_model
-        )
-        with open(path_to_model / "hparams.yaml") as f:
-            config = yaml.safe_load(f)
-        coordinates = self.load_coordinates(config=config, path_to_data=path_to_data)
-        super().__init__(
-            model=model,
-            coordinates=coordinates,
-            input_transforms=input_transforms,
-            output_transforms=output_transforms,
-            flax_params=flax_params,
-        )
-
-
-class DensitySplitCross(DensitySplit):
+class DensitySplitCross(BaseSummaryFolder):
     def __init__(
         self,
         dataset: str = "boss_wideprior",
         loss: str = 'mae',
+        n_hod_realizations: Optional[int] = None,
         path_to_models: Path = DEFAULT_PATH,
         path_to_data: Path = DEFAULT_DATA_PATH,
         flax: bool = False,
         **kwargs,
     ):
         super().__init__(
-            correlation="cross",
+            statistic="ds_cross",
             loss=loss,
             dataset=dataset,
             path_to_models=path_to_models,
             path_to_data=path_to_data,
             flax=flax,
+            n_hod_realizations=n_hod_realizations,
         )
 
 
-class DensitySplitAuto(DensitySplit):
+class DensitySplitAuto(BaseSummaryFolder):
     def __init__(
         self,
         dataset: str = "boss_wideprior",
         loss: str = 'mae',
+        n_hod_realizations: Optional[int] = None,
         path_to_models: Path = DEFAULT_PATH,
         path_to_data: Path = DEFAULT_DATA_PATH,
         flax: bool = False,
         **kwargs,
     ):
         super().__init__(
-            correlation="auto",
+            statistic="ds_auto",
             loss=loss,
             dataset=dataset,
             path_to_models=path_to_models,
             path_to_data=path_to_data,
+            n_hod_realizations=n_hod_realizations,
             flax=flax,
         )

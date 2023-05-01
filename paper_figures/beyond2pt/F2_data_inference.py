@@ -132,15 +132,21 @@ def plot_samples(
     return g
 
 if __name__ == '__main__':
-    chain_ds = '../../scripts/inference/chains/beyond2pt_smin0.70_smax150.00_q0134_m02_density_split_cross_density_split_auto/results.csv'
+    #chain_ds = '../../scripts/inference/chains/beyond2pt_smin0.70_smax150.00_q0134_m02_density_split_cross_density_split_auto/results.csv'
+    chain_ds = '../../scripts/inference/chains/beyond2pt_cross/results.csv'
     chain_ds = get_chain_from_full_path(chain_ds)
+    #chain_tpcf = '../../scripts/inference/chains/beyond2pt_tpcf/results.csv'
+    chain_tpcf = '../../scripts/inference/chains/beyond2pt_cross_hod10/results.csv'
+    chain_tpcf = get_chain_from_full_path(chain_tpcf)
+
     true_params = get_true_params(4,0)
     plot_samples(
-        [chain_ds],
+        [chain_tpcf, chain_ds],
         true_params=None,
         params=['omega_b', 'omega_cdm', 'sigma8_m', 'n_s'],
         colors=['lightseagreen', 'mediumorchid'],
-        labels=[r'$\mathrm{DS}_\mathrm{auto+cross}$',],
+        #labels=['TPCF', r'$\mathrm{DS}_\mathrm{auto+cross}$',],
+        labels=['10', '1000'],
         markers=[
             true_params,
         ],

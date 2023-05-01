@@ -132,6 +132,7 @@ class DataReader(ABC):
                 standarize=self.standarize,
                 normalize=self.normalize,
             )
+            #summary = summary[:800,:]
             summaries.append(summary)
         return np.hstack(summaries)
 
@@ -719,7 +720,7 @@ class Beyond2pt(DataReader):
                 / f"clustering/beyond2pt/ds/gaussian/ds_cross_zsplit_Rs10_lcdm_redshift_space.npy"
             )
         elif statistic == "tpcf":
-            return self.data_path / f"clustering/beyond2pt/tpcf/tpcf.npy"
+            return self.data_path / f"clustering/beyond2pt/tpcf/tpcf_lcdm_redshift_space.npy"
         raise ValueError(f"Invalid statistic {statistic}")
 
     def get_observation(
