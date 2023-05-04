@@ -39,6 +39,7 @@ class AbacusDataModule(pl.LightningDataModule):
             ]
         ),
         n_hod_realizations: Optional[int] = None,
+        fixed_cosmology: Optional[int] = None,
         **kwargs,
     ):
         """Data module used to train models on Abacus data
@@ -62,6 +63,7 @@ class AbacusDataModule(pl.LightningDataModule):
         self.slice_filters = slice_filters
         self.input_transforms = input_transforms
         self.output_transforms = output_transforms
+        self.fixed_cosmology = fixed_cosmology
         self.data = Abacus(
             dataset=abacus_dataset,
             statistics=[self.statistic],
@@ -131,6 +133,12 @@ class AbacusDataModule(pl.LightningDataModule):
             action="store",
             type=bool,
             default=False,
+        )
+        parser.add_argument(
+            "--fixed_cosmology",
+            action="store",
+            type=int,
+            default=None,
         )
         parser.add_argument(
             "--n_hod_realizations",
@@ -274,6 +282,26 @@ class AbacusDataModule(pl.LightningDataModule):
         Returns:
             np.array: params and data arrays
         """
+        if self.fixed_cosmology is not None:
+            return self.load_params_and_data_for_stage_for_fixed_cosmology(
+                stage=stage,
+            )
+        return self.load_params_and_data_for_stage_vary_cosmology(
+            stage=stage,
+        )
+
+    def load_params_and_data_for_stage_vary_cosmology(
+        self,
+        stage: str,
+    ) -> Tuple[np.array]:
+        """Load data for a given stage (train, test or val)
+
+        Args:
+            stage (str): one of train, test or val
+
+        Returns:
+            np.array: params and data arrays
+        """
         cosmology_idx = self.train_test_split_dict[stage]
         params = self.load_params(
             cosmology_idx=cosmology_idx,
@@ -281,6 +309,29 @@ class AbacusDataModule(pl.LightningDataModule):
         data = self.load_data(
             cosmology_idx=cosmology_idx,
         )
+        return params, data
+
+    def load_params_and_data_for_stage_for_fixed_cosmology(
+        self,
+        stage: str,
+    ) -> Tuple[np.array]:
+        """Load data for a given stage (train, test or val)
+
+        Args:
+            stage (str): one of train, test or val
+
+        Returns:
+            np.array: params and data arrays
+        """
+        cosmology_idx = [self.fixed_cosmology]
+        params = self.load_params(
+            cosmology_idx=cosmology_idx,
+        )[0]
+        params = params[self.train_test_split_dict[stage]]
+        data = self.load_data(
+            cosmology_idx=cosmology_idx,
+        )[0]
+        data = data[self.train_test_split_dict[stage]]
         return params, data
 
     def generate_dataset(

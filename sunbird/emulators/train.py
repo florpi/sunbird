@@ -18,7 +18,9 @@ def fit(args):
     dm.setup()
     # Setup model
     model_dict_args = vars(args)
-    filtered_model_dict_args = {k:v for k,v in model_dict_args.items() if k != 'output_transforms'}
+    filtered_model_dict_args = {
+        k: v for k, v in model_dict_args.items() if k != "output_transforms"
+    }
     model = FCN(
         n_input=dm.n_input,
         n_output=dm.n_output,
@@ -65,7 +67,7 @@ if __name__ == "__main__":
 
     parser = ArgumentParser()
     parser = AbacusDataModule.add_argparse_args(parser)
-    parser.add_argument("--model_dir", type=str, default='../../trained_models/')
+    parser.add_argument("--model_dir", type=str, default="../../trained_models/")
     parser.add_argument("--run_name", type=str, default=None)
     parser.add_argument(
         "--train_test_split_path", type=str, default="../../data/train_test_split.json"

@@ -137,6 +137,7 @@ if __name__ == '__main__':
     chain_ds = get_chain_from_full_path(chain_ds)
     #chain_tpcf = '../../scripts/inference/chains/beyond2pt_tpcf/results.csv'
     chain_tpcf = '../../scripts/inference/chains/beyond2pt_cross_hod10/results.csv'
+    #chain_tpcf = '../../scripts/inference/chains/beyond2pt_cross_hexa/results.csv'
     chain_tpcf = get_chain_from_full_path(chain_tpcf)
 
     true_params = get_true_params(4,0)
@@ -146,7 +147,8 @@ if __name__ == '__main__':
         params=['omega_b', 'omega_cdm', 'sigma8_m', 'n_s'],
         colors=['lightseagreen', 'mediumorchid'],
         #labels=['TPCF', r'$\mathrm{DS}_\mathrm{auto+cross}$',],
-        labels=['10', '1000'],
+        #labels=['0+2+4', '0+2'],
+        labels=['100', '1000'],
         markers=[
             true_params,
         ],

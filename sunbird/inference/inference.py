@@ -103,6 +103,9 @@ class Inference(ABC):
                 raise ValueError("Volume scaling must be specified when using AbacusSmall covariance class.")
             else:
                 covariance_config["volume_scaling"] = 1.0
+        theory_model = cls.get_theory_model(
+            config["theory_model"], statistics=config["statistics"]
+        )
         covariance_matrix = cls.get_covariance_matrix(
             covariance_data_class=covariance_config["class"],
             covariance_dataset=covariance_config["dataset"],
@@ -112,9 +115,7 @@ class Inference(ABC):
             statistics=config["statistics"],
             select_filters=select_filters,
             slice_filters=slice_filters,
-        )
-        theory_model = cls.get_theory_model(
-            config["theory_model"], statistics=config["statistics"]
+            theory_model=theory_model,
         )
         parameters_to_fit = [
             p for p in theory_model.input_names if p not in fixed_parameters.keys()
@@ -174,6 +175,7 @@ class Inference(ABC):
         add_simulation_error: bool = True,
         apply_hartlap_correction: bool = True,
         volume_scaling: float = 1.0,
+        theory_model=None,
     ) -> np.array:
         """Compute covariance matrix for a list of statistics
 
@@ -191,12 +193,19 @@ class Inference(ABC):
         Returns:
             np.array: covariance matrix
         """
+        if isinstance(theory_model, Bundle):
+            emulators = theory_model.all_summaries
+        else:
+            emulators = {
+                statistics[0]: theory_model,
+            }
         covariance = CovarianceMatrix(
             covariance_data_class=covariance_data_class,
             dataset=covariance_dataset,
             statistics=statistics,
             select_filters=select_filters,
             slice_filters=slice_filters,
+            emulators=emulators,
         )
         cov_data = covariance.get_covariance_data(
             apply_hartlap_correction=apply_hartlap_correction,

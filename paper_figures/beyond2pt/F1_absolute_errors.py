@@ -90,10 +90,11 @@ def get_emulator_errors(emulated_corrs, abacus_corrs):
 
 if __name__ == '__main__':
     dataset = 'beyond2pt'
+    suffix='hexa'
     volume_scaling = 64. # 8. for BOSS volume, 64 for AbacusSummit/Beyond2pt volume
     select_filters = {
         'quintiles': [0,1,3,4,],
-        'multipoles': [0,2,],
+        'multipoles': [0,2,4,],
     }
     slice_filters = {
         's': [0.7,150.],
