@@ -14,10 +14,11 @@ class CovarianceMatrix:
         statistics: List[str],
         slice_filters: Dict = None,
         select_filters: Dict = None,
-        covariance_data_class: str = 'AbacusSmall',
-        emulator_data_class: str = 'Abacus',
-        dataset: str = 'wideprior_AB',
+        covariance_data_class: str = "AbacusSmall",
+        emulator_data_class: str = "Abacus",
+        dataset: str = "wideprior_AB",
         output_transforms: Optional[Callable] = None,
+        emulators = None,
     ):
         """Compute a covariance matrix for a list of statistics and filters in any
         dimension
@@ -52,6 +53,7 @@ class CovarianceMatrix:
         self.statistics = statistics
         self.slice_filters = slice_filters
         self.select_filters = select_filters
+        self.emulators = emulators
 
     def get_covariance_data(
         self,
@@ -96,10 +98,10 @@ class CovarianceMatrix:
             xi_test = []
             for cosmology in test_cosmologies:
                 xi = self.training_simulations_reader.read_statistic(
-                        statistic=statistic,
-                        cosmology=cosmology,
-                        phase=0,
-                    ).values
+                    statistic=statistic,
+                    cosmology=cosmology,
+                    phase=0,
+                ).values
                 xi_test.append(xi.reshape(xi.shape[0], -1))
             xi_test = np.asarray(xi_test)
             xi_tests.append(xi_test.reshape(xi_test.shape[0] * xi_test.shape[1], -1))
@@ -121,7 +123,7 @@ class CovarianceMatrix:
         for cosmology in test_cosmologies:
             inputs.append(
                 self.training_simulations_reader.get_all_parameters(
-                    cosmology=cosmology, 
+                    cosmology=cosmology,
                 ).to_numpy()
             )
         inputs = np.array(inputs)
@@ -139,12 +141,13 @@ class CovarianceMatrix:
         Returns:
             np.array: emulator prediction
         """
-        if not hasattr(self, "emulators"):
+        if self.emulators is None:
             from sunbird.summaries import DensitySplitAuto, DensitySplitCross, TPCF
+
             self.emulators = {
-                'density_split_cross': DensitySplitCross(dataset=self.dataset),
-                'density_split_auto': DensitySplitAuto(dataset=self.dataset),
-                'tpcf': TPCF(dataset=self.dataset),
+                "density_split_cross": DensitySplitCross(dataset=self.dataset),
+                "density_split_auto": DensitySplitAuto(dataset=self.dataset),
+                "tpcf": TPCF(dataset=self.dataset),
             }
         xi_model = []
         for statistic in self.statistics:
@@ -157,8 +160,14 @@ class CovarianceMatrix:
             )
         xi_model = np.hstack(xi_model)
         return np.squeeze(np.array(xi_model))
-    
-    def estimate_covariance_from_data_reader(self, data_reader: data_readers.DataReader, apply_hartlap_correction: bool =True, fractional: bool =False, volume_scaling: float =1.0):
+
+    def estimate_covariance_from_data_reader(
+        self,
+        data_reader: data_readers.DataReader,
+        apply_hartlap_correction: bool = True,
+        fractional: bool = False,
+        volume_scaling: float = 1.0,
+    ):
         """estimate covariance matrix from a set of simulations read by data_reader
 
         Args:
@@ -215,7 +224,6 @@ class CovarianceMatrix:
         clip_errors: bool = True,
         clipping_factor: float = 3.0,
         return_mean: bool = False,
-
     ) -> np.array:
         """Estimate the emulator's error on the test set
 
@@ -237,7 +245,9 @@ class CovarianceMatrix:
         xi_model = self.get_emulator_predictions(inputs=inputs)
         if clip_errors:
             if covariance_data is None or xi_data is None:
-                raise ValueError("Covariance data and xi_data must be specified when clipping errors.")
+                raise ValueError(
+                    "Covariance data and xi_data must be specified when clipping errors."
+                )
             xi_test, mask = self.clip_xi_test(
                 xi_test=xi_test,
                 xi_data=xi_data,
@@ -249,8 +259,10 @@ class CovarianceMatrix:
         absolute_error = xi_model - xi_test
         if fractional:
             if return_mean:
-                return np.cov(absolute_error/xi_test, rowvar=False), np.mean(absolute_error/xi_test, axis=0)
-            return np.cov(absolute_error/xi_test, rowvar=False)
+                return np.cov(absolute_error / xi_test, rowvar=False), np.mean(
+                    absolute_error / xi_test, axis=0
+                )
+            return np.cov(absolute_error / xi_test, rowvar=False)
         if return_mean:
             return np.cov(absolute_error, rowvar=False), np.mean(absolute_error, axis=0)
         return np.cov(absolute_error, rowvar=False)

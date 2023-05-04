@@ -16,6 +16,7 @@ from sunbird.data.data_utils import convert_selection_to_filters, convert_to_sum
 DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/"
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
+
 class BaseSummary:
     def __init__(
         self,
@@ -44,18 +45,18 @@ class BaseSummary:
             "B_sat",
         ],
     ):
-        """ Base class for summary statistics emulators
+        """Base class for summary statistics emulators
 
         Args:
-            model (Union[torch.nn.Module, flax.linen.Module]): either a torch or flax model 
+            model (Union[torch.nn.Module, flax.linen.Module]): either a torch or flax model
             coordinates (Dict[str, np.array]): dictionary of coordinates where the summary statistics is evaluated
-            input_transforms (Optional[transforms.Transforms], optional): transforms to apply to the neural net inputs. 
+            input_transforms (Optional[transforms.Transforms], optional): transforms to apply to the neural net inputs.
             Defaults to None.
-            output_transforms (Optional[transforms.Transforms], optional): tranforms to apply to the neural net outputs. 
+            output_transforms (Optional[transforms.Transforms], optional): tranforms to apply to the neural net outputs.
             Defaults to None.
-            flax_params (Optional[jnp.array], optional):  parameters of the flax model, if using flax. 
+            flax_params (Optional[jnp.array], optional):  parameters of the flax model, if using flax.
             Defaults to None.
-            input_names (Optional[List], optional): names for input parameters. 
+            input_names (Optional[List], optional): names for input parameters.
             Defaults to [ "omega_b", "omega_cdm", "sigma8_m", "n_s", "nrun", "N_ur", "w0_fld",
             "wa_fld", "logM1", "logM_cut", "alpha", "alpha_s", "alpha_c", "logsigma", "kappa", "B_cen", "B_sat", ].
         """
@@ -63,8 +64,10 @@ class BaseSummary:
         self.flax_params = flax_params
         if self.flax_params is not None:
             self.flax = True
-            self.flax_params = freeze({'params': self.flax_params})
-            self.model_apply = jax.jit(lambda params, inputs: model.apply(params, inputs))
+            self.flax_params = freeze({"params": self.flax_params})
+            self.model_apply = jax.jit(
+                lambda params, inputs: model.apply(params, inputs)
+            )
 
         else:
             self.flax = False
@@ -80,17 +83,17 @@ class BaseSummary:
         path_to_model: Path,
         path_to_data: Path = DEFAULT_DATA_PATH,
         flax: bool = False,
-    )-> "BaseSummary":
-        """ Load a base summary from folder with trained neural network model
+    ) -> "BaseSummary":
+        """Load a base summary from folder with trained neural network model
 
         Args:
-            path_to_model (Path): path where model weights and transforms are stored 
+            path_to_model (Path): path where model weights and transforms are stored
             path_to_data (Path, optional): path to data folder. Defaults to DEFAULT_DATA_PATH.
-            flax (bool, optional): whether to use flax, if False it will load a pytorch model. 
+            flax (bool, optional): whether to use flax, if False it will load a pytorch model.
             Defaults to False.
 
         Returns:
-            BaseSummary: summary 
+            BaseSummary: summary
         """
         path_to_model = Path(path_to_model)
         model, flax_params = cls.load_model(
@@ -127,15 +130,17 @@ class BaseSummary:
         return nn_model, flax_params
 
     @classmethod
-    def load_coordinates(cls, config: Dict, path_to_data: Path = DEFAULT_DATA_PATH)-> Dict[str, np.array]:
-        """ Load coordinates for summary statistic from json file
+    def load_coordinates(
+        cls, config: Dict, path_to_data: Path = DEFAULT_DATA_PATH
+    ) -> Dict[str, np.array]:
+        """Load coordinates for summary statistic from json file
 
         Args:
-            config (Dict): config used to train model 
+            config (Dict): config used to train model
             path_to_data (Path, optional): path to data folder. Defaults to DEFAULT_DATA_PATH.
 
         Returns:
-            Dict[str, np.array]: dictionary with coordinates 
+            Dict[str, np.array]: dictionary with coordinates
         """
 
         with open(path_to_data / f'coordinates/{config["statistic"]}.json') as fd:
@@ -153,14 +158,14 @@ class BaseSummary:
         return coordinates
 
     @classmethod
-    def load_transforms(cls, path_to_model: Path)->Tuple[transforms.Transforms]:
-        """ Load transforms used during training from folder
+    def load_transforms(cls, path_to_model: Path) -> Tuple[transforms.Transforms]:
+        """Load transforms used during training from folder
 
         Args:
             path_to_model (Path): path to model folder
 
         Returns:
-            Tuple[transforms.Transforms]: input and output transforms 
+            Tuple[transforms.Transforms]: input and output transforms
         """
         input_transforms = transforms.Transforms.from_file(
             path_to_model / "transforms_input.pkl"
@@ -200,12 +205,17 @@ class BaseSummary:
 
     def apply_filters(self, prediction, select_filters, slice_filters, batch):
         if batch:
-            dimensions=['batch'] + list(self.coordinates.keys())
+            dimensions = ["batch"] + list(self.coordinates.keys())
             coordinates = self.coordinates.copy()
-            coordinates['batch'] = range(len(prediction))
-            data = prediction.reshape((len(prediction), *self.coordinates_shape,))
+            coordinates["batch"] = range(len(prediction))
+            data = prediction.reshape(
+                (
+                    len(prediction),
+                    *self.coordinates_shape,
+                )
+            )
         else:
-            dimensions=list(self.coordinates.keys())
+            dimensions = list(self.coordinates.keys())
             coordinates = self.coordinates
             data = prediction.reshape(self.coordinates_shape)
         if type(data) is torch.Tensor:
@@ -218,10 +228,19 @@ class BaseSummary:
             slice_filters=slice_filters,
         )
 
-    def __call__(self, param_dict, select_filters=None, slice_filters=None, return_xarray: bool = False):
+    def __call__(
+        self,
+        param_dict,
+        select_filters=None,
+        slice_filters=None,
+        return_xarray: bool = False,
+    ):
         inputs = np.array([param_dict[k] for k in self.input_names]).reshape(1, -1)
         output = self.get_for_sample(
-            inputs, select_filters=select_filters, slice_filters=slice_filters, return_xarray=return_xarray
+            inputs,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            return_xarray=return_xarray,
         )
         if return_xarray:
             return output
@@ -230,13 +249,17 @@ class BaseSummary:
     def get_for_sample(self, inputs, select_filters, slice_filters, return_xarray):
         if self.flax:
             return self.forward(
-                inputs, select_filters=select_filters, slice_filters=slice_filters, return_xarray=return_xarray,
+                inputs,
+                select_filters=select_filters,
+                slice_filters=slice_filters,
+                return_xarray=return_xarray,
             )
         else:
-            return (
-                self.forward(
-                    inputs, select_filters=select_filters, slice_filters=slice_filters, return_xarray=return_xarray,
-                )
+            return self.forward(
+                inputs,
+                select_filters=select_filters,
+                slice_filters=slice_filters,
+                return_xarray=return_xarray,
             )
 
     def get_for_batch(
@@ -261,32 +284,39 @@ class BaseSummary:
         select_filters=None,
         slice_filters=None,
     ):
-        outputs = (
-            self.forward(
-                inputs,
-                select_filters=select_filters,
-                slice_filters=slice_filters,
-                batch=True,
-            )
+        outputs = self.forward(
+            inputs,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            batch=True,
         )
         return outputs.reshape((len(inputs), -1))
+
 
 class BaseSummaryFolder(BaseSummary):
     def __init__(
         self,
         statistic: str,
         dataset: str,
-        loss: str= 'mae',
+        loss: str = "mae",
         n_hod_realizations: Optional[int] = None,
+        suffix: Optional[str] = None,
         path_to_models: Path = DEFAULT_PATH,
         path_to_data: Path = DEFAULT_DATA_PATH,
         flax: bool = False,
         **kwargs,
     ):
         if n_hod_realizations is not None:
-            path_to_model = path_to_models / f"best/{dataset}/{loss}/{statistic}_hod{n_hod_realizations}"
+            path_to_model = (
+                path_to_models
+                / f"best/{dataset}/{loss}/{statistic}_hod{n_hod_realizations}"
+            )
         else:
             path_to_model = path_to_models / f"best/{dataset}/{loss}/{statistic}"
+        if suffix is not None:
+            path_to_model = path_to_model.parent / (path_to_model.name + f"_{suffix}")
+        print('path to model')
+        print(path_to_model)
         model, flax_params = self.load_model(
             path_to_model=path_to_model,
             flax=flax,
@@ -304,4 +334,3 @@ class BaseSummaryFolder(BaseSummary):
             output_transforms=output_transforms,
             flax_params=flax_params,
         )
-
