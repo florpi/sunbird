@@ -79,6 +79,8 @@ class DataReader(ABC):
             )
         elif statistic == "tpcf":
             return self.data_path / f"clustering/{dataset}/tpcf/tpcf_{suffix}.npy"
+        elif statistic == 'density_pdf':
+            return self.data_path / f"clustering/{dataset}/ds/gaussian/density_pdf_zsplit_Rs10_{suffix}.npy"
         raise ValueError(f"Invalid statistic {statistic}")
 
     def get_observation(
@@ -132,7 +134,6 @@ class DataReader(ABC):
                 standarize=self.standarize,
                 normalize=self.normalize,
             )
-            #summary = summary[:800,:]
             summaries.append(summary)
         return np.hstack(summaries)
 
@@ -153,15 +154,18 @@ class DataReader(ABC):
             coords = json.load(f)
         dimensions = list(coords.keys())
         path_to_file = self.get_file_path(statistic=statistic, **kwargs)
-        data = np.load(
+        original_data = np.load(
             path_to_file,
             allow_pickle=True,
         ).item()
-        data = np.asarray(data["multipoles"])
+        if statistic == 'density_pdf':
+            data = np.array(original_data['hist'])
+        else:
+            data = np.asarray(original_data["multipoles"])
         if multiple_realizations:
             dimensions.insert(0, "realizations")
             coords["realizations"] = np.arange(data.shape[0])
-        if self.avg_los:
+        if 'multipoles' in original_data and self.avg_los:
             if multiple_realizations:
                 data = np.mean(data, axis=1)
             else:
@@ -291,6 +295,10 @@ class Abacus(DataReader):
             Dict: dictionary of cosmology + HOD parameters
         """
         return self.get_all_parameters(cosmology=cosmology).iloc[hod_idx].to_dict()
+
+    @property
+    def cosmological_parameters(self,):
+        return ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s', 'nrun', 'N_ur', 'w0_fld', 'wa_fld']
 
 
 class AbacusSmall(DataReader):
