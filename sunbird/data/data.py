@@ -150,14 +150,14 @@ class AbacusDataModule(pl.LightningDataModule):
             "--input_transforms",
             action="store",
             type=str,
-            default=['Normalize'],
+            default=["Normalize"],
             nargs="+",
         )
         parser.add_argument(
             "--output_transforms",
             action="store",
             type=str,
-            default=['Normalize'],
+            default=["Normalize"],
             nargs="+",
         )
         return parser
@@ -180,27 +180,32 @@ class AbacusDataModule(pl.LightningDataModule):
         """
         vargs = vars(args)
         select_filters, slice_filters = convert_selection_to_filters(vargs)
-        if vargs['input_transforms'] is not None:
+        if vargs["input_transforms"] is not None:
             input_transforms = transforms.Transforms(
-                [getattr(transforms, transform)(dimensions=(0,)) for transform in vargs['input_transforms']]
+                [
+                    getattr(transforms, transform)(dimensions=(0,))
+                    for transform in vargs["input_transforms"]
+                ]
             )
         else:
             input_transforms = None
-        if vargs['output_transforms'] is not None:
+        if vargs["output_transforms"] is not None:
             dimensions_to_exclude_from_average = list(select_filters.keys())
             if vargs["independent_avg_scale"]:
                 dimensions_to_exclude_from_average += ["s"]
             with open(data_dir / f'coordinates/{vargs["statistic"]}.json') as f:
                 dims = list(json.load(f).keys())
-            if vargs['fixed_cosmology'] is not None:
-                dims += ['realizations']
+            if vargs["fixed_cosmology"] is not None:
+                dims += ["realizations"]
             else:
-                dims += ['cosmology', 'realizations']
-            dimensions = [dim for dim in dims if dim not in dimensions_to_exclude_from_average]
+                dims += ["cosmology", "realizations"]
+            dimensions = [
+                dim for dim in dims if dim not in dimensions_to_exclude_from_average
+            ]
             output_transforms = transforms.Transforms(
                 [
                     getattr(transforms, transform)(dimensions=dimensions)
-                    for transform in vargs['output_transforms']
+                    for transform in vargs["output_transforms"]
                 ]
             )
         else:
@@ -240,9 +245,7 @@ class AbacusDataModule(pl.LightningDataModule):
                 phase=0,
             )
             if self.n_hod_realizations is not None:
-                summary = summary.sel(
-                    realizations=slice(self.n_hod_realizations-1)
-                )
+                summary = summary.sel(realizations=slice(self.n_hod_realizations - 1))
             data += [summary]
         return xr.concat(data, dim="cosmology")
 
@@ -270,7 +273,7 @@ class AbacusDataModule(pl.LightningDataModule):
             if self.input_parameters is not None:
                 params_df = params_df[self.input_parameters]
             if self.n_hod_realizations is not None:
-                params_values = params_df.values[:self.n_hod_realizations]
+                params_values = params_df.values[: self.n_hod_realizations]
             else:
                 params_values = params_df.values
             params += list(params_values)
@@ -450,5 +453,9 @@ class AbacusDataModule(pl.LightningDataModule):
         Args:
             path (Path): path to store data
         """
-        self.input_transforms.store_transform_params(path.parent / (path.name + '_input.pkl'))
-        self.output_transforms.store_transform_params(path.parent / (path.name + '_output.pkl'))
+        self.input_transforms.store_transform_params(
+            path.parent / (path.name + "_input.pkl")
+        )
+        self.output_transforms.store_transform_params(
+            path.parent / (path.name + "_output.pkl")
+        )

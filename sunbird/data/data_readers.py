@@ -79,8 +79,11 @@ class DataReader(ABC):
             )
         elif statistic == "tpcf":
             return self.data_path / f"clustering/{dataset}/tpcf/tpcf_{suffix}.npy"
-        elif statistic == 'density_pdf':
-            return self.data_path / f"clustering/{dataset}/ds/gaussian/density_pdf_zsplit_Rs10_{suffix}.npy"
+        elif statistic == "density_pdf":
+            return (
+                self.data_path
+                / f"clustering/{dataset}/ds/gaussian/density_pdf_zsplit_Rs10_{suffix}.npy"
+            )
         raise ValueError(f"Invalid statistic {statistic}")
 
     def get_observation(
@@ -158,14 +161,14 @@ class DataReader(ABC):
             path_to_file,
             allow_pickle=True,
         ).item()
-        if statistic == 'density_pdf':
-            data = np.array(original_data['hist'])
+        if statistic == "density_pdf":
+            data = np.array(original_data["hist"])
         else:
             data = np.asarray(original_data["multipoles"])
         if multiple_realizations:
             dimensions.insert(0, "realizations")
             coords["realizations"] = np.arange(data.shape[0])
-        if 'multipoles' in original_data and self.avg_los:
+        if "multipoles" in original_data and self.avg_los:
             if multiple_realizations:
                 data = np.mean(data, axis=1)
             else:
@@ -220,7 +223,7 @@ class Abacus(DataReader):
             transforms=transforms,
             avg_los=True,
         )
-        self.dataset = f'abacus/{dataset}'
+        self.dataset = f"abacus/{dataset}"
 
     def get_file_path(
         self,
@@ -297,14 +300,25 @@ class Abacus(DataReader):
         return self.get_all_parameters(cosmology=cosmology).iloc[hod_idx].to_dict()
 
     @property
-    def cosmological_parameters(self,):
-        return ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s', 'nrun', 'N_ur', 'w0_fld', 'wa_fld']
+    def cosmological_parameters(
+        self,
+    ):
+        return [
+            "omega_b",
+            "omega_cdm",
+            "sigma8_m",
+            "n_s",
+            "nrun",
+            "N_ur",
+            "w0_fld",
+            "wa_fld",
+        ]
 
 
 class AbacusSmall(DataReader):
     def __init__(
         self,
-        dataset: str = 'wideprior_AB',
+        dataset: str = "wideprior_AB",
         data_path: Optional[Path] = DATA_PATH,
         statistics: Optional[List[str]] = [
             "density_split_auto",
@@ -327,7 +341,7 @@ class AbacusSmall(DataReader):
             select_filters=select_filters,
             slice_filters=slice_filters,
             transforms=transforms,
-            avg_los=True if dataset == 'widreprior_AB' else False,
+            avg_los=True if dataset == "widreprior_AB" else False,
         )
         self.dataset = f"abacus_small/{dataset}"
         self.normalization_dict = normalization_dict
@@ -669,6 +683,7 @@ class CMASS(DataReader):
             "wa_fld": 0.0,
         }
 
+
 class Beyond2pt(DataReader):
     def __init__(
         self,
@@ -728,11 +743,14 @@ class Beyond2pt(DataReader):
                 / f"clustering/beyond2pt/ds/gaussian/ds_cross_zsplit_Rs10_lcdm_redshift_space.npy"
             )
         elif statistic == "tpcf":
-            return self.data_path / f"clustering/beyond2pt/tpcf/tpcf_lcdm_redshift_space.npy"
+            return (
+                self.data_path
+                / f"clustering/beyond2pt/tpcf/tpcf_lcdm_redshift_space.npy"
+            )
         raise ValueError(f"Invalid statistic {statistic}")
 
     def get_observation(
-        self, 
+        self,
     ) -> np.array:
         """get array of a given observation at a cosmology and ranking
 
@@ -743,11 +761,10 @@ class Beyond2pt(DataReader):
             multiple_realizations=False,
         )
 
-
     def get_parameters_for_observation(
         self,
     ) -> Dict:
-        """ Assume a fiducial model for when fixing parameters
+        """Assume a fiducial model for when fixing parameters
 
         Returns:
             Dict: dictionary of cosmology + HOD parameters
@@ -761,8 +778,8 @@ class Beyond2pt(DataReader):
             "N_ur": 2.0328,
             "w0_fld": -1.0,
             "wa_fld": 0.0,
-            "B_cen": 0.,
-            "B_sat": 0.,
-            "alpha_s": 0.,
-            "alpha_c": 0.,
+            "B_cen": 0.0,
+            "B_sat": 0.0,
+            "alpha_s": 0.0,
+            "alpha_c": 0.0,
         }

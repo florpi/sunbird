@@ -208,7 +208,10 @@ class Normalize(BaseTransform):
         if type(summary) is xr.DataArray:
             return summary * (self.training_max - self.training_min) + self.training_min
         else:
-            return summary * (self.training_max.values.reshape(-1) - self.training_min.values.reshape(-1)) + self.training_min.values.reshape(-1)
+            return summary * (
+                self.training_max.values.reshape(-1)
+                - self.training_min.values.reshape(-1)
+            ) + self.training_min.values.reshape(-1)
 
 
 class Standarize(BaseTransform):
@@ -258,8 +261,8 @@ class Standarize(BaseTransform):
 class LogSqrt(BaseTransform):
     def __init__(
         self,
-        min_monopole = None,
-        min_quadrupole = None,
+        min_monopole=None,
+        min_quadrupole=None,
         **kwargs,
     ):
         """Transform the monopole and quadrupole to log and sqrt, respectively
@@ -272,23 +275,23 @@ class LogSqrt(BaseTransform):
         self.min_quadrupole = min_quadrupole
 
     def fit(self, summary: xr.DataArray):
-        """ Fit the transform
+        """Fit the transform
 
         Args:
-            summary (xr.DataArray): summary to fit the transform to 
+            summary (xr.DataArray): summary to fit the transform to
         """
         min_monopole = summary.sel(multipoles=0).min()
         min_quadrupole = summary.sel(multipoles=2).min()
-        if min_monopole < 0.:
-            self.min_monopole = 1.1*min_monopole
-        elif min_monopole == 0.:
+        if min_monopole < 0.0:
+            self.min_monopole = 1.1 * min_monopole
+        elif min_monopole == 0.0:
             self.min_monopole = -0.01
         else:
-            self.min_monopole = 0.
+            self.min_monopole = 0.0
         if min_quadrupole < 0:
             self.min_quadrupole = min_quadrupole
         else:
-            self.min_quadrupole = 0.
+            self.min_quadrupole = 0.0
 
     def transform(self, summary: xr.DataArray) -> xr.DataArray:
         """Transform a summary
@@ -316,17 +319,22 @@ class LogSqrt(BaseTransform):
         Returns:
             xr.DataArray: original summary
         """
-        summary.loc[{"multipoles": 0}] = 10 ** summary.sel(multipoles=0) + self.min_monopole
-        summary.loc[{"multipoles": 2}] = summary.sel(multipoles=2)**2 + self.min_quadrupole
+        summary.loc[{"multipoles": 0}] = (
+            10 ** summary.sel(multipoles=0) + self.min_monopole
+        )
+        summary.loc[{"multipoles": 2}] = (
+            summary.sel(multipoles=2) ** 2 + self.min_quadrupole
+        )
         return summary
+
 
 class Log(BaseTransform):
     def __init__(
         self,
-        min_monopole = None,
+        min_monopole=None,
         **kwargs,
     ):
-        """Transform the monopole to log 
+        """Transform the monopole to log
 
         Args:
             min_monopole (float, optional): minimum monopole value. Defaults to 0.011.
@@ -334,18 +342,18 @@ class Log(BaseTransform):
         self.min_monopole = min_monopole
 
     def fit(self, summary: xr.DataArray):
-        """ Fit the transform
+        """Fit the transform
 
         Args:
-            summary (xr.DataArray): summary to fit the transform to 
+            summary (xr.DataArray): summary to fit the transform to
         """
         min_monopole = summary.sel(multipoles=0).min()
-        if min_monopole < 0.:
-            self.min_monopole = 1.1*min_monopole
-        elif min_monopole == 0.:
+        if min_monopole < 0.0:
+            self.min_monopole = 1.1 * min_monopole
+        elif min_monopole == 0.0:
             self.min_monopole = -0.01
         else:
-            self.min_monopole = 0.
+            self.min_monopole = 0.0
 
     def transform(self, summary: xr.DataArray) -> xr.DataArray:
         """Transform a summary
@@ -370,8 +378,11 @@ class Log(BaseTransform):
         Returns:
             xr.DataArray: original summary
         """
-        summary.loc[{"multipoles": 0}] = 10 ** summary.sel(multipoles=0) + self.min_monopole
+        summary.loc[{"multipoles": 0}] = (
+            10 ** summary.sel(multipoles=0) + self.min_monopole
+        )
         return summary
+
 
 class S2(BaseTransform):
     def __init__(
@@ -389,8 +400,8 @@ class S2(BaseTransform):
         Returns:
             xr.DataArray: transformed summary
         """
-        summary.loc[{'multipoles': 0}] = summary.sel(multipoles=0)*summary.s**2
-        summary.loc[{'multipoles': 2}] = summary.sel(multipoles=2)*summary.s**2
+        summary.loc[{"multipoles": 0}] = summary.sel(multipoles=0) * summary.s**2
+        summary.loc[{"multipoles": 2}] = summary.sel(multipoles=2) * summary.s**2
         return summary
 
     def inverse_transform(self, summary: xr.DataArray) -> xr.DataArray:
@@ -402,6 +413,6 @@ class S2(BaseTransform):
         Returns:
             xr.DataArray: original summary
         """
-        summary.loc[{'multipoles': 0}] = summary.sel(multipoles=0)/summary.s**2
-        summary.loc[{'multipoles': 2}] = summary.sel(multipoles=2)/summary.s**2
+        summary.loc[{"multipoles": 0}] = summary.sel(multipoles=0) / summary.s**2
+        summary.loc[{"multipoles": 2}] = summary.sel(multipoles=2) / summary.s**2
         return summary
