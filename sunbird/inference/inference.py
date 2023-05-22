@@ -5,7 +5,7 @@ import numpy as np
 import yaml
 from typing import Dict, List, Tuple, Optional
 from sunbird.covariance import CovarianceMatrix
-from sunbird.data import data_readers 
+from sunbird.data import data_readers
 from sunbird.summaries import Bundle
 
 
@@ -100,7 +100,9 @@ class Inference(ABC):
         covariance_config = config["data"]["covariance"]
         if "volume_scaling" not in covariance_config:
             if covariance_config["class"] == "AbacusSmall":
-                raise ValueError("Volume scaling must be specified when using AbacusSmall covariance class.")
+                raise ValueError(
+                    "Volume scaling must be specified when using AbacusSmall covariance class."
+                )
             else:
                 covariance_config["volume_scaling"] = 1.0
         theory_model = cls.get_theory_model(
@@ -157,10 +159,12 @@ class Inference(ABC):
             select_filters=select_filters,
             slice_filters=slice_filters,
             statistics=statistics,
-            **obs_config.get('args',{}),
+            **obs_config.get("args", {}),
         )
-        observation = obs_class.get_observation(**obs_config.get("get_obs_args",{}))
-        parameters = obs_class.get_parameters_for_observation(**obs_config.get("get_obs_args",{}))
+        observation = obs_class.get_observation(**obs_config.get("get_obs_args", {}))
+        parameters = obs_class.get_parameters_for_observation(
+            **obs_config.get("get_obs_args", {})
+        )
         return observation, parameters
 
     @classmethod
@@ -235,9 +239,7 @@ class Inference(ABC):
         Returns:
             Dict: dictionary with initialized priors
         """
-        distributions_module = importlib.import_module(
-            prior_config.pop("stats_module")
-        )
+        distributions_module = importlib.import_module(prior_config.pop("stats_module"))
         prior_dict = {}
         for param in parameters_to_fit:
             config_for_param = prior_config[param]
@@ -288,9 +290,10 @@ class Inference(ABC):
         """
         module = theory_config.pop("module")
         class_name = theory_config.pop("class")
-        if 'args' in theory_config:
+        if "args" in theory_config:
             return getattr(importlib.import_module(module), class_name)(
-                summaries=statistics, **theory_config.get("args", None),
+                summaries=statistics,
+                **theory_config.get("args", None),
             )
         else:
             return getattr(importlib.import_module(module), class_name)(

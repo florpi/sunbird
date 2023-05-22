@@ -18,7 +18,7 @@ class CovarianceMatrix:
         emulator_data_class: str = "Abacus",
         dataset: str = "wideprior_AB",
         output_transforms: Optional[Callable] = None,
-        emulators = None,
+        emulators=None,
     ):
         """Compute a covariance matrix for a list of statistics and filters in any
         dimension

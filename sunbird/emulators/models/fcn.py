@@ -29,8 +29,12 @@ class FCN(BaseModel):
         if kwargs["load_loss"]:
             self.load_loss(**kwargs)
             self.save_hyperparameters(
-               ignore=["output_transforms", "input_transforms", "select_filters", "slice_filters"], 
-
+                ignore=[
+                    "output_transforms",
+                    "input_transforms",
+                    "select_filters",
+                    "slice_filters",
+                ],
             )
 
     @staticmethod
@@ -97,18 +101,18 @@ class FCN(BaseModel):
         act_fn: str,
         n_output: int,
         dropout_rate: float,
-    )->nn.Sequential:
-        """ Get mlp model
+    ) -> nn.Sequential:
+        """Get mlp model
 
         Args:
-            n_input (int): dimensionality input 
-            n_hidden (List[int]): number of hidden units per layer 
-            act_fn (str): activation function 
-            n_output (int): number of outputs 
-            dropout_rate (float): dropout rate 
+            n_input (int): dimensionality input
+            n_hidden (List[int]): number of hidden units per layer
+            act_fn (str): activation function
+            n_output (int): number of outputs
+            dropout_rate (float): dropout rate
 
         Returns:
-            nn.Sequential: model 
+            nn.Sequential: model
         """
         dropout = nn.Dropout(dropout_rate)
         model = []
@@ -121,31 +125,33 @@ class FCN(BaseModel):
         return nn.Sequential(OrderedDict(model))
 
     def load_loss(self, loss: str, **kwargs):
-        """ Load loss function
+        """Load loss function
 
         Args:
-            loss (str): loss to load 
+            loss (str): loss to load
         """
-        if loss == "gaussian" or 'weighted' in loss:
+        if loss == "gaussian" or "weighted" in loss:
             covariance = CovarianceMatrix(
                 statistics=[kwargs["statistic"]],
                 slice_filters=kwargs.get("slice_filters", None),
                 select_filters=kwargs.get("select_filters", None),
-                output_transforms={kwargs['statistic']: kwargs['output_transforms']},
-                dataset=kwargs['abacus_dataset'],
+                output_transforms={kwargs["statistic"]: kwargs["output_transforms"]},
+                dataset=kwargs["abacus_dataset"],
             ).get_covariance_data(
                 volume_scaling=64.0,
             )
             covariance = Tensor(
                 covariance.astype(np.float32),
             )
-            if loss == 'gaussian':
+            if loss == "gaussian":
                 self.loss_fct = GaussianNLoglike(
                     covariance=covariance,
                 )
-            elif loss == 'weighted_mae':
-                self.loss_fct = WeightedL1Loss(variance=torch.sqrt(torch.diagonal(covariance)))
-            elif loss == 'weighted_mse':
+            elif loss == "weighted_mae":
+                self.loss_fct = WeightedL1Loss(
+                    variance=torch.sqrt(torch.diagonal(covariance))
+                )
+            elif loss == "weighted_mse":
                 self.loss_fct = WeightedMSELoss(variance=torch.diagonal(covariance))
         elif loss == "learned_gaussian":
             self.loss_fct = nn.GaussianNLLLoss()
