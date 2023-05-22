@@ -5,6 +5,7 @@ import yaml
 import jax
 import numpy as np
 import jax.numpy as jnp
+import xarray
 import torch
 import flax
 from flax.core.frozen_dict import freeze
@@ -16,16 +17,7 @@ from sunbird.data.data_utils import convert_selection_to_filters, convert_to_sum
 DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/"
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
-
-class BaseSummary:
-    def __init__(
-        self,
-        model: Union[torch.nn.Module, flax.linen.Module],
-        coordinates: Dict[str, np.array],
-        input_transforms: Optional[transforms.Transforms] = None,
-        output_transforms: Optional[transforms.Transforms] = None,
-        flax_params: Optional[jnp.array] = None,
-        input_names: Optional[List] = [
+DEFAULT_COSMO_PARAMS = [           
             "omega_b",
             "omega_cdm",
             "sigma8_m",
@@ -34,6 +26,8 @@ class BaseSummary:
             "N_ur",
             "w0_fld",
             "wa_fld",
+]
+DEFAULT_GAL_PARAMS = [
             "logM1",
             "logM_cut",
             "alpha",
@@ -43,7 +37,17 @@ class BaseSummary:
             "kappa",
             "B_cen",
             "B_sat",
-        ],
+]
+
+class BaseSummary:
+    def __init__(
+        self,
+        model: Union[torch.nn.Module, flax.linen.Module],
+        coordinates: Dict[str, np.array],
+        input_transforms: Optional[transforms.Transforms] = None,
+        output_transforms: Optional[transforms.Transforms] = None,
+        flax_params: Optional[jnp.array] = None,
+        input_names: Optional[List] = DEFAULT_COSMO_PARAMS + DEFAULT_GAL_PARAMS,
     ):
         """Base class for summary statistics emulators
 
@@ -115,7 +119,17 @@ class BaseSummary:
         )
 
     @classmethod
-    def load_model(cls, path_to_model, flax: bool):
+    def load_model(cls, path_to_model: Path, flax: bool)-> Tuple[Union[torch.nn.Module, flax.linen.Module], Optional[jnp.array]]:
+        """ Load model from folder, either a torch or flax model
+
+        Args:
+            path_to_model (Path): path to model folder 
+            flax (bool): whether to use flax, if False it will load a pytorch model. 
+
+        Returns:
+            Tuple[Union[torch.nn.Module, flax.linen.Module], Optional[jnp.array]]: model and flax parameters 
+        """
+
         if flax:
             nn_model, flax_params = FlaxFCN.from_folder(
                 path_to_model,
@@ -151,10 +165,11 @@ class BaseSummary:
             if key in coordinates:
                 coordinates[key] = [v for v in coordinates[key] if v in values]
         for key, values in slice_filters.items():
-            min_value, max_value = slice_filters[key]
-            coordinates[key] = coordinates[key][
-                (coordinates[key] > min_value) & (coordinates[key] < max_value)
-            ]
+            if key in coordinates:
+                min_value, max_value = slice_filters[key]
+                coordinates[key] = coordinates[key][
+                    (coordinates[key] > min_value) & (coordinates[key] < max_value)
+                ]
         return coordinates
 
     @classmethod
@@ -178,11 +193,23 @@ class BaseSummary:
     def forward(
         self,
         inputs: np.array,
-        select_filters=None,
-        slice_filters=None,
+        select_filters: Optional[Dict]=None,
+        slice_filters: Optional[Dict] =None,
         batch: bool = False,
         return_xarray: bool = False,
-    ):
+    )->Union[np.array, xarray.DataArray]:
+        """ Forward pass of the neural network
+
+        Args:
+            inputs (np.array): input parameters 
+            select_filters (Optional[Dict], optional): Filters used to select coordinates. Defaults to None.
+            slice_filters (Optional[Dict], optional): Filters used to slice coordinates. Defaults to None.
+            batch (bool, optional): whether to run a batch of parameters. Defaults to False.
+            return_xarray (bool, optional): if True, returns an xarray object with coordinates. Defaults to False.
+
+        Returns:
+            prediction
+        """
         if self.input_transforms is not None:
             inputs = self.input_transforms.transform(inputs)
         if self.flax:
@@ -203,7 +230,18 @@ class BaseSummary:
             return prediction
         return prediction.values.reshape(-1)
 
-    def apply_filters(self, prediction, select_filters, slice_filters, batch):
+    def apply_filters(self, prediction: xarray.DataArray, select_filters: Dict, slice_filters: Dict, batch: bool)->xarray.DataArray:
+        """ Apply filters to prediction, based on coordinates
+
+        Args:
+            prediction (xarray.DataArray): prediction from neural network 
+            select_filters (Dict): select certain values in coordinates 
+            slice_filters (Dict): slice values in coordinates 
+            batch (bool): whether to run a batch of parameters 
+
+        Returns:
+            xarray.DataArray: prediction with filters applied, includes coordinates 
+        """
         if batch:
             dimensions = ["batch"] + list(self.coordinates.keys())
             coordinates = self.coordinates.copy()
@@ -230,11 +268,11 @@ class BaseSummary:
 
     def __call__(
         self,
-        param_dict,
-        select_filters=None,
-        slice_filters=None,
+        param_dict: Dict,
+        select_filters:Optional[Dict]=None,
+        slice_filters: Optional[Dict]=None,
         return_xarray: bool = False,
-    ):
+    )->Union[np.array, xarray.DataArray]:
         inputs = np.array([param_dict[k] for k in self.input_names]).reshape(1, -1)
         output = self.get_for_sample(
             inputs,
@@ -315,8 +353,6 @@ class BaseSummaryFolder(BaseSummary):
             path_to_model = path_to_models / f"best/{dataset}/{loss}/{statistic}"
         if suffix is not None:
             path_to_model = path_to_model.parent / (path_to_model.name + f"_{suffix}")
-        print('path to model')
-        print(path_to_model)
         model, flax_params = self.load_model(
             path_to_model=path_to_model,
             flax=flax,
@@ -327,10 +363,16 @@ class BaseSummaryFolder(BaseSummary):
         with open(path_to_model / "hparams.yaml") as f:
             config = yaml.safe_load(f)
         coordinates = self.load_coordinates(config=config, path_to_data=path_to_data)
+        fixed_cosmology = config['fixed_cosmology']
+        if fixed_cosmology is not None:
+            input_names = DEFAULT_GAL_PARAMS
+        else:
+            input_names = DEFAULT_COSMO_PARAMS + DEFAULT_GAL_PARAMS
         super().__init__(
             model=model,
             coordinates=coordinates,
             input_transforms=input_transforms,
             output_transforms=output_transforms,
             flax_params=flax_params,
+            input_names=input_names,
         )

@@ -192,7 +192,10 @@ class AbacusDataModule(pl.LightningDataModule):
                 dimensions_to_exclude_from_average += ["s"]
             with open(data_dir / f'coordinates/{vargs["statistic"]}.json') as f:
                 dims = list(json.load(f).keys())
-            dims += ['cosmology', 'realizations']
+            if vargs['fixed_cosmology'] is not None:
+                dims += ['realizations']
+            else:
+                dims += ['cosmology', 'realizations']
             dimensions = [dim for dim in dims if dim not in dimensions_to_exclude_from_average]
             output_transforms = transforms.Transforms(
                 [
@@ -261,6 +264,9 @@ class AbacusDataModule(pl.LightningDataModule):
             params_df = self.data.get_all_parameters(
                 cosmology=cosmology,
             )
+            if self.fixed_cosmology is not None:
+                cosmological_parameters = self.data.cosmological_parameters
+                params_df = params_df.drop(columns=cosmological_parameters)
             if self.input_parameters is not None:
                 params_df = params_df[self.input_parameters]
             if self.n_hod_realizations is not None:
@@ -326,7 +332,7 @@ class AbacusDataModule(pl.LightningDataModule):
         cosmology_idx = [self.fixed_cosmology]
         params = self.load_params(
             cosmology_idx=cosmology_idx,
-        )[0]
+        )
         params = params[self.train_test_split_dict[stage]]
         data = self.load_data(
             cosmology_idx=cosmology_idx,
