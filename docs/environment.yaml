@@ -6,12 +6,4 @@ channels:
 
 dependencies:
 - python=3.8
-- black
-- pytorch
-- pandas
 - numpy
-- matplotlib
-- xarray
-- pytorch-lightning
-- optuna
-- joblib
