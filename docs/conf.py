@@ -60,4 +60,15 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
 
-autodoc_mock_imports = ['dynesty', 'ultranest']
+autodoc_mock_imports = [
+    'dynesty',
+    'ultranest',
+    'black',
+    'pytorch',
+    'pandas'
+    'matplotlib',
+    'xarray'
+    'pytorch-lightning',
+    'optuna',
+    'joblib'
+]
