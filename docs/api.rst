@@ -1,7 +1,7 @@
 sunbird
 =======
 
-.. automodule:: densitysplit.summaries.density_split
+.. automodule:: sunbird.summaries.density_split
    :members:
    :undoc-members:
    :show-inheritance:
