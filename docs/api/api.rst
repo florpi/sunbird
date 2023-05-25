@@ -1,10 +1,7 @@
 API
 ===
 
-Base reconstruction class
--------------------------
-
-.. automodule:: sunbird.summaries
+.. automodule:: sunbird.summaries.density_split
   :members:
   :inherited-members:
   :show-inheritance:
