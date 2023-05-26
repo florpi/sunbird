@@ -93,7 +93,7 @@ class AbacusDataModule(pl.LightningDataModule):
             action="store",
             type=int,
             default=[
-                0,
+                0, 1, 3, 4
             ],
             nargs="+",
         )
