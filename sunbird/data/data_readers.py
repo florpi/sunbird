@@ -341,7 +341,7 @@ class AbacusSmall(DataReader):
             select_filters=select_filters,
             slice_filters=slice_filters,
             transforms=transforms,
-            avg_los=True if dataset == "widreprior_AB" else False,
+            avg_los=True if dataset in ("widreprior_AB", "fixed_cosmo_bossprior") else False,
         )
         self.dataset = f"abacus_small/{dataset}"
         self.normalization_dict = normalization_dict
