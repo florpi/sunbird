@@ -70,12 +70,12 @@ class DataReader(ABC):
         if statistic == "density_split_auto":
             return (
                 self.data_path
-                / f"clustering/{dataset}/ds/gaussian/ds_auto_zsplit_Rs10_{suffix}.npy"
+                / f"clustering/{dataset}/ds/gaussian/ds_auto_multipoles_zsplit_Rs10_{suffix}.npy"
             )
         elif statistic == "density_split_cross":
             return (
                 self.data_path
-                / f"clustering/{dataset}/ds/gaussian/ds_cross_zsplit_Rs10_{suffix}.npy"
+                / f"clustering/{dataset}/ds/gaussian/ds_cross_multipoles_zsplit_Rs10_{suffix}.npy"
             )
         elif statistic == "tpcf":
             return self.data_path / f"clustering/{dataset}/tpcf/tpcf_{suffix}.npy"
@@ -280,7 +280,7 @@ class Abacus(DataReader):
         """
         return pd.read_csv(
             self.data_path
-            / f"parameters/{self.dataset}/AbacusSummit_c{str(cosmology).zfill(3)}_hod1000.csv"
+            / f"parameters/{self.dataset}/AbacusSummit_c{str(cosmology).zfill(3)}.csv"
         )
 
     def get_parameters_for_observation(

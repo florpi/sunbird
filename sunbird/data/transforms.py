@@ -21,7 +21,7 @@ class BaseTransform(ABC):
         return
 
     @abstractmethod
-    def inverse_transform(self, summary: xr.DataArray) -> xr.DataArray:
+    def inverse_transform(self, summary: xr.DataArray, errors) -> xr.DataArray:
         """Inverse the transform
 
         Args:
@@ -31,7 +31,7 @@ class BaseTransform(ABC):
             xr.DataArray: original summary
         """
         return
-
+    
     def get_parameter_dict(
         self,
     ) -> Dict:
@@ -148,7 +148,7 @@ class Transforms:
             summary = transform.transform(summary)
         return summary
 
-    def inverse_transform(self, summary: xr.DataArray) -> xr.DataArray:
+    def inverse_transform(self, summary: xr.DataArray, errors: xr.DataArray) -> xr.DataArray:
         """Inverse the transform
 
         Args:
@@ -158,9 +158,10 @@ class Transforms:
             xr.DataArray: original summary
         """
         summary = summary.copy()
+        errors = errors.copy()
         for transform in self.transforms[::-1]:
-            summary = transform.inverse_transform(summary)
-        return summary
+            summary, errors = transform.inverse_transform(summary, errors)
+        return summary, errors
 
 
 class Normalize(BaseTransform):
@@ -204,14 +205,17 @@ class Normalize(BaseTransform):
         """
         return (summary - self.training_min) / (self.training_max - self.training_min)
 
-    def inverse_transform(self, summary: xr.DataArray) -> xr.DataArray:
+    def inverse_transform(self, summary: xr.DataArray, errors) -> xr.DataArray:
         if type(summary) is xr.DataArray:
-            return summary * (self.training_max - self.training_min) + self.training_min
+            inv_summary = summary * (self.training_max - self.training_min) + self.training_min
+            inv_errors = errors * (self.training_max - self.training_min)
         else:
-            return summary * (
+            inv_summary = summary * (
                 self.training_max.values.reshape(-1)
                 - self.training_min.values.reshape(-1)
             ) + self.training_min.values.reshape(-1)
+            inv_errors = errors * (self.training_max.values.reshape(-1) - self.training_min.values.reshape(-1))
+        return inv_summary, inv_errors
 
 
 class Standarize(BaseTransform):
@@ -254,92 +258,23 @@ class Standarize(BaseTransform):
         """
         return (summary - self.training_mean) / self.training_std
 
-    def inverse_transform(self, summary: xr.DataArray) -> xr.DataArray:
-        return summary * self.training_std + self.training_mean
-
-
-class LogSqrt(BaseTransform):
-    def __init__(
-        self,
-        min_monopole=None,
-        min_quadrupole=None,
-        **kwargs,
-    ):
-        """Transform the monopole and quadrupole to log and sqrt, respectively
-
-        Args:
-            min_monopole (float, optional): minimum monopole value. Defaults to 0.011.
-            min_quadrupole (float, optional): minimum quadrupole value. Defaults to -30..
-        """
-        self.min_monopole = min_monopole
-        self.min_quadrupole = min_quadrupole
-
-    def fit(self, summary: xr.DataArray):
-        """Fit the transform
-
-        Args:
-            summary (xr.DataArray): summary to fit the transform to
-        """
-        min_monopole = summary.sel(multipoles=0).min()
-        min_quadrupole = summary.sel(multipoles=2).min()
-        if min_monopole < 0.0:
-            self.min_monopole = 1.1 * min_monopole
-        elif min_monopole == 0.0:
-            self.min_monopole = -0.01
-        else:
-            self.min_monopole = 0.0
-        if min_quadrupole < 0:
-            self.min_quadrupole = min_quadrupole
-        else:
-            self.min_quadrupole = 0.0
-
-    def transform(self, summary: xr.DataArray) -> xr.DataArray:
-        """Transform a summary
-
-        Args:
-            summary (xr.DataArray): summary to transform
-
-        Returns:
-            xr.DataArray: transformed summary
-        """
-        summary.loc[{"multipoles": 0}] = np.log10(
-            summary.sel(multipoles=0) - self.min_monopole
-        )
-        summary.loc[{"multipoles": 2}] = (
-            summary.sel(multipoles=2) - self.min_quadrupole
-        ) ** 0.5
-        return summary
-
-    def inverse_transform(self, summary: xr.DataArray) -> xr.DataArray:
-        """Inverse the transform
-
-        Args:
-            summary (xr.DataArray): transformed summary
-
-        Returns:
-            xr.DataArray: original summary
-        """
-        summary.loc[{"multipoles": 0}] = (
-            10 ** summary.sel(multipoles=0) + self.min_monopole
-        )
-        summary.loc[{"multipoles": 2}] = (
-            summary.sel(multipoles=2) ** 2 + self.min_quadrupole
-        )
-        return summary
-
+    def inverse_transform(self, summary: xr.DataArray, errors:xr.DataArray) -> xr.DataArray:
+        inv_summary = summary * self.training_std + self.training_mean
+        inv_errors = errors * self.training_std
+        return inv_summary, inv_errors
 
 class Log(BaseTransform):
     def __init__(
         self,
-        min_monopole=None,
+        min_value=None,
         **kwargs,
     ):
-        """Transform the monopole to log
+        """Transform to log
 
         Args:
-            min_monopole (float, optional): minimum monopole value. Defaults to 0.011.
+            min_value (float, optional): minimum value of the statistic. Defaults to 0.011.
         """
-        self.min_monopole = min_monopole
+        self.min_value = min_value 
 
     def fit(self, summary: xr.DataArray):
         """Fit the transform
@@ -347,13 +282,9 @@ class Log(BaseTransform):
         Args:
             summary (xr.DataArray): summary to fit the transform to
         """
-        min_monopole = summary.sel(multipoles=0).min()
-        if min_monopole < 0.0:
-            self.min_monopole = 1.1 * min_monopole
-        elif min_monopole == 0.0:
-            self.min_monopole = -0.01
-        else:
-            self.min_monopole = 0.0
+        self.min_value = 1.01*summary.min()
+        if self.min_value == 0.:
+            self.min_value = -0.01
 
     def transform(self, summary: xr.DataArray) -> xr.DataArray:
         """Transform a summary
@@ -364,12 +295,10 @@ class Log(BaseTransform):
         Returns:
             xr.DataArray: transformed summary
         """
-        summary.loc[{"multipoles": 0}] = np.log10(
-            summary.sel(multipoles=0) - self.min_monopole
-        )
+        summary = np.log10(summary - self.min_value)
         return summary
 
-    def inverse_transform(self, summary: xr.DataArray) -> xr.DataArray:
+    def inverse_transform(self, summary: xr.DataArray, errors: xr.DataArray,) -> xr.DataArray:
         """Inverse the transform
 
         Args:
@@ -378,11 +307,11 @@ class Log(BaseTransform):
         Returns:
             xr.DataArray: original summary
         """
-        summary.loc[{"multipoles": 0}] = (
-            10 ** summary.sel(multipoles=0) + self.min_monopole
+        inv_summary = (
+            10 ** summary + self.min_value
         )
-        return summary
-
+        #TODO: how to transform errors?
+        return inv_summary, errors
 
 class S2(BaseTransform):
     def __init__(
@@ -391,6 +320,9 @@ class S2(BaseTransform):
     ):
         pass
 
+    def fit(self, summary: xr.DataArray):
+        self.s = summary.s
+
     def transform(self, summary: xr.DataArray) -> xr.DataArray:
         """Transform a summary
 
@@ -400,11 +332,9 @@ class S2(BaseTransform):
         Returns:
             xr.DataArray: transformed summary
         """
-        summary.loc[{"multipoles": 0}] = summary.sel(multipoles=0) * summary.s**2
-        summary.loc[{"multipoles": 2}] = summary.sel(multipoles=2) * summary.s**2
-        return summary
+        return summary * self.s**2
 
-    def inverse_transform(self, summary: xr.DataArray) -> xr.DataArray:
+    def inverse_transform(self, summary: xr.DataArray, errors: xr.DataArray) -> xr.DataArray:
         """Inverse the transform
 
         Args:
@@ -413,6 +343,6 @@ class S2(BaseTransform):
         Returns:
             xr.DataArray: original summary
         """
-        summary.loc[{"multipoles": 0}] = summary.sel(multipoles=0) / summary.s**2
-        summary.loc[{"multipoles": 2}] = summary.sel(multipoles=2) / summary.s**2
-        return summary
+        summary /= self.s**2
+        errors /= self.s**2
+        return summary, errors

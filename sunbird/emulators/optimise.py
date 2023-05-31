@@ -1,5 +1,6 @@
 import optuna
 from pytorch_lightning import Trainer
+import matplotlib.pyplot as plt
 import joblib
 from pathlib import Path
 from argparse import ArgumentParser
@@ -12,22 +13,22 @@ def objective(
     trial,
     args,
 ):
-    same_n_hidden = False
+    same_n_hidden = False 
     lr = trial.suggest_float(
         "learning_rate",
         1.0e-3,
-        0.1,
+        0.01,
     )
-    weight_decay = trial.suggest_float("weight_decay", 1.0e-4, 0.01)
-    n_layers = trial.suggest_int("n_layers", 1, 6)
+    weight_decay = trial.suggest_float("weight_decay", 1.0e-5, 0.001)
+    n_layers = trial.suggest_int("n_layers", 1, 10)
     if same_n_hidden:
-        n_hidden = [trial.suggest_int("n_hidden", 16, 1024)] * n_layers
+        n_hidden = [trial.suggest_int("n_hidden", 200, 1024)] * n_layers
     else:
         n_hidden = [
-            trial.suggest_int(f"n_hidden_{layer}", 16, 1024)
+            trial.suggest_int(f"n_hidden_{layer}", 200, 1024)
             for layer in range(n_layers)
         ]
-    dropout_rate = trial.suggest_float("dropout_rate", 0.0, 0.4)
+    dropout_rate = trial.suggest_float("dropout_rate", 0.0, 0.15)
     args.learning_rate = lr
     args.weight_decay = weight_decay
     args.n_hidden = n_hidden
@@ -49,7 +50,7 @@ if __name__ == "__main__":
     parser = FCN.add_model_specific_args(parser)
     args = parser.parse_args()
 
-    n_trials = 200
+    n_trials = 100 
     study = optuna.create_study()
     optimize_objective = lambda trial: objective(trial, args)
     study.optimize(optimize_objective, n_trials=n_trials)

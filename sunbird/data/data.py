@@ -354,6 +354,7 @@ class AbacusDataModule(pl.LightningDataModule):
 
         Returns:
             TensorDataset: dataset
+
         """
         if stage == "train":
             if self.input_transforms is not None:

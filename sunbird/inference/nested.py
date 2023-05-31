@@ -31,8 +31,11 @@ class Nested(Inference):
         Returns:
             float: log likelihood
         """
-        prediction = self.get_model_prediction(params)
-        return self.get_loglikelihood_for_prediction(prediction=prediction)
+        prediction, predicted_uncertainty = self.get_model_prediction(params)
+        return self.get_loglikelihood_for_prediction(
+            prediction=prediction,
+            predicted_uncertainty=predicted_uncertainty,
+        )
 
     def __call__(
         self,

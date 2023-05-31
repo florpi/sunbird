@@ -20,6 +20,7 @@ class Inference(ABC):
         select_filters: Dict,
         slice_filters: Dict,
         output_dir: Path,
+        add_prediced_uncertainty: bool = False,
         device: str = "cpu",
     ):
         """Given an inference algorithm, a theory model, and a dataset, get posteriors on the
@@ -39,9 +40,11 @@ class Inference(ABC):
         self.theory_model = theory_model
         self.observation = observation
         self.covariance_matrix = covariance_matrix
-        self.inverse_covariance_matrix = self.invert_covariance(
-            covariance_matrix=self.covariance_matrix,
-        )
+        self.add_prediced_uncertainty = add_prediced_uncertainty
+        if not self.add_prediced_uncertainty:
+            self.inverse_covariance_matrix = self.invert_covariance(
+                covariance_matrix=self.covariance_matrix,
+            )
         self.priors = priors
         self.n_dim = len(self.priors)
         self.fixed_parameters = fixed_parameters
@@ -111,7 +114,7 @@ class Inference(ABC):
         covariance_matrix = cls.get_covariance_matrix(
             covariance_data_class=covariance_config["class"],
             covariance_dataset=covariance_config["dataset"],
-            add_emulator_error=covariance_config["add_emulator_error"],
+            add_emulator_error=covariance_config["add_emulator_error_test_set"],
             add_simulation_error=covariance_config["add_simulation_error"],
             volume_scaling=covariance_config["volume_scaling"],
             statistics=config["statistics"],
@@ -132,6 +135,7 @@ class Inference(ABC):
             fixed_parameters=fixed_parameters,
             priors=priors,
             output_dir=config["inference"]["output_dir"],
+            add_prediced_uncertainty=covariance_config['add_prediced_uncertainty'],
             device=device,
         )
 
@@ -323,6 +327,7 @@ class Inference(ABC):
     def get_loglikelihood_for_prediction(
         self,
         prediction: np.array,
+        predicted_uncertainty: np.array,
     ) -> float:
         """Get gaussian loglikelihood for prediction
 
@@ -333,7 +338,11 @@ class Inference(ABC):
             float: log likelihood
         """
         diff = prediction - self.observation
-        return -0.5 * diff @ self.inverse_covariance_matrix @ diff
+        if not self.add_prediced_uncertainty:
+            return -0.5 * diff @ self.inverse_covariance_matrix @ diff
+        covariance_matrix = self.covariance_matrix + np.diag(predicted_uncertainty**2) 
+        inverse_covariance_matrix = self.invert_covariance(covariance_matrix)
+        return -0.5 * diff @ inverse_covariance_matrix @ diff
 
     def get_loglikelihood_for_prediction_vectorized(
         self,

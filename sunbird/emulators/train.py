@@ -63,7 +63,7 @@ def fit(args):
 if __name__ == "__main__":
     # ensure reproducibility.
     # https://pytorch.org/docs/stable/notes/randomness.html
-    seed_everything(0)
+    seed_everything(100)
 
     parser = ArgumentParser()
     parser = AbacusDataModule.add_argparse_args(parser)
