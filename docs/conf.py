@@ -9,10 +9,10 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath(os.path.join('..')))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath(os.path.join('..', 'sunbird')))
 
 
 # -- Project information -----------------------------------------------------
@@ -60,4 +60,15 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
 
-autodoc_mock_imports = ['dynesty', 'ultranest']
+autodoc_mock_imports = [
+    'dynesty',
+    'ultranest',
+    'black',
+    'pytorch',
+    'pandas'
+    'matplotlib',
+    'xarray'
+    'pytorch-lightning',
+    'optuna',
+    'joblib'
+]
