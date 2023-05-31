@@ -1,7 +1,7 @@
 from typing import List, Dict, Optional
 import numpy as np
 from sunbird.summaries.base import BaseSummary
-from sunbird.summaries import TPCF, DensitySplitAuto, DensitySplitCross
+from sunbird.summaries import TPCF, DensitySplitAuto, DensitySplitCross, DensityPDF
 
 
 class Bundle(BaseSummary):
@@ -43,6 +43,14 @@ class Bundle(BaseSummary):
                 n_hod_realizations=n_hod_realizations,
                 suffix=suffix,
             ),
+            "density_pdf": DensityPDF(
+                dataset=dataset,
+                loss=loss,
+                flax=flax,
+                n_hod_realizations=n_hod_realizations,
+                suffix=suffix,
+            ),
+
         }
 
     @property
@@ -69,9 +77,9 @@ class Bundle(BaseSummary):
         Returns:
             np.array: emulator predictions
         """
-        output = []
+        output, output_uncertainty = [], []
         for summary in self.summaries:
-            pred = self.all_summaries[summary].forward(
+            pred, pred_uncertainty = self.all_summaries[summary].forward(
                 inputs=inputs,
                 select_filters=select_filters,
                 slice_filters=slice_filters,
@@ -80,7 +88,9 @@ class Bundle(BaseSummary):
             )
             if not return_xarray:
                 pred = pred.reshape((len(inputs), -1))
+                pred_uncertainty = pred_uncertainty.reshape((len(inputs), -1))
             output.append(pred)
+            output_uncertainty.append(pred_uncertainty)
         if return_xarray:
-            return output
-        return np.hstack(output)
+            return output, output_uncertainty
+        return np.hstack(output).squeeze(), np.hstack(output_uncertainty).squeeze()

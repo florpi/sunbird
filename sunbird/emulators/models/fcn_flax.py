@@ -31,6 +31,7 @@ class FlaxFCN(nn.Module):
     n_hidden: Sequence[int]
     act_fn: str
     n_output: int
+    predict_errors: False
 
     def setup(
         self,
@@ -55,6 +56,7 @@ class FlaxFCN(nn.Module):
             n_hidden=config["n_hidden"],
             act_fn=config["act_fn"],
             n_output=config["n_output"],
+            predict_errors=True if config['loss'] == 'learned_gaussian' else False,
         )
         files = list((path_to_model / "checkpoints").glob("*.ckpt"))
         file_idx = np.argmin(
@@ -84,7 +86,13 @@ class FlaxFCN(nn.Module):
         for i, dims in enumerate(self.n_hidden):
             x = nn.Dense(dims)(x)
             x = self.actvation_fn(x)
-        return nn.Dense(self.n_output)(x)
+        y_pred = nn.Dense(self.n_output)(x)
+        if self.predict_errors:
+            y_pred, y_var = np.chunk(y_pred, 2, axis=-1)
+            y_var = nn.softplus(y_var)
+        else:
+            y_var = jnp.zeros_like(y_pred)
+        return y_pred, y_var
 
     def convert_from_pytorch(self, pt_state: Dict) -> Dict:
         """Convert the state dict from pytorch to flax

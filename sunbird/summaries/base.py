@@ -213,10 +213,12 @@ class BaseSummary:
         if self.input_transforms is not None:
             inputs = self.input_transforms.transform(inputs)
         if self.flax:
-            prediction = self.model_apply(self.flax_params, inputs)
+            prediction, variance = self.model_apply(self.flax_params, inputs)
+            errors = np.sqrt(variance)
         else:
             inputs = torch.tensor(inputs, dtype=torch.float32)
-            prediction = self.model(inputs)
+            prediction, variance = self.model(inputs)
+            errors = torch.sqrt(variance)
         # Invert transform
         prediction = self.apply_filters(
             prediction=prediction,
@@ -224,11 +226,17 @@ class BaseSummary:
             slice_filters=slice_filters,
             batch=batch,
         )
+        errors = self.apply_filters(
+            prediction=errors,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            batch=batch,
+        )
         if self.output_transforms is not None:
-            prediction = self.output_transforms.inverse_transform(prediction)
+            prediction, errors = self.output_transforms.inverse_transform(prediction, errors)
         if return_xarray:
-            return prediction
-        return prediction.values.reshape(-1)
+            return prediction, errors
+        return prediction.values.reshape(-1), errors.values.reshape(-1) 
 
     def apply_filters(self, prediction: xarray.DataArray, select_filters: Dict, slice_filters: Dict, batch: bool)->xarray.DataArray:
         """ Apply filters to prediction, based on coordinates
@@ -274,15 +282,12 @@ class BaseSummary:
         return_xarray: bool = False,
     )->Union[np.array, xarray.DataArray]:
         inputs = np.array([param_dict[k] for k in self.input_names]).reshape(1, -1)
-        output = self.get_for_sample(
+        return self.get_for_sample(
             inputs,
             select_filters=select_filters,
             slice_filters=slice_filters,
             return_xarray=return_xarray,
         )
-        if return_xarray:
-            return output
-        return output.reshape(-1)
 
     def get_for_sample(self, inputs, select_filters, slice_filters, return_xarray):
         if self.flax:
@@ -322,13 +327,16 @@ class BaseSummary:
         select_filters=None,
         slice_filters=None,
     ):
-        outputs = self.forward(
+        outputs, variance = self.forward(
             inputs,
             select_filters=select_filters,
             slice_filters=slice_filters,
             batch=True,
         )
-        return outputs.reshape((len(inputs), -1))
+        return (
+            outputs.reshape((len(inputs), -1)),
+            variance.reshape((len(inputs), -1)),
+        )
 
 
 class BaseSummaryFolder(BaseSummary):

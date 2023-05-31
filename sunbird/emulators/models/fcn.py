@@ -7,6 +7,13 @@ from sunbird.emulators.models import BaseModel
 from sunbird.covariance import CovarianceMatrix
 from sunbird.emulators.loss import GaussianNLoglike, WeightedL1Loss, WeightedMSELoss
 
+class ResNet(torch.nn.Module):
+    def __init__(self, module):
+        super().__init__()
+        self.module = module
+
+    def forward(self, inputs):
+        return self.module(inputs) + inputs
 
 class FCN(BaseModel):
     def __init__(self, *args, **kwargs):
@@ -19,6 +26,9 @@ class FCN(BaseModel):
         self.learning_rate = kwargs["learning_rate"]
         self.weight_decay = kwargs["weight_decay"]
         act_fn = getattr(nn, kwargs["act_fn"])()
+        self.loss = kwargs['loss']
+        if self.loss == 'learned_gaussian':
+            n_output *= 2
         self.mlp = self.get_model(
             n_input=n_input,
             n_hidden=n_hidden,
@@ -171,7 +181,14 @@ class FCN(BaseModel):
         Returns:
             Tensor: output
         """
-        return self.mlp(x)
+        if self.loss == 'learned_gaussian':
+            y_pred = self.mlp(x)
+            y_pred, y_var =  torch.chunk(y_pred, 2, dim=-1)
+            y_var = nn.Softplus()(y_var)
+            return y_pred, y_var
+        y_pred = self.mlp(x)
+        y_var = torch.zeros_like(y_pred)
+        return y_pred, y_var
 
     def _compute_loss(self, batch, batch_idx) -> float:
         """Compute loss in batch
@@ -184,5 +201,7 @@ class FCN(BaseModel):
             float: loss
         """
         x, y = batch
-        y_pred = self.forward(x)
+        y_pred, y_var = self.forward(x)
+        if self.loss == 'learned_gaussian':
+            return self.loss_fct(y_pred, y, y_var)
         return self.loss_fct(y, y_pred)
