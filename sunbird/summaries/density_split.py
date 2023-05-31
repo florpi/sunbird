@@ -10,7 +10,7 @@ DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 class DensitySplitCross(BaseSummaryFolder):
     def __init__(
         self,
-        dataset: str = "boss_wideprior",
+        dataset: str = "bossprior",
         loss: str = 'mae',
         n_hod_realizations: Optional[int] = None,
         path_to_models: Path = DEFAULT_PATH,
@@ -32,7 +32,7 @@ class DensitySplitCross(BaseSummaryFolder):
 class DensitySplitAuto(BaseSummaryFolder):
     def __init__(
         self,
-        dataset: str = "boss_wideprior",
+        dataset: str = "bossprior",
         loss: str = 'mae',
         n_hod_realizations: Optional[int] = None,
         path_to_models: Path = DEFAULT_PATH,
