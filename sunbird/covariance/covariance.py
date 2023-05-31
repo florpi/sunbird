@@ -16,7 +16,7 @@ class CovarianceMatrix:
         select_filters: Dict = None,
         covariance_data_class: str = 'AbacusSmall',
         emulator_data_class: str = 'Abacus',
-        dataset: str = 'wideprior_AB',
+        dataset: str = 'bossprior',
         output_transforms: Optional[Callable] = None,
     ):
         """Compute a covariance matrix for a list of statistics and filters in any
@@ -212,7 +212,7 @@ class CovarianceMatrix:
         xi_data: np.array = None,
         covariance_data: np.array = None,
         fractional: bool = False,
-        clip_errors: bool = True,
+        clip_errors: bool = False,
         clipping_factor: float = 3.0,
         return_mean: bool = False,
 
