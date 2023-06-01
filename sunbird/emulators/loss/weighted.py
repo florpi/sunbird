@@ -1,12 +1,13 @@
 from torch import nn, Tensor
 import torch
 
+
 class WeightedL1Loss(nn.Module):
     def __init__(self, variance: Tensor):
-        """ Weighted L1 loss
+        """Weighted L1 loss
 
         Args:
-            variance (Tensor): variance tensor 
+            variance (Tensor): variance tensor
         """
         super().__init__()
         self.variance = variance
@@ -22,18 +23,15 @@ class WeightedL1Loss(nn.Module):
             float: weighted L1 loss
         """
         self.variance = self.variance.to(predictions.device)
-        return torch.mean(
-            torch.abs(
-                (predictions - targets) / self.variance
-            )
-        )
+        return torch.mean(torch.abs((predictions - targets) / self.variance))
+
 
 class WeightedMSELoss(nn.Module):
     def __init__(self, variance: Tensor):
-        """ Weighted MSE loss
+        """Weighted MSE loss
 
         Args:
-            variance (Tensor): variance tensor 
+            variance (Tensor): variance tensor
         """
         super().__init__()
         self.variance = variance
@@ -49,9 +47,4 @@ class WeightedMSELoss(nn.Module):
             float: weighted mse loss
         """
         self.variance = self.variance.to(predictions.device)
-        return torch.mean(
-            torch.square(
-                (predictions - targets) / self.variance
-            )
-        )
-
+        return torch.mean(torch.square((predictions - targets) / self.variance))

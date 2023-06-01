@@ -17,27 +17,28 @@ from sunbird.data.data_utils import convert_selection_to_filters, convert_to_sum
 DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/"
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
-DEFAULT_COSMO_PARAMS = [           
-            "omega_b",
-            "omega_cdm",
-            "sigma8_m",
-            "n_s",
-            "nrun",
-            "N_ur",
-            "w0_fld",
-            "wa_fld",
+DEFAULT_COSMO_PARAMS = [
+    "omega_b",
+    "omega_cdm",
+    "sigma8_m",
+    "n_s",
+    "nrun",
+    "N_ur",
+    "w0_fld",
+    "wa_fld",
 ]
 DEFAULT_GAL_PARAMS = [
-            "logM1",
-            "logM_cut",
-            "alpha",
-            "alpha_s",
-            "alpha_c",
-            "logsigma",
-            "kappa",
-            "B_cen",
-            "B_sat",
+    "logM1",
+    "logM_cut",
+    "alpha",
+    "alpha_s",
+    "alpha_c",
+    "logsigma",
+    "kappa",
+    "B_cen",
+    "B_sat",
 ]
+
 
 class BaseSummary:
     def __init__(
@@ -119,15 +120,17 @@ class BaseSummary:
         )
 
     @classmethod
-    def load_model(cls, path_to_model: Path, flax: bool)-> Tuple[Union[torch.nn.Module, flax.linen.Module], Optional[jnp.array]]:
-        """ Load model from folder, either a torch or flax model
+    def load_model(
+        cls, path_to_model: Path, flax: bool
+    ) -> Tuple[Union[torch.nn.Module, flax.linen.Module], Optional[jnp.array]]:
+        """Load model from folder, either a torch or flax model
 
         Args:
-            path_to_model (Path): path to model folder 
-            flax (bool): whether to use flax, if False it will load a pytorch model. 
+            path_to_model (Path): path to model folder
+            flax (bool): whether to use flax, if False it will load a pytorch model.
 
         Returns:
-            Tuple[Union[torch.nn.Module, flax.linen.Module], Optional[jnp.array]]: model and flax parameters 
+            Tuple[Union[torch.nn.Module, flax.linen.Module], Optional[jnp.array]]: model and flax parameters
         """
 
         if flax:
@@ -193,15 +196,15 @@ class BaseSummary:
     def forward(
         self,
         inputs: np.array,
-        select_filters: Optional[Dict]=None,
-        slice_filters: Optional[Dict] =None,
+        select_filters: Optional[Dict] = None,
+        slice_filters: Optional[Dict] = None,
         use_xarray: bool = False,
         batch: bool = False,
-    )->Union[np.array, xarray.DataArray]:
-        """ Forward pass of the neural network
+    ) -> Union[np.array, xarray.DataArray]:
+        """Forward pass of the neural network
 
         Args:
-            inputs (np.array): input parameters 
+            inputs (np.array): input parameters
             select_filters (Optional[Dict], optional): Filters used to select coordinates. Defaults to None.
             slice_filters (Optional[Dict], optional): Filters used to slice coordinates. Defaults to None.
             batch (bool, optional): whether to run a batch of parameters. Defaults to False.
@@ -221,7 +224,9 @@ class BaseSummary:
             prediction = prediction.detach()
             errors = torch.sqrt(variance).detach()
         if self.output_transforms is not None:
-            prediction, errors = self.apply_output_transforms(prediction, errors, batch=batch)
+            prediction, errors = self.apply_output_transforms(
+                prediction, errors, batch=batch
+            )
         prediction = self.apply_filters(
             prediction=prediction,
             select_filters=select_filters,
@@ -238,13 +243,12 @@ class BaseSummary:
         )
         if use_xarray:
             return prediction, errors
-        return prediction.reshape(-1), errors.reshape(-1) 
+        return prediction.reshape(-1), errors.reshape(-1)
 
-
-    def find_index(self, arr, num, mode='below'):
-        if mode == 'below':
+    def find_index(self, arr, num, mode="below"):
+        if mode == "below":
             indices = np.where(arr < num)
-        elif mode == 'above':
+        elif mode == "above":
             indices = np.where(arr > num)
         return indices[0][np.argmin(np.abs(num - arr[indices]))]
 
@@ -259,28 +263,38 @@ class BaseSummary:
         full_idx = np.ix_(*idx_list)
         return prediction[full_idx]
 
-
     def apply_slice_filters(self, prediction, dimensions, coordinates, slice_filters):
         full_slice = [slice(None)] * prediction.ndim
-        for key, (min_value, max_value) in slice_filters.items(): 
-            if key in dimensions: 
+        for key, (min_value, max_value) in slice_filters.items():
+            if key in dimensions:
                 key_idx = dimensions.index(key)
-                min_value_idx = self.find_index(coordinates[key], min_value, mode='above')
-                max_value_idx = self.find_index(coordinates[key], max_value, mode='below')
-                full_slice[key_idx] = slice(min_value_idx, max_value_idx+1)
+                min_value_idx = self.find_index(
+                    coordinates[key], min_value, mode="above"
+                )
+                max_value_idx = self.find_index(
+                    coordinates[key], max_value, mode="below"
+                )
+                full_slice[key_idx] = slice(min_value_idx, max_value_idx + 1)
         return prediction[tuple(full_slice)]
 
-    def apply_filters(self, prediction: xarray.DataArray, select_filters: Dict, slice_filters: Dict, batch: bool, use_xarray: bool = False)->xarray.DataArray:
-        """ Apply filters to prediction, based on coordinates
+    def apply_filters(
+        self,
+        prediction: xarray.DataArray,
+        select_filters: Dict,
+        slice_filters: Dict,
+        batch: bool,
+        use_xarray: bool = False,
+    ) -> xarray.DataArray:
+        """Apply filters to prediction, based on coordinates
 
         Args:
-            prediction (xarray.DataArray): prediction from neural network 
-            select_filters (Dict): select certain values in coordinates 
-            slice_filters (Dict): slice values in coordinates 
-            batch (bool): whether to run a batch of parameters 
+            prediction (xarray.DataArray): prediction from neural network
+            select_filters (Dict): select certain values in coordinates
+            slice_filters (Dict): slice values in coordinates
+            batch (bool): whether to run a batch of parameters
 
         Returns:
-            xarray.DataArray: prediction with filters applied, includes coordinates 
+            xarray.DataArray: prediction with filters applied, includes coordinates
         """
         if batch:
             dimensions = ["batch"] + list(self.coordinates.keys())
@@ -308,12 +322,21 @@ class BaseSummary:
             )
         else:
             if select_filters is not None:
-                data = self.apply_select_filters(data, dimensions, coordinates, select_filters)
+                data = self.apply_select_filters(
+                    data, dimensions, coordinates, select_filters
+                )
             if slice_filters is not None:
-                data = self.apply_slice_filters(data, dimensions, coordinates, slice_filters)
+                data = self.apply_slice_filters(
+                    data, dimensions, coordinates, slice_filters
+                )
             return data
-        
-    def apply_output_transforms(self, prediction, predicted_errors, batch: bool = False,):
+
+    def apply_output_transforms(
+        self,
+        prediction,
+        predicted_errors,
+        batch: bool = False,
+    ):
         if batch:
             coordinates = self.coordinates.copy()
             coordinates["batch"] = range(len(prediction))
@@ -334,16 +357,17 @@ class BaseSummary:
             prediction = prediction.reshape(self.coordinates_shape)
             predicted_errors = predicted_errors.reshape(self.coordinates_shape)
         dimensions = list(self.coordinates.keys())
-        return self.output_transforms.inverse_transform(prediction, predicted_errors,summary_dimensions = dimensions,batch=batch)
-
+        return self.output_transforms.inverse_transform(
+            prediction, predicted_errors, summary_dimensions=dimensions, batch=batch
+        )
 
     def __call__(
         self,
         param_dict: Dict,
-        select_filters:Optional[Dict]=None,
-        slice_filters: Optional[Dict]=None,
+        select_filters: Optional[Dict] = None,
+        slice_filters: Optional[Dict] = None,
         use_xarray: bool = False,
-    )->Union[np.array, xarray.DataArray]:
+    ) -> Union[np.array, xarray.DataArray]:
         inputs = np.array([param_dict[k] for k in self.input_names]).reshape(1, -1)
         return self.get_for_sample(
             inputs,
@@ -433,7 +457,7 @@ class BaseSummaryFolder(BaseSummary):
         with open(path_to_model / "hparams.yaml") as f:
             config = yaml.safe_load(f)
         coordinates = self.load_coordinates(config=config, path_to_data=path_to_data)
-        fixed_cosmology = config['fixed_cosmology']
+        fixed_cosmology = config["fixed_cosmology"]
         if fixed_cosmology is not None:
             input_names = DEFAULT_GAL_PARAMS
         else:
