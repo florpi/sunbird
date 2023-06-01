@@ -1,5 +1,6 @@
 from typing import List, Dict, Optional
 import numpy as np
+import jax.numpy as jnp
 from sunbird.summaries.base import BaseSummary
 from sunbird.summaries import TPCF, DensitySplitAuto, DensitySplitCross, DensityPDF
 
@@ -20,7 +21,7 @@ class Bundle(BaseSummary):
             summaries (List[str]): list of summaries to combine
         """
         self.summaries = summaries
-        self.flax = False
+        self.flax = flax 
         self.all_summaries = {
             # "tpcf": None,# TPCF(
             # dataset=dataset,
@@ -64,7 +65,7 @@ class Bundle(BaseSummary):
         select_filters: Dict = None,
         slice_filters: Dict = None,
         batch: bool = False,
-        return_xarray: bool = False,
+        use_xarray: bool = False,
     ) -> np.array:
         """return a concatenated prediction of all the summaries
 
@@ -83,13 +84,15 @@ class Bundle(BaseSummary):
                 select_filters=select_filters,
                 slice_filters=slice_filters,
                 batch=batch,
-                return_xarray=return_xarray,
+                use_xarray=use_xarray,
             )
-            if not return_xarray:
+            if batch and not use_xarray:
                 pred = pred.reshape((len(inputs), -1))
                 pred_uncertainty = pred_uncertainty.reshape((len(inputs), -1))
             output.append(pred)
             output_uncertainty.append(pred_uncertainty)
-        if return_xarray:
+        if use_xarray:
             return output, output_uncertainty
+        if self.flax:
+            return jnp.hstack(output).squeeze(), jnp.hstack(output_uncertainty).squeeze()
         return np.hstack(output).squeeze(), np.hstack(output_uncertainty).squeeze()
