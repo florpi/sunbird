@@ -347,6 +347,7 @@ class Inference(ABC):
     def get_loglikelihood_for_prediction_vectorized(
         self,
         prediction: np.array,
+        predicted_uncertainty: np.array,
     ) -> np.array:
         """Get vectorized loglikelihood prediction
 
@@ -357,8 +358,15 @@ class Inference(ABC):
             np.array: array of likelihoods
         """
         diff = prediction - self.observation
-        right = np.einsum("ik,...k", self.inverse_covariance_matrix, diff)
+        if not self.add_prediced_uncertainty:
+            right = np.einsum("ik,...k", self.inverse_covariance_matrix, diff)
+            return -0.5 * np.einsum("ki,ji", diff, right)[:, 0]
+        covariance_matrix = self.covariance_matrix + np.diag(predicted_uncertainty**2)
+        inverse_covariance_matrix = self.invert_covariance(covariance_matrix)
+        right = np.einsum("ik,...k", inverse_covariance_matrix, diff)
         return -0.5 * np.einsum("ki,ji", diff, right)[:, 0]
+
+
 
     def sample_parameters_from_prior(
         self,
