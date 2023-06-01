@@ -9,8 +9,8 @@ DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 class TPCF(BaseSummaryFolder):
     def __init__(
         self,
-        dataset: str = "boss_wideprior",
-        loss: str = "mae",
+        dataset: str = "bossprior",
+        loss: str = "learned_gaussian",
         n_hod_realizations: Optional[int] = None,
         suffix: Optional[str] = None,
         path_to_models: Path = DEFAULT_PATH,
