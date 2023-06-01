@@ -375,12 +375,13 @@ class Log(BaseTransform):
 class S2(BaseTransform):
     def __init__(
         self,
+        s=None,
         **kwargs,
     ):
-        pass
+        self.s = s 
 
     def fit(self, summary: xr.DataArray):
-        self.s = summary.s
+        self.s = summary.s.values
 
     def transform(self, summary: xr.DataArray) -> xr.DataArray:
         """Transform a summary
@@ -394,7 +395,7 @@ class S2(BaseTransform):
         return summary * self.s**2
 
     def inverse_transform(
-        self, summary: xr.DataArray, errors: xr.DataArray
+        self, summary: xr.DataArray, errors: xr.DataArray, summary_dimensions=None,batch=None,
     ) -> xr.DataArray:
         """Inverse the transform
 
