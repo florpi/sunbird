@@ -27,27 +27,10 @@ class HMC(Inference):
                     )
                 )
             else:
-                # for param, value in self.fixed_parameters.items():
                 x = x.at[i].set(
                     numpyro.deterministic(param, self.fixed_parameters[param])
                 )
         return x
-
-    def get_predictions(self, x: np.array) -> np.array:
-        prediction, predicted_uncertainty = self.get_model_prediction(x)
-        """
-        x = self.theory_model.input_transforms.transform(
-            x
-        )
-        prediction, errors = self.theory_model.model_apply(
-            self.theory_model.flax_params, x,
-        )
-        prediction, errors = self.theory_model.output_transforms.inverse_transform(
-            prediction,
-            errors,
-        )
-        """
-        return prediction, predicted_uncertainty
 
     def model(
         self,
