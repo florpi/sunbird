@@ -6,7 +6,7 @@ select_filters:
     quintiles: [0,1,3,4,]
     multipoles: [0,2]
 
-statistics: ['density_pdf', 'density_split_cross', 'density_split_auto']
+statistics: ['density_split_cross', 'density_split_auto']
 data:
     observation: 
         class: 'Abacus'
@@ -33,7 +33,7 @@ theory_model:
         loss: 'learned_gaussian'
 
 inference:
-    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/bossprior_all'
+    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/bossprior_all_nopdf'
 
 priors:
     stats_module: 'scipy.stats'

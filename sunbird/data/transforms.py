@@ -148,7 +148,7 @@ class Transforms:
             summary = transform.transform(summary)
         return summary
 
-    def inverse_transform(self, summary: xr.DataArray, errors: xr.DataArray) -> xr.DataArray:
+    def inverse_transform(self, summary: xr.DataArray, errors: xr.DataArray, summary_dimensions: List[str] = None, batch: bool =False) -> xr.DataArray:
         """Inverse the transform
 
         Args:
@@ -157,10 +157,16 @@ class Transforms:
         Returns:
             xr.DataArray: original summary
         """
-        summary = summary.copy()
-        errors = errors.copy()
+        if type(summary) is torch.Tensor:
+            summary = summary.detach().clone()
+        else:
+            summary = summary.copy()
+        if type(errors) is torch.Tensor:
+            errors = errors.clone()
+        else:
+            errors = errors.copy()
         for transform in self.transforms[::-1]:
-            summary, errors = transform.inverse_transform(summary, errors)
+            summary, errors = transform.inverse_transform(summary, errors, summary_dimensions=summary_dimensions,batch=batch)
         return summary, errors
 
 
@@ -205,16 +211,29 @@ class Normalize(BaseTransform):
         """
         return (summary - self.training_min) / (self.training_max - self.training_min)
 
-    def inverse_transform(self, summary: xr.DataArray, errors) -> xr.DataArray:
+    def inverse_transform(self, summary: xr.DataArray, errors, summary_dimensions: List[str]= None, batch = False,) -> xr.DataArray:
         if type(summary) is xr.DataArray:
             inv_summary = summary * (self.training_max - self.training_min) + self.training_min
             inv_errors = errors * (self.training_max - self.training_min)
         else:
+            training_min = self.training_min.values
+            training_max = self.training_max.values
+            if summary_dimensions is not None:
+                avg_dims = [
+                    summary_dimensions.index(dim) for dim in self.dimensions 
+                    if dim in summary_dimensions
+                ]
+                training_min = np.expand_dims(training_min, axis=avg_dims)
+                training_max = np.expand_dims(training_max, axis=avg_dims)
+            if batch:
+                training_min = training_min[np.newaxis,...]
+                training_max = training_max[np.newaxis,...]
             inv_summary = summary * (
-                self.training_max.values.reshape(-1)
-                - self.training_min.values.reshape(-1)
-            ) + self.training_min.values.reshape(-1)
-            inv_errors = errors * (self.training_max.values.reshape(-1) - self.training_min.values.reshape(-1))
+                training_max - training_min
+            ) + training_min
+            inv_errors = errors * (
+                training_max - training_min
+            )
         return inv_summary, inv_errors
 
 
@@ -258,10 +277,24 @@ class Standarize(BaseTransform):
         """
         return (summary - self.training_mean) / self.training_std
 
-    def inverse_transform(self, summary: xr.DataArray, errors:xr.DataArray) -> xr.DataArray:
-        inv_summary = summary * self.training_std + self.training_mean
-        inv_errors = errors * self.training_std
+    def inverse_transform(self, summary: xr.DataArray, errors:xr.DataArray, summary_dimensions: List[str]=None, batch: bool =False) -> xr.DataArray:
+        if type(summary) is xr.DataArray:
+            inv_summary = summary * self.training_std + self.training_mean
+            inv_errors = errors * self.training_std
+        else:
+            training_mean = self.training_mean.values
+            training_std = self.training_std.values
+            if summary_dimensions is not None:
+                avg_dims = [summary_dimensions.index(dim) for dim in self.dimensions if dim in summary_dimensions]
+                training_mean = np.expand_dims(training_mean, axis=avg_dims)
+                training_std = np.expand_dims(training_std, axis=avg_dims)
+            if batch:
+                training_mean = training_mean[np.newaxis,...]
+                training_std = training_std[np.newaxis,...]
+            inv_summary = summary * training_std + training_mean
+            inv_errors = errors * training_std
         return inv_summary, inv_errors
+
 
 class Log(BaseTransform):
     def __init__(

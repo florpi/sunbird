@@ -152,10 +152,10 @@ class CovarianceMatrix:
         xi_model = []
         for statistic in self.statistics:
             pred, error = self.emulators[statistic].get_for_batch_inputs(
-                    inputs=inputs,
-                    select_filters=self.select_filters,
-                    slice_filters=self.slice_filters,
-                )
+                inputs=inputs,
+                select_filters=self.select_filters,
+                slice_filters=self.slice_filters,
+            )
             xi_model.append(pred)
         xi_model = np.hstack(xi_model)
         return np.squeeze(np.array(xi_model))
@@ -181,7 +181,6 @@ class CovarianceMatrix:
             np.array: covariance matrix
         """
         summaries = data_reader.gather_summaries_for_covariance()
-        print('summaries = ', summaries.shape)
         if apply_hartlap_correction:
             n_mocks = len(summaries)
             n_bins = summaries.shape[-1]
