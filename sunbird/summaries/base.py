@@ -195,8 +195,8 @@ class BaseSummary:
         inputs: np.array,
         select_filters: Optional[Dict]=None,
         slice_filters: Optional[Dict] =None,
+        use_xarray: bool = False,
         batch: bool = False,
-        return_xarray: bool = False,
     )->Union[np.array, xarray.DataArray]:
         """ Forward pass of the neural network
 
@@ -205,7 +205,7 @@ class BaseSummary:
             select_filters (Optional[Dict], optional): Filters used to select coordinates. Defaults to None.
             slice_filters (Optional[Dict], optional): Filters used to slice coordinates. Defaults to None.
             batch (bool, optional): whether to run a batch of parameters. Defaults to False.
-            return_xarray (bool, optional): if True, returns an xarray object with coordinates. Defaults to False.
+            use_xarray (bool, optional): if True, returns an xarray object with coordinates. Defaults to False.
 
         Returns:
             prediction
@@ -214,31 +214,63 @@ class BaseSummary:
             inputs = self.input_transforms.transform(inputs)
         if self.flax:
             prediction, variance = self.model_apply(self.flax_params, inputs)
-            errors = np.sqrt(variance)
+            errors = jnp.sqrt(variance)
         else:
             inputs = torch.tensor(inputs, dtype=torch.float32)
             prediction, variance = self.model(inputs)
-            errors = torch.sqrt(variance)
-        # Invert transform
+            prediction = prediction.detach()
+            errors = torch.sqrt(variance).detach()
+        if self.output_transforms is not None:
+            prediction, errors = self.apply_output_transforms(prediction, errors, batch=batch)
         prediction = self.apply_filters(
             prediction=prediction,
             select_filters=select_filters,
             slice_filters=slice_filters,
             batch=batch,
+            use_xarray=use_xarray,
         )
         errors = self.apply_filters(
             prediction=errors,
             select_filters=select_filters,
             slice_filters=slice_filters,
             batch=batch,
+            use_xarray=use_xarray,
         )
-        if self.output_transforms is not None:
-            prediction, errors = self.output_transforms.inverse_transform(prediction, errors)
-        if return_xarray:
+        if use_xarray:
             return prediction, errors
-        return prediction.values.reshape(-1), errors.values.reshape(-1) 
+        return prediction.reshape(-1), errors.reshape(-1) 
 
-    def apply_filters(self, prediction: xarray.DataArray, select_filters: Dict, slice_filters: Dict, batch: bool)->xarray.DataArray:
+
+    def find_index(self, arr, num, mode='below'):
+        if mode == 'below':
+            indices = np.where(arr < num)
+        elif mode == 'above':
+            indices = np.where(arr > num)
+        return indices[0][np.argmin(np.abs(num - arr[indices]))]
+
+    def apply_select_filters(self, prediction, dimensions, coordinates, select_filters):
+        idx_list = []
+        for dim in range(prediction.ndim):
+            key = dimensions[dim]
+            if key in select_filters:
+                idx_list.append(np.isin(coordinates[key], select_filters[key]))
+            else:
+                idx_list.append(np.ones(prediction.shape[dim], dtype=bool))
+        full_idx = np.ix_(*idx_list)
+        return prediction[full_idx]
+
+
+    def apply_slice_filters(self, prediction, dimensions, coordinates, slice_filters):
+        full_slice = [slice(None)] * prediction.ndim
+        for key, (min_value, max_value) in slice_filters.items(): 
+            if key in dimensions: 
+                key_idx = dimensions.index(key)
+                min_value_idx = self.find_index(coordinates[key], min_value, mode='above')
+                max_value_idx = self.find_index(coordinates[key], max_value, mode='below')
+                full_slice[key_idx] = slice(min_value_idx, max_value_idx+1)
+        return prediction[tuple(full_slice)]
+
+    def apply_filters(self, prediction: xarray.DataArray, select_filters: Dict, slice_filters: Dict, batch: bool, use_xarray: bool = False)->xarray.DataArray:
         """ Apply filters to prediction, based on coordinates
 
         Args:
@@ -264,52 +296,76 @@ class BaseSummary:
             dimensions = list(self.coordinates.keys())
             coordinates = self.coordinates
             data = prediction.reshape(self.coordinates_shape)
-        if type(data) is torch.Tensor:
-            data = data.detach().numpy()
-        return convert_to_summary(
-            data=data,
-            dimensions=dimensions,
-            coords=coordinates,
-            select_filters=select_filters,
-            slice_filters=slice_filters,
-        )
+        if use_xarray:
+            if type(data) is torch.Tensor:
+                data = data.detach().numpy()
+            return convert_to_summary(
+                data=data,
+                dimensions=dimensions,
+                coords=coordinates,
+                select_filters=select_filters,
+                slice_filters=slice_filters,
+            )
+        else:
+            if select_filters is not None:
+                data = self.apply_select_filters(data, dimensions, coordinates, select_filters)
+            if slice_filters is not None:
+                data = self.apply_slice_filters(data, dimensions, coordinates, slice_filters)
+            return data
+        
+    def apply_output_transforms(self, prediction, predicted_errors, batch: bool = False,):
+        if batch:
+            coordinates = self.coordinates.copy()
+            coordinates["batch"] = range(len(prediction))
+            prediction = prediction.reshape(
+                (
+                    len(prediction),
+                    *self.coordinates_shape,
+                )
+            )
+            predicted_errors = predicted_errors.reshape(
+                (
+                    len(prediction),
+                    *self.coordinates_shape,
+                )
+            )
+        else:
+            coordinates = self.coordinates
+            prediction = prediction.reshape(self.coordinates_shape)
+            predicted_errors = predicted_errors.reshape(self.coordinates_shape)
+        dimensions = list(self.coordinates.keys())
+        return self.output_transforms.inverse_transform(prediction, predicted_errors,summary_dimensions = dimensions,batch=batch)
+
 
     def __call__(
         self,
         param_dict: Dict,
         select_filters:Optional[Dict]=None,
         slice_filters: Optional[Dict]=None,
-        return_xarray: bool = False,
+        use_xarray: bool = False,
     )->Union[np.array, xarray.DataArray]:
         inputs = np.array([param_dict[k] for k in self.input_names]).reshape(1, -1)
         return self.get_for_sample(
             inputs,
             select_filters=select_filters,
             slice_filters=slice_filters,
-            return_xarray=return_xarray,
+            use_xarray=use_xarray,
         )
 
-    def get_for_sample(self, inputs, select_filters, slice_filters, return_xarray):
-        if self.flax:
-            return self.forward(
-                inputs,
-                select_filters=select_filters,
-                slice_filters=slice_filters,
-                return_xarray=return_xarray,
-            )
-        else:
-            return self.forward(
-                inputs,
-                select_filters=select_filters,
-                slice_filters=slice_filters,
-                return_xarray=return_xarray,
-            )
+    def get_for_sample(self, inputs, select_filters, slice_filters, use_xarray):
+        return self.forward(
+            inputs,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            use_xarray=use_xarray,
+        )
 
     def get_for_batch(
         self,
         param_dict,
         select_filters,
         slice_filters,
+        use_xarray=False,
     ):
         inputs = torch.tensor(
             np.array([param_dict[k] for k in self.input_names]),
@@ -319,6 +375,7 @@ class BaseSummary:
             inputs=inputs,
             select_filters=select_filters,
             slice_filters=slice_filters,
+            use_xarray=use_xarray,
         )
 
     def get_for_batch_inputs(
@@ -326,13 +383,18 @@ class BaseSummary:
         inputs,
         select_filters=None,
         slice_filters=None,
+        use_xarray=False,
     ):
         outputs, variance = self.forward(
             inputs,
             select_filters=select_filters,
             slice_filters=slice_filters,
             batch=True,
+            use_xarray=use_xarray,
         )
+        if use_xarray:
+            outputs = outputs.values
+            variance = variance.values
         return (
             outputs.reshape((len(inputs), -1)),
             variance.reshape((len(inputs), -1)),

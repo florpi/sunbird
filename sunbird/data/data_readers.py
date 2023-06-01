@@ -78,7 +78,7 @@ class DataReader(ABC):
                 / f"clustering/{dataset}/ds/gaussian/ds_cross_multipoles_zsplit_Rs10_{suffix}.npy"
             )
         elif statistic == "tpcf":
-            return self.data_path / f"clustering/{dataset}/tpcf/tpcf_{suffix}.npy"
+            return self.data_path / f"clustering/{dataset}/tpcf/tpcf_multipoles_{suffix}.npy"
         elif statistic == "density_pdf":
             return (
                 self.data_path
