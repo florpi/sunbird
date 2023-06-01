@@ -14,9 +14,9 @@ class CovarianceMatrix:
         statistics: List[str],
         slice_filters: Dict = None,
         select_filters: Dict = None,
-        covariance_data_class: str = "AbacusSmall",
-        emulator_data_class: str = "Abacus",
-        dataset: str = "wideprior_AB",
+        covariance_data_class: str = 'AbacusSmall',
+        emulator_data_class: str = 'Abacus',
+        dataset: str = 'bossprior',
         output_transforms: Optional[Callable] = None,
         emulators=None,
     ):
@@ -220,7 +220,7 @@ class CovarianceMatrix:
         xi_data: np.array = None,
         covariance_data: np.array = None,
         fractional: bool = False,
-        clip_errors: bool = True,
+        clip_errors: bool = False,
         clipping_factor: float = 3.0,
         return_mean: bool = False,
     ) -> np.array:

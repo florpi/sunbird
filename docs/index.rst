@@ -13,7 +13,7 @@ sunbird is a scientific package for the analysis of astronomical data.
    :caption: User documentation
 
    building
-   api/api
+   api
 
 .. toctree::
   :hidden:
