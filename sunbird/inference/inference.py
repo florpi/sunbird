@@ -135,7 +135,7 @@ class Inference(ABC):
             fixed_parameters=fixed_parameters,
             priors=priors,
             output_dir=config["inference"]["output_dir"],
-            add_prediced_uncertainty=covariance_config['add_prediced_uncertainty'],
+            add_prediced_uncertainty=covariance_config["add_prediced_uncertainty"],
             device=device,
         )
 
@@ -340,7 +340,7 @@ class Inference(ABC):
         diff = prediction - self.observation
         if not self.add_prediced_uncertainty:
             return -0.5 * diff @ self.inverse_covariance_matrix @ diff
-        covariance_matrix = self.covariance_matrix + np.diag(predicted_uncertainty**2) 
+        covariance_matrix = self.covariance_matrix + np.diag(predicted_uncertainty**2)
         inverse_covariance_matrix = self.invert_covariance(covariance_matrix)
         return -0.5 * diff @ inverse_covariance_matrix @ diff
 

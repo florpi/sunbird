@@ -51,16 +51,16 @@ class FlaxFCN(nn.Module):
         """
         with open(path_to_model / "hparams.yaml") as f:
             config = yaml.safe_load(f)
-        if config['loss'] == 'learned_gaussian':
+        if config["loss"] == "learned_gaussian":
             n_output = config["n_output"] * 2
         else:
-            n_output = config['n_output']
+            n_output = config["n_output"]
         nn_model = cls(
             n_input=config["n_input"],
             n_hidden=config["n_hidden"],
             act_fn=config["act_fn"],
             n_output=n_output,
-            predict_errors=True if config['loss'] == 'learned_gaussian' else False,
+            predict_errors=True if config["loss"] == "learned_gaussian" else False,
         )
         files = list((path_to_model / "checkpoints").glob("*.ckpt"))
         file_idx = np.argmin(

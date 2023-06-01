@@ -78,7 +78,10 @@ class DataReader(ABC):
                 / f"clustering/{dataset}/ds/gaussian/ds_cross_multipoles_zsplit_Rs10_{suffix}.npy"
             )
         elif statistic == "tpcf":
-            return self.data_path / f"clustering/{dataset}/tpcf/tpcf_multipoles_{suffix}.npy"
+            return (
+                self.data_path
+                / f"clustering/{dataset}/tpcf/tpcf_multipoles_{suffix}.npy"
+            )
         elif statistic == "density_pdf":
             return (
                 self.data_path
@@ -341,7 +344,9 @@ class AbacusSmall(DataReader):
             select_filters=select_filters,
             slice_filters=slice_filters,
             transforms=transforms,
-            avg_los=True if dataset in ("widreprior_AB", "fixed_cosmo_bossprior") else False,
+            avg_los=True
+            if dataset in ("widreprior_AB", "fixed_cosmo_bossprior")
+            else False,
         )
         self.dataset = f"abacus_small/{dataset}"
         self.normalization_dict = normalization_dict

@@ -92,9 +92,7 @@ class AbacusDataModule(pl.LightningDataModule):
             "--select_quintiles",
             action="store",
             type=int,
-            default=[
-                0, 1, 3, 4
-            ],
+            default=[0, 1, 3, 4],
             nargs="+",
         )
         parser.add_argument(

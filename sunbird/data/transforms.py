@@ -31,7 +31,7 @@ class BaseTransform(ABC):
             xr.DataArray: original summary
         """
         return
-    
+
     def get_parameter_dict(
         self,
     ) -> Dict:
@@ -148,7 +148,13 @@ class Transforms:
             summary = transform.transform(summary)
         return summary
 
-    def inverse_transform(self, summary: xr.DataArray, errors: xr.DataArray, summary_dimensions: List[str] = None, batch: bool =False) -> xr.DataArray:
+    def inverse_transform(
+        self,
+        summary: xr.DataArray,
+        errors: xr.DataArray,
+        summary_dimensions: List[str] = None,
+        batch: bool = False,
+    ) -> xr.DataArray:
         """Inverse the transform
 
         Args:
@@ -166,7 +172,9 @@ class Transforms:
         else:
             errors = errors.copy()
         for transform in self.transforms[::-1]:
-            summary, errors = transform.inverse_transform(summary, errors, summary_dimensions=summary_dimensions,batch=batch)
+            summary, errors = transform.inverse_transform(
+                summary, errors, summary_dimensions=summary_dimensions, batch=batch
+            )
         return summary, errors
 
 
@@ -211,29 +219,34 @@ class Normalize(BaseTransform):
         """
         return (summary - self.training_min) / (self.training_max - self.training_min)
 
-    def inverse_transform(self, summary: xr.DataArray, errors, summary_dimensions: List[str]= None, batch = False,) -> xr.DataArray:
+    def inverse_transform(
+        self,
+        summary: xr.DataArray,
+        errors,
+        summary_dimensions: List[str] = None,
+        batch=False,
+    ) -> xr.DataArray:
         if type(summary) is xr.DataArray:
-            inv_summary = summary * (self.training_max - self.training_min) + self.training_min
+            inv_summary = (
+                summary * (self.training_max - self.training_min) + self.training_min
+            )
             inv_errors = errors * (self.training_max - self.training_min)
         else:
             training_min = self.training_min.values
             training_max = self.training_max.values
             if summary_dimensions is not None:
                 avg_dims = [
-                    summary_dimensions.index(dim) for dim in self.dimensions 
+                    summary_dimensions.index(dim)
+                    for dim in self.dimensions
                     if dim in summary_dimensions
                 ]
                 training_min = np.expand_dims(training_min, axis=avg_dims)
                 training_max = np.expand_dims(training_max, axis=avg_dims)
             if batch:
-                training_min = training_min[np.newaxis,...]
-                training_max = training_max[np.newaxis,...]
-            inv_summary = summary * (
-                training_max - training_min
-            ) + training_min
-            inv_errors = errors * (
-                training_max - training_min
-            )
+                training_min = training_min[np.newaxis, ...]
+                training_max = training_max[np.newaxis, ...]
+            inv_summary = summary * (training_max - training_min) + training_min
+            inv_errors = errors * (training_max - training_min)
         return inv_summary, inv_errors
 
 
@@ -277,7 +290,13 @@ class Standarize(BaseTransform):
         """
         return (summary - self.training_mean) / self.training_std
 
-    def inverse_transform(self, summary: xr.DataArray, errors:xr.DataArray, summary_dimensions: List[str]=None, batch: bool =False) -> xr.DataArray:
+    def inverse_transform(
+        self,
+        summary: xr.DataArray,
+        errors: xr.DataArray,
+        summary_dimensions: List[str] = None,
+        batch: bool = False,
+    ) -> xr.DataArray:
         if type(summary) is xr.DataArray:
             inv_summary = summary * self.training_std + self.training_mean
             inv_errors = errors * self.training_std
@@ -285,12 +304,16 @@ class Standarize(BaseTransform):
             training_mean = self.training_mean.values
             training_std = self.training_std.values
             if summary_dimensions is not None:
-                avg_dims = [summary_dimensions.index(dim) for dim in self.dimensions if dim in summary_dimensions]
+                avg_dims = [
+                    summary_dimensions.index(dim)
+                    for dim in self.dimensions
+                    if dim in summary_dimensions
+                ]
                 training_mean = np.expand_dims(training_mean, axis=avg_dims)
                 training_std = np.expand_dims(training_std, axis=avg_dims)
             if batch:
-                training_mean = training_mean[np.newaxis,...]
-                training_std = training_std[np.newaxis,...]
+                training_mean = training_mean[np.newaxis, ...]
+                training_std = training_std[np.newaxis, ...]
             inv_summary = summary * training_std + training_mean
             inv_errors = errors * training_std
         return inv_summary, inv_errors
@@ -307,7 +330,7 @@ class Log(BaseTransform):
         Args:
             min_value (float, optional): minimum value of the statistic. Defaults to 0.011.
         """
-        self.min_value = min_value 
+        self.min_value = min_value
 
     def fit(self, summary: xr.DataArray):
         """Fit the transform
@@ -315,8 +338,8 @@ class Log(BaseTransform):
         Args:
             summary (xr.DataArray): summary to fit the transform to
         """
-        self.min_value = 1.01*summary.min()
-        if self.min_value == 0.:
+        self.min_value = 1.01 * summary.min()
+        if self.min_value == 0.0:
             self.min_value = -0.01
 
     def transform(self, summary: xr.DataArray) -> xr.DataArray:
@@ -331,7 +354,11 @@ class Log(BaseTransform):
         summary = np.log10(summary - self.min_value)
         return summary
 
-    def inverse_transform(self, summary: xr.DataArray, errors: xr.DataArray,) -> xr.DataArray:
+    def inverse_transform(
+        self,
+        summary: xr.DataArray,
+        errors: xr.DataArray,
+    ) -> xr.DataArray:
         """Inverse the transform
 
         Args:
@@ -340,11 +367,10 @@ class Log(BaseTransform):
         Returns:
             xr.DataArray: original summary
         """
-        inv_summary = (
-            10 ** summary + self.min_value
-        )
-        #TODO: how to transform errors?
+        inv_summary = 10**summary + self.min_value
+        # TODO: how to transform errors?
         return inv_summary, errors
+
 
 class S2(BaseTransform):
     def __init__(
@@ -367,7 +393,9 @@ class S2(BaseTransform):
         """
         return summary * self.s**2
 
-    def inverse_transform(self, summary: xr.DataArray, errors: xr.DataArray) -> xr.DataArray:
+    def inverse_transform(
+        self, summary: xr.DataArray, errors: xr.DataArray
+    ) -> xr.DataArray:
         """Inverse the transform
 
         Args:

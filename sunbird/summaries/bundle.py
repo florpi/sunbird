@@ -22,13 +22,13 @@ class Bundle(BaseSummary):
         self.summaries = summaries
         self.flax = False
         self.all_summaries = {
-            #"tpcf": None,# TPCF(
-                #dataset=dataset,
-                #loss=loss,
-                #flax=flax,
-                #n_hod_realizations=n_hod_realizations,
-                #suffix=suffix,
-            #),
+            # "tpcf": None,# TPCF(
+            # dataset=dataset,
+            # loss=loss,
+            # flax=flax,
+            # n_hod_realizations=n_hod_realizations,
+            # suffix=suffix,
+            # ),
             "density_split_cross": DensitySplitCross(
                 dataset=dataset,
                 loss=loss,
@@ -50,7 +50,6 @@ class Bundle(BaseSummary):
                 n_hod_realizations=n_hod_realizations,
                 suffix=suffix,
             ),
-
         }
 
     @property
