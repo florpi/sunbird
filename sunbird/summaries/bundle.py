@@ -9,10 +9,10 @@ class Bundle(BaseSummary):
     def __init__(
         self,
         summaries: List[str],
-        dataset: str = "boss_wideprior",
+        dataset: str = "bossprior",
         n_hod_realizations: Optional[int] = None,
         suffix: Optional[str] = None,
-        loss: str = "mae",
+        loss: str = "learned_gaussian",
         flax: bool = False,
     ):
         """Combine a list of summaries into a bundle
@@ -23,13 +23,13 @@ class Bundle(BaseSummary):
         self.summaries = summaries
         self.flax = flax 
         self.all_summaries = {
-            # "tpcf": None,# TPCF(
-            # dataset=dataset,
-            # loss=loss,
-            # flax=flax,
-            # n_hod_realizations=n_hod_realizations,
-            # suffix=suffix,
-            # ),
+            "tpcf": TPCF(
+                dataset=dataset,
+                loss=loss,
+                flax=flax,
+                n_hod_realizations=n_hod_realizations,
+                suffix=suffix,
+            ),
             "density_split_cross": DensitySplitCross(
                 dataset=dataset,
                 loss=loss,
