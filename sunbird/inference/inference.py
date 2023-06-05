@@ -20,7 +20,7 @@ class Inference(ABC):
         select_filters: Dict,
         slice_filters: Dict,
         output_dir: Path,
-        add_prediced_uncertainty: bool = False,
+        add_predicted_uncertainty: bool = False,
         device: str = "cpu",
     ):
         """Given an inference algorithm, a theory model, and a dataset, get posteriors on the
@@ -40,8 +40,8 @@ class Inference(ABC):
         self.theory_model = theory_model
         self.observation = observation
         self.covariance_matrix = covariance_matrix
-        self.add_prediced_uncertainty = add_prediced_uncertainty
-        if not self.add_prediced_uncertainty:
+        self.add_predicted_uncertainty = add_predicted_uncertainty
+        if not self.add_predicted_uncertainty:
             self.inverse_covariance_matrix = self.invert_covariance(
                 covariance_matrix=self.covariance_matrix,
             )
@@ -135,7 +135,7 @@ class Inference(ABC):
             fixed_parameters=fixed_parameters,
             priors=priors,
             output_dir=config["inference"]["output_dir"],
-            add_prediced_uncertainty=covariance_config["add_prediced_uncertainty"],
+            add_predicted_uncertainty=covariance_config["add_predicted_uncertainty"],
             device=device,
         )
 
@@ -338,7 +338,7 @@ class Inference(ABC):
             float: log likelihood
         """
         diff = prediction - self.observation
-        if not self.add_prediced_uncertainty:
+        if not self.add_predicted_uncertainty:
             return -0.5 * diff @ self.inverse_covariance_matrix @ diff
         covariance_matrix = self.covariance_matrix + np.diag(predicted_uncertainty**2)
         inverse_covariance_matrix = self.invert_covariance(covariance_matrix)
@@ -358,7 +358,7 @@ class Inference(ABC):
             np.array: array of likelihoods
         """
         diff = prediction - self.observation
-        if not self.add_prediced_uncertainty:
+        if not self.add_predicted_uncertainty:
             right = np.einsum("ik,...k", self.inverse_covariance_matrix, diff)
             return -0.5 * np.einsum("ki,ji", diff, right)[:, 0]
         covariance_matrix = self.covariance_matrix + np.diag(predicted_uncertainty**2)
