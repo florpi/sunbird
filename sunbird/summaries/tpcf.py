@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional
 from sunbird.summaries.base import BaseSummaryFolder
 
-DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/"
+DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best/"
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 
@@ -10,7 +10,7 @@ class TPCF(BaseSummaryFolder):
     def __init__(
         self,
         dataset: str = "bossprior",
-        loss: str = "learned_gaussian",
+        loss: str = "mae",
         n_hod_realizations: Optional[int] = None,
         suffix: Optional[str] = None,
         path_to_models: Path = DEFAULT_PATH,

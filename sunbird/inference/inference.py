@@ -221,8 +221,6 @@ class Inference(ABC):
         )
         if add_emulator_error:
             cov_data += covariance.get_covariance_emulator(
-                covariance_data=cov_data,
-                clip_errors=False,
             )
         if add_simulation_error:
             cov_data += covariance.get_covariance_simulation(
