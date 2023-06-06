@@ -6,6 +6,7 @@ from typing import List, Dict, Optional, Callable
 from sunbird.data import data_readers
 
 DATA_PATH = Path(__file__).parent.parent.parent / "data/"
+MODEL_PATH = Path(__file__).parent.parent.parent / "trained_models/best/"
 
 
 class CovarianceMatrix:
@@ -19,6 +20,7 @@ class CovarianceMatrix:
         dataset: str = 'bossprior',
         output_transforms: Optional[Callable] = None,
         emulators=None,
+        path_to_models: Path = MODEL_PATH,
     ):
         """Compute a covariance matrix for a list of statistics and filters in any
         dimension
@@ -54,6 +56,7 @@ class CovarianceMatrix:
         self.slice_filters = slice_filters
         self.select_filters = select_filters
         self.emulators = emulators
+        self.path_to_models = path_to_models
 
     def get_covariance_data(
         self,
@@ -145,9 +148,9 @@ class CovarianceMatrix:
             from sunbird.summaries import DensitySplitAuto, DensitySplitCross, TPCF
 
             self.emulators = {
-                "density_split_cross": DensitySplitCross(dataset=self.dataset),
-                "density_split_auto": DensitySplitAuto(dataset=self.dataset),
-                "tpcf": TPCF(dataset=self.dataset),
+                "density_split_cross": DensitySplitCross(dataset=self.dataset, path_to_models=self.path_to_models),
+                "density_split_auto": DensitySplitAuto(dataset=self.dataset, path_to_models=self.path_to_models),
+                "tpcf": TPCF(dataset=self.dataset, path_to_models=self.path_to_models),
             }
         xi_model = []
         for statistic in self.statistics:
@@ -217,11 +220,7 @@ class CovarianceMatrix:
 
     def get_covariance_emulator(
         self,
-        xi_data: np.array = None,
-        covariance_data: np.array = None,
         fractional: bool = False,
-        clip_errors: bool = False,
-        clipping_factor: float = 3.0,
         return_mean: bool = False,
     ) -> np.array:
         """Estimate the emulator's error on the test set
@@ -242,19 +241,6 @@ class CovarianceMatrix:
         xi_test = self.get_true_test(test_cosmologies=test_cosmologies)
         inputs = self.get_inputs_test(test_cosmologies=test_cosmologies)
         xi_model = self.get_emulator_predictions(inputs=inputs)
-        if clip_errors:
-            if covariance_data is None or xi_data is None:
-                raise ValueError(
-                    "Covariance data and xi_data must be specified when clipping errors."
-                )
-            xi_test, mask = self.clip_xi_test(
-                xi_test=xi_test,
-                xi_data=xi_data,
-                covariance_data=covariance_data,
-                return_mask=True,
-                clipping_factor=clipping_factor,
-            )
-            xi_model = xi_model[mask]
         absolute_error = xi_model - xi_test
         if fractional:
             if return_mean:
@@ -265,38 +251,6 @@ class CovarianceMatrix:
         if return_mean:
             return np.cov(absolute_error, rowvar=False), np.mean(absolute_error, axis=0)
         return np.cov(absolute_error, rowvar=False)
-
-    def clip_xi_test(
-        self,
-        xi_test: np.array,
-        xi_data: np.array,
-        covariance_data: np.array,
-        clipping_factor: float = 3.0,
-        return_mask: bool = False,
-    ) -> np.array:
-        """Clip data to remove outliers
-
-        Args:
-            xi_test (np.array): test set to clip
-            xi_data (np.array): observed data vector
-            covariance_data (np.array): covariance matrix of the data
-            clipping_factor (float, optional): clipping factor. Defaults to 3.0.
-            return_mask (bool, optional): whether to return the mask. Defaults to False.
-
-        Returns:
-            np.array: clipped data
-        """
-        inv_cov = np.linalg.inv(covariance_data)
-        chi2 = []
-        for i in range(len(xi_test)):
-            res = xi_data - xi_test[i]
-            chi2.append(np.dot(res, np.dot(inv_cov, res)))
-        chi2 = np.asarray(chi2)
-        c, low, upp = sigmaclip(chi2, low=clipping_factor, high=clipping_factor)
-        mask = (chi2 > low) & (chi2 < upp)
-        if return_mask:
-            return xi_test[mask], mask
-        return xi_test[mask]
 
 
 def normalize_cov(cov):
