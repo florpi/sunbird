@@ -47,7 +47,7 @@ class HMC(Inference):
             select_filters=self.select_filters,
             slice_filters=self.slice_filters,
         )
-        if self.add_prediced_uncertainty:
+        if self.add_predicted_uncertainty:
             covariance_matrix = self.covariance_matrix + np.diag(predicted_uncertainty**2)
         else:
             covariance_matrix = self.covariance_matrix
