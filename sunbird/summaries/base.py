@@ -27,16 +27,15 @@ DEFAULT_COSMO_PARAMS = [
     "w0_fld",
     "wa_fld",
 ]
+
 DEFAULT_GAL_PARAMS = [
-    "logM1",
     "logM_cut",
-    "alpha",
-    "alpha_s",
-    "alpha_c",
+    "logM1",
     "logsigma",
+    "alpha",
     "kappa",
-    "B_cen",
-    "B_sat",
+    "alpha_c",
+    "alpha_s",
 ]
 
 

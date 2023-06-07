@@ -19,6 +19,7 @@ class DataReader(ABC):
             "density_split_auto",
             "density_split_cross",
             "tpcf",
+            "voids",
         ],
         select_filters: Optional[Dict] = {
             "multipoles": [0, 2],
@@ -81,6 +82,11 @@ class DataReader(ABC):
             return (
                 self.data_path
                 / f"clustering/{dataset}/tpcf/tpcf_multipoles_{suffix}.npy"
+            )
+        elif statistic == "voids":
+            return (
+                self.data_path
+                / f"clustering/{dataset}/voids/voids_multipoles_{suffix}.npy"
             )
         elif statistic == "density_pdf":
             return (
@@ -176,6 +182,7 @@ class DataReader(ABC):
                 data = np.mean(data, axis=1)
             else:
                 data = np.mean(data, axis=0)
+        print(data)
         summary = convert_to_summary(
             data=data,
             dimensions=dimensions,
@@ -192,11 +199,12 @@ class Abacus(DataReader):
     def __init__(
         self,
         data_path: Optional[Path] = DATA_PATH,
-        dataset: Optional[str] = "wideprior_AB",
+        dataset: Optional[str] = "voidprior_AB",
         statistics: Optional[List[str]] = [
             "density_split_auto",
             "density_split_cross",
             "tpcf",
+            "voids",
         ],
         select_filters: Optional[Dict] = {
             "multipoles": [0, 2],
@@ -321,11 +329,12 @@ class AbacusCutSky(DataReader):
     def __init__(
         self,
         data_path: Optional[Path] = DATA_PATH,
-        dataset: Optional[str] = "bossprior",
+        dataset: Optional[str] = "voidprior",
         statistics: Optional[List[str]] = [
             "density_split_auto",
             "density_split_cross",
             "tpcf",
+            "voids",
         ],
         select_filters: Optional[Dict] = {
             "multipoles": [0, 2],
@@ -450,12 +459,13 @@ class AbacusCutSky(DataReader):
 class AbacusSmall(DataReader):
     def __init__(
         self,
-        dataset: str = "wideprior_AB",
+        dataset: str = "voidprior_AB",
         data_path: Optional[Path] = DATA_PATH,
         statistics: Optional[List[str]] = [
             "density_split_auto",
             "density_split_cross",
             "tpcf",
+            "voids",
         ],
         select_filters: Optional[Dict] = {
             "multipoles": [0, 2],
@@ -640,6 +650,7 @@ class Patchy(DataReader):
             "density_split_auto",
             "density_split_cross",
             "tpcf",
+            "voids",
         ],
         select_filters: Optional[Dict] = {
             "multipoles": [0, 2],
@@ -734,7 +745,7 @@ class CMASS(DataReader):
     def __init__(
         self,
         data_path=DATA_PATH,
-        statistics: List[str] = ["density_split_auto", "density_split_cross", "tpcf"],
+        statistics: List[str] = ["density_split_auto", "density_split_cross", "tpcf", "voids"],
         select_filters: Dict = {
             "multipoles": [
                 0,

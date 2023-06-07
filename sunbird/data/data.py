@@ -6,7 +6,7 @@ import json
 import xarray as xr
 import pytorch_lightning as pl
 from torch.utils.data import TensorDataset, DataLoader
-from sunbird.data.data_readers import Abacus
+from sunbird.data.data_readers import AbacusCutSky
 from sunbird.data.data_utils import convert_selection_to_filters
 from sunbird.data import transforms
 
@@ -64,7 +64,7 @@ class AbacusDataModule(pl.LightningDataModule):
         self.input_transforms = input_transforms
         self.output_transforms = output_transforms
         self.fixed_cosmology = fixed_cosmology
-        self.data = Abacus(
+        self.data = AbacusCutSky(
             dataset=abacus_dataset,
             statistics=[self.statistic],
             select_filters=self.select_filters,
