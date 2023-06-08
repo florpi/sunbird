@@ -1,6 +1,5 @@
-=======
-SUNBIRD
-=======
+Getting started
+===============
 
 SUNBIRD provides routines to train neural-network-based models for galaxy clustering. It also incorporates
 pre-trained models for different summary statistics, including:
@@ -11,9 +10,3 @@ pre-trained models for different summary statistics, including:
 
 These models have been trained on mock galaxy catalogues based on the AbacusSummit simulations. The
 models are described in detail in `this paper <https://arxiv.org/abs/2007.09089>`_.
-
-.. toctree::
-   :maxdepth: 1
-
-   building
-   gettingstarted
