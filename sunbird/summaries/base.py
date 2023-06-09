@@ -34,8 +34,6 @@ DEFAULT_GAL_PARAMS = [
     "logsigma",
     "alpha",
     "kappa",
-    "alpha_c",
-    "alpha_s",
 ]
 
 
