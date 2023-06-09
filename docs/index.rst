@@ -1,27 +1,20 @@
-.. sunbird documentation master file, created by
-   sphinx-quickstart on Wed Mar  1 22:06:14 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+=======
+SUNBIRD
+=======
 
-sunbird
-===================================
+SUNBIRD provides routines to train neural-network-based models for galaxy clustering. It also incorporates
+pre-trained models for different summary statistics, including:
 
-sunbird is a scientific package for the analysis of astronomical data.
+- Galaxy two-point correlation function
+- Density-split clustering statistics
+- Void-galaxy cross-correlation function.
+
+These models have been trained on mock galaxy catalogues based on the AbacusSummit simulations. The
+models are described in detail in Cuesta-Lazaro et al. (in preparation).
 
 .. toctree::
    :maxdepth: 1
-   :caption: User documentation
 
    building
-   api
-
-.. toctree::
-  :hidden:
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   gettingstarted
+   training
