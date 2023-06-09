@@ -182,7 +182,6 @@ class DataReader(ABC):
                 data = np.mean(data, axis=1)
             else:
                 data = np.mean(data, axis=0)
-        print(data)
         summary = convert_to_summary(
             data=data,
             dimensions=dimensions,
