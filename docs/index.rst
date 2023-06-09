@@ -10,10 +10,11 @@ pre-trained models for different summary statistics, including:
 - Void-galaxy cross-correlation function.
 
 These models have been trained on mock galaxy catalogues based on the AbacusSummit simulations. The
-models are described in detail in `this paper <https://arxiv.org/abs/2007.09089>`_.
+models are described in detail in Cuesta-Lazaro et al. (in preparation).
 
 .. toctree::
    :maxdepth: 1
 
    building
    gettingstarted
+   training
