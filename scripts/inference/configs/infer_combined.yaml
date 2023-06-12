@@ -4,44 +4,37 @@ slice_filters:
 
 select_filters:
     quintiles: [0,1,3,4,]
-    multipoles: [0,2]
+    multipoles: [0,1]
 
-statistics: ['density_split_cross', 'density_split_auto']
+statistics: ['density_split_auto', 'density_split_cross']
 data:
     observation: 
         class: 'Abacus'
         args:
-            dataset: 'bossprior'
-        get_obs_args:
-            cosmology: 0  
-            hod_idx: 26 
+            cosmology: 0
+            hod_idx: 0
     covariance:
-        class: 'AbacusSmall'
-        dataset: 'bossprior'
-        add_emulator_error_test_set: true
+        class: 'Patchy'
+        add_emulator_error: true
         add_simulation_error: true
-        add_prediced_uncertainty: false
-        volume_scaling: 64.0
+        volume_scaling: 1.0
 
-fixed_parameters: [] #'w0_fld', 'wa_fld', 'nrun', 'N_ur'] 
+fixed_parameters: [] 
 
 theory_model:
     module: 'sunbird.summaries'
     class: 'Bundle'
-    args:
-        dataset: 'bossprior'
-        loss: 'learned_gaussian'
 
 inference:
-    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/bossprior_all_nopdf'
+    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/ds_cross_auto_test'
 
 priors:
     stats_module: 'scipy.stats'
     omega_b:
-        distribution: 'uniform'
-        min: 0.0207
-        max: 0.0243
-    
+        distribution: 'norm'
+        mean: 0.02268
+        dispersion: 0.00038
+
     omega_cdm:
         distribution: 'uniform'
         min: 0.1032
@@ -77,33 +70,39 @@ priors:
 
     logM1:
         distribution: 'uniform'
-        min: 13.2
-        max: 14.4
+        min: 12.5
+        max: 15.
 
     logM_cut:
         distribution: 'uniform'
-        min: 12.4
-        max: 13.3
+        min: 12.
+        max: 13.5
+
     alpha:
         distribution: 'uniform'
-        min: 0.7
+        min: 0.3
         max: 1.5
+
     alpha_s:
         distribution: 'uniform'
-        min: 0.7
-        max: 1.3
+        min: 0.
+        max: 2.
+
     alpha_c:
         distribution: 'uniform'
         min: 0.
-        max: 0.5
-    logsigma:
+        max: 1.
+
+    sigma:
         distribution: 'uniform'
-        min: -3.
+        min: -7.
         max: 0
+
     kappa:
         distribution: 'uniform'
         min: 0.
         max: 1.5
+
     B_cen:
         distribution: 'uniform'
         min: -0.5
@@ -113,3 +112,6 @@ priors:
         distribution: 'uniform'
         min: -1.
         max: 1.
+
+
+
