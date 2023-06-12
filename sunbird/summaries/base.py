@@ -31,11 +31,10 @@ DEFAULT_COSMO_PARAMS = [
 DEFAULT_GAL_PARAMS = [
     "logM_cut",
     "logM1",
-    "logsigma",
+    "sigma",
     "alpha",
     "kappa",
 ]
-
 
 class BaseSummary:
     def __init__(
