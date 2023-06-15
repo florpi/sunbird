@@ -474,7 +474,7 @@ class AbacusSmall(DataReader):
             slice_filters=slice_filters,
             transforms=transforms,
             avg_los=True
-            if dataset in ("widreprior_AB", "fixed_cosmo_bossprior")
+            if dataset in ("bossprior", "wideprior_AB", "fixed_cosmo_bossprior")
             else False,
         )
         self.dataset = f"abacus_small/{dataset}"
@@ -497,7 +497,7 @@ class AbacusSmall(DataReader):
         return super().get_file_path(
             dataset=self.dataset,
             statistic=statistic,
-            suffix="c000_hod26",
+            suffix="c000_hodbest_avg_los",
         )
 
     def get_observation(
