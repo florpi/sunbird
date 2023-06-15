@@ -200,7 +200,6 @@ class BaseSummary:
         slice_filters: Optional[Dict] = None,
         use_xarray: bool = False,
         batch: bool = False,
-        return_errors: bool = True,
     ) -> Union[np.array, xarray.DataArray]:
         """Forward pass of the neural network
 
@@ -243,12 +242,8 @@ class BaseSummary:
             use_xarray=use_xarray,
         )
         if use_xarray:
-            if return_errors:
-                return prediction, errors
-            return prediction
-        if return_errors:
-            return prediction.reshape(-1), errors.reshape(-1)
-        return prediction.reshape(-1)
+            return prediction, errors
+        return prediction.reshape(-1), errors.reshape(-1)
 
     def find_index(self, arr, num, mode="below"):
         if mode == "below":
@@ -372,7 +367,6 @@ class BaseSummary:
         select_filters: Optional[Dict] = None,
         slice_filters: Optional[Dict] = None,
         use_xarray: bool = False,
-        return_errors: bool = True,
     ) -> Union[np.array, xarray.DataArray]:
         inputs = np.array([param_dict[k] for k in self.input_names]).reshape(1, -1)
         return self.get_for_sample(
@@ -380,16 +374,14 @@ class BaseSummary:
             select_filters=select_filters,
             slice_filters=slice_filters,
             use_xarray=use_xarray,
-            return_errors=return_errors,
         )
 
-    def get_for_sample(self, inputs, select_filters, slice_filters, use_xarray, return_errors):
+    def get_for_sample(self, inputs, select_filters, slice_filters, use_xarray,):
         return self.forward(
             inputs,
             select_filters=select_filters,
             slice_filters=slice_filters,
             use_xarray=use_xarray,
-            return_errors=return_errors,
         )
 
     def get_for_batch(
@@ -398,7 +390,6 @@ class BaseSummary:
         select_filters,
         slice_filters,
         use_xarray=False,
-        return_errors=True,
     ):
         inputs = torch.tensor(
             np.array([param_dict[k] for k in self.input_names]),
@@ -409,7 +400,6 @@ class BaseSummary:
             select_filters=select_filters,
             slice_filters=slice_filters,
             use_xarray=use_xarray,
-            return_errors=return_errors,
         )
 
     def get_for_batch_inputs(
@@ -418,7 +408,6 @@ class BaseSummary:
         select_filters=None,
         slice_filters=None,
         use_xarray=False,
-        return_errors=True,
     ):
         outputs, variance = self.forward(
             inputs,
@@ -426,7 +415,6 @@ class BaseSummary:
             slice_filters=slice_filters,
             batch=True,
             use_xarray=use_xarray,
-            return_errors=return_errors,
         )
         if use_xarray:
             outputs = outputs.values
