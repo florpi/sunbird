@@ -33,6 +33,7 @@ class Bundle(BaseSummary):
                 loss=loss,
                 flax=flax,
                 n_hod_realizations=n_hod_realizations,
+                path_to_models=path_to_models,
                 suffix=suffix,
             ),
             "density_split_cross": DensitySplitCross(
