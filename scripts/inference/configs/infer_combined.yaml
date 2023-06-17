@@ -18,10 +18,10 @@ data:
     covariance:
         class: 'AbacusSmall'
         dataset: 'bossprior'
-        add_emulator_error_test_set: true
+        add_emulator_error_test_set: false 
         add_simulation_error: true
-        add_prediced_uncertainty: false
-        volume_scaling: 64.0
+        add_predicted_uncertainty: true 
+        volume_scaling: 8.0
 
 fixed_parameters: [] #'w0_fld', 'wa_fld', 'nrun', 'N_ur'] 
 
@@ -33,7 +33,7 @@ theory_model:
         loss: 'learned_gaussian'
 
 inference:
-    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/bossprior_all_nopdf'
+    output_dir: '/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/emulator_paper/'
 
 priors:
     stats_module: 'scipy.stats'

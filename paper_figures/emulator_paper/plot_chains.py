@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 from getdist import plots, MCSamples
 import matplotlib.pyplot as plt
-plt.style.use(["science"])
+plt.style.use(["science","no-latex"])
 
 
 labels = {
@@ -162,10 +162,10 @@ if __name__ == '__main__':
         f'bossprior_smin0.70_smax150.00_q0134_m02_{statistics[1]}',
     ]
     chains = [
-        #get_chain_from_full_path(path_to_chains / f'{filenames[0]}/results.csv'),
-        #get_chain_from_full_path(path_to_chains / f'{filenames[1]}/results.csv'),
-        get_chain_from_full_path(path_to_chains.parent / 'enrique/abacus_cosmo0_hod26_smin0.70_smax150.00_q0134_m02_ds_cross_vol64_test2/results.csv'),
-        #get_chain_from_full_path(path_to_chains / 'bossprior_cross/results.csv'),
+        get_chain_from_full_path(path_to_chains / 'bossprior_c0_h26_smin0.70_smax150.00_q0134_m02_density_split_auto_density_split_cross_losslearned_gaussian_notesterror/results.csv'),
+        get_chain_from_full_path(path_to_chains / 'bossprior_c0_h26_smin0.70_smax150.00_q0134_m02_density_split_auto_density_split_cross_lossmae_noprederror/results.csv'),
+        get_chain_from_full_path(path_to_chains / 'bossprior_c0_h26_smin0.70_smax150.00_q0134_m02_density_split_auto_density_split_cross_losslearned_gaussian_notesterror_noprederror/results.csv'),
+        get_chain_from_full_path(path_to_chains / 'bossprior_c0_h26_smin0.70_smax150.00_q0134_m02_density_split_auto_density_split_cross_lossmae_notesterror_noprederror/results.csv'),
     ]
     true_params = get_true_params(0,26)
     g = plot_samples(
@@ -184,7 +184,7 @@ if __name__ == '__main__':
         colors=['lightseagreen', 'mediumorchid',],# 'blue', 'gray'],
         #labels=statistics,
         #labels=['TPCF', r'$\mathrm{DS}_\mathrm{cross}$',],
-        labels=['Enrique',],# 'Mine'],
+        labels=['Gaussian + Errors', 'MAE + Test errors', 'Gausian + No errors', 'MAE + No errors'],
         markers=[
             true_params,
         ],
@@ -211,7 +211,7 @@ if __name__ == '__main__':
         colors=['lightseagreen', 'mediumorchid',],# 'blue', 'gray'],
         #labels=statistics,
         #labels=['TPCF', r'$\mathrm{DS}_\mathrm{cross}$',],
-        labels=['Enrique', 'Mine'],
+        labels=['Gaussian + Errors', 'MAE + Test errors', 'Gausian + No errors', 'MAE + No errors'],
         markers=[
             true_params,
         ],
