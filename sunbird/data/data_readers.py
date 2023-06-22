@@ -369,11 +369,7 @@ class AbacusSmall(DataReader):
         return super().get_file_path(
             dataset=self.dataset,
             statistic=statistic,
-<<<<<<< HEAD
-            suffix="c000_hodbest",
-=======
             suffix="c000_hodbest_avg_los",
->>>>>>> 3fefc736026f3f84be862e9795f98005666523a0
         )
 
     def get_observation(
