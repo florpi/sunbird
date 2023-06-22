@@ -16,7 +16,7 @@ class Bundle(BaseSummary):
         dataset: str = "bossprior",
         n_hod_realizations: Optional[int] = None,
         suffix: Optional[str] = None,
-        loss: str = "learned_gaussian",
+        loss: str = "mae",
         flax: bool = False,
         path_to_models: Path = DEFAULT_PATH,
     ):
