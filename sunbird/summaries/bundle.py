@@ -1,8 +1,12 @@
 from typing import List, Dict, Optional
 import numpy as np
+from pathlib import Path
 import jax.numpy as jnp
 from sunbird.summaries.base import BaseSummary
 from sunbird.summaries import TPCF, DensitySplitAuto, DensitySplitCross, DensityPDF
+
+
+DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best/"
 
 
 class Bundle(BaseSummary):
@@ -14,6 +18,7 @@ class Bundle(BaseSummary):
         suffix: Optional[str] = None,
         loss: str = "learned_gaussian",
         flax: bool = False,
+        path_to_models: Path = DEFAULT_PATH,
     ):
         """Combine a list of summaries into a bundle
 
@@ -23,19 +28,21 @@ class Bundle(BaseSummary):
         self.summaries = summaries
         self.flax = flax 
         self.all_summaries = {
-             "tpcf": TPCF(
-                 dataset=dataset,
-                 loss=loss,
-                 flax=flax,
-                 n_hod_realizations=n_hod_realizations,
-                 suffix=suffix,
-             ),
+            "tpcf": TPCF(
+                dataset=dataset,
+                loss=loss,
+                flax=flax,
+                n_hod_realizations=n_hod_realizations,
+                path_to_models=path_to_models,
+                suffix=suffix,
+            ),
             "density_split_cross": DensitySplitCross(
                 dataset=dataset,
                 loss=loss,
                 flax=flax,
                 n_hod_realizations=n_hod_realizations,
                 suffix=suffix,
+                path_to_models=path_to_models,
             ),
             "density_split_auto": DensitySplitAuto(
                 dataset=dataset,
@@ -43,6 +50,7 @@ class Bundle(BaseSummary):
                 flax=flax,
                 n_hod_realizations=n_hod_realizations,
                 suffix=suffix,
+                path_to_models=path_to_models,
             ),
             "density_pdf": DensityPDF(
                 dataset=dataset,
@@ -50,6 +58,7 @@ class Bundle(BaseSummary):
                 flax=flax,
                 n_hod_realizations=n_hod_realizations,
                 suffix=suffix,
+                path_to_models=path_to_models,
             ),
         }
 

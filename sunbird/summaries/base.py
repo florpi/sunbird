@@ -14,7 +14,7 @@ from sunbird.emulators import FCN, FlaxFCN
 from sunbird.data import transforms
 from sunbird.data.data_utils import convert_selection_to_filters, convert_to_summary
 
-DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/"
+DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best/"
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 DEFAULT_COSMO_PARAMS = [
@@ -376,7 +376,7 @@ class BaseSummary:
             use_xarray=use_xarray,
         )
 
-    def get_for_sample(self, inputs, select_filters, slice_filters, use_xarray):
+    def get_for_sample(self, inputs, select_filters, slice_filters, use_xarray,):
         return self.forward(
             inputs,
             select_filters=select_filters,
@@ -438,13 +438,14 @@ class BaseSummaryFolder(BaseSummary):
         flax: bool = False,
         **kwargs,
     ):
+        path_to_models = Path(path_to_models)
         if n_hod_realizations is not None:
             path_to_model = (
                 path_to_models
-                / f"best/{dataset}/{loss}/{statistic}_hod{n_hod_realizations}"
+                / f"{dataset}/{loss}/{statistic}_hod{n_hod_realizations}"
             )
         else:
-            path_to_model = path_to_models / f"best/{dataset}/{loss}/{statistic}"
+            path_to_model = path_to_models / f"{dataset}/{loss}/{statistic}"
         if suffix is not None:
             path_to_model = path_to_model.parent / (path_to_model.name + f"_{suffix}")
         model, flax_params = self.load_model(
