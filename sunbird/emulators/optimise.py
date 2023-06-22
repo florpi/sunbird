@@ -50,7 +50,7 @@ if __name__ == "__main__":
     parser = FCN.add_model_specific_args(parser)
     args = parser.parse_args()
 
-    n_trials = 200
+    n_trials = 500
     study = optuna.create_study()
     optimize_objective = lambda trial: objective(trial, args)
     study.optimize(optimize_objective, n_trials=n_trials)
