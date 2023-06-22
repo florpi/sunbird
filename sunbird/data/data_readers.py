@@ -317,134 +317,6 @@ class Abacus(DataReader):
             "wa_fld",
         ]
 
-class AbacusCutSky(DataReader):
-    def __init__(
-        self,
-        data_path: Optional[Path] = DATA_PATH,
-        dataset: Optional[str] = "bossprior",
-        statistics: Optional[List[str]] = [
-            "density_split_auto",
-            "density_split_cross",
-            "tpcf",
-        ],
-        select_filters: Optional[Dict] = {
-            "multipoles": [0, 2],
-            "quintiles": [0, 1, 3, 4],
-        },
-        slice_filters: Optional[Dict] = {"s": [0.7, 150.0]},
-        transforms: Optional[Dict[str, BaseTransform]] = None,
-    ):
-        """Abacus data class for the abacus summit latin hypercube of simulations.
-
-        Args:
-            data_path (Path, optional): path where data is stored. Defaults to DATA_PATH.
-            dataset (str, optional): dataset to read. Defaults to "different_hods_linsigma".
-            statistics (List[str], optional): summary statistics to read.
-            Defaults to ["density_split_auto", "density_split_cross", "tpcf"].
-            select_filters (Dict, optional): filters to select values along coordinates.
-            Defaults to {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]}.
-            slice_filters (Dict, optional): filters to slice values along coordinates.
-            Defaults to {"s": [0.7, 150.0]}.
-            transforms (Dict, optional): transforms to apply to data. Defaults to None.
-        """
-        super().__init__(
-            data_path=data_path,
-            statistics=statistics,
-            select_filters=select_filters,
-            slice_filters=slice_filters,
-            transforms=transforms,
-            avg_los=False,
-        )
-        self.dataset = f"abacus_cutsky/{dataset}"
-
-    def get_file_path(
-        self,
-        statistic: str,
-        cosmology: int,
-        phase: int,
-    ) -> Path:
-        """get file path where data is stored for a given statistic, cosmology, and phase
-
-        Args:
-            statistic (str): summary statistic to read
-            cosmology (int): cosmology to read within abacus' latin hypercube
-            phase (int): phase to read
-
-        Returns:
-            Path: path to where data is stored
-        """
-        return super().get_file_path(
-            dataset=self.dataset,
-            statistic=statistic,
-            suffix=f"c{str(cosmology).zfill(3)}_ph{str(phase).zfill(3)}",
-        )
-
-    def get_observation(
-        self,
-        cosmology: int,
-        hod_idx: int,
-        phase: int = 0,
-    ) -> np.array:
-        """get array of a given observation at a cosmology, hod_idx, and phase
-
-        Args:
-            cosmology (int): cosmology to read within abacus' latin hypercube
-            hod_idx (int): hod_idx to read within a given cosmology
-            phase (int): phase to read
-
-        Returns:
-            np.array: flattened observation
-        """
-        return super().get_observation(
-            cosmology=cosmology,
-            phase=phase,
-            select_from_coords={"realizations": hod_idx},
-        )
-
-    def get_all_parameters(self, cosmology: int) -> pd.DataFrame:
-        """dataframe of parameters used for a given cosmology
-
-        Args:
-            cosmology (int): cosmology to read within abacus' latin hypercube
-
-        Returns:
-            pd.DataFrame: dataframe of cosmology + HOD parameters
-        """
-        return pd.read_csv(
-            self.data_path
-            / f"parameters/{self.dataset}/AbacusSummit_c{str(cosmology).zfill(3)}.csv"
-        )
-
-    def get_parameters_for_observation(
-        self,
-        cosmology: int,
-        hod_idx: int,
-    ) -> Dict:
-        """get cosmology + HOD parameters for a particular observation
-
-        Args:
-            cosmology (int): cosmology to read within abacus' latin hypercube
-            hod_idx (int): hod_idx to read within a given cosmology
-
-        Returns:
-            Dict: dictionary of cosmology + HOD parameters
-        """
-        return self.get_all_parameters(cosmology=cosmology).iloc[hod_idx].to_dict()
-
-    @property
-    def cosmological_parameters(
-        self,
-    ):
-        return [
-            "omega_b",
-            "omega_cdm",
-            "sigma8_m",
-            "n_s",
-            "nrun",
-            "N_ur",
-            "w0_fld",
-            "wa_fld",
-        ]
 
 
 class AbacusSmall(DataReader):
@@ -614,7 +486,6 @@ class Uchuu(DataReader):
 
     def get_parameters_for_observation(
         self,
-        ranking: str='random',
     ) -> Dict:
         """get cosmological parameters for a particular observation
 
@@ -633,9 +504,10 @@ class Uchuu(DataReader):
         }
 
 
-class Patchy(DataReader):
+class AbacusCutsky(DataReader):
     def __init__(
         self,
+        dataset: str = "bossprior",
         data_path: Optional[Path] = DATA_PATH,
         statistics: Optional[List[str]] = [
             "density_split_auto",
@@ -675,6 +547,7 @@ class Patchy(DataReader):
         self.normalization_dict = normalization_dict
         self.standarize = standarize
         self.normalize = normalize
+        self.dataset = f"abacus_cutsky/{dataset}"
 
     def get_file_path(
         self,
@@ -689,7 +562,7 @@ class Patchy(DataReader):
             Path: path to where data is stored
         """
         return super().get_file_path(
-            dataset="patchy",
+            dataset=self.dataset,
             statistic=statistic,
             suffix=f"ngc_landyszalay",
         )
@@ -713,6 +586,108 @@ class Patchy(DataReader):
 
     def get_parameters_for_observation(
         self,
+        phase: int,
+    ) -> Dict:
+        """get cosmological parameters for a particular observation
+
+        Returns:
+            Dict: dictionary of cosmology + HOD parameters
+        """
+        return {
+            "omega_b": 0.02237,
+            "omega_cdm": 0.1200,
+            "sigma8_m": 0.807952,
+            "n_s": 0.9649,
+            "nrun": 0.0,
+            "N_ur": 2.0328,
+            "w0_fld": -1.0,
+            "wa_fld": 0.0,
+        }
+
+
+class Patchy(DataReader):
+    def __init__(
+        self,
+        dataset: str = "bossprior",
+        data_path: Optional[Path] = DATA_PATH,
+        statistics: Optional[List[str]] = [
+            "density_split_auto",
+            "density_split_cross",
+            "tpcf",
+        ],
+        select_filters: Optional[Dict] = {
+            "multipoles": [0, 2],
+            "quintiles": [0, 1, 3, 4],
+        },
+        slice_filters: Optional[Dict] = {"s": [0.7, 150.0]},
+        normalization_dict: Optional[Dict] = None,
+        standarize: bool = False,
+        normalize: bool = False,
+        transforms: Optional[Dict[str, BaseTransform]] = None,
+    ):
+        """Patchy data class for the pathcy mocks.
+
+        Args:
+            data_path (Path, optional): path where data is stored. Defaults to DATA_PATH.
+            statistics (List[str], optional): summary statistics to read.
+            Defaults to ["density_split_auto", "density_split_cross", "tpcf"].
+            select_filters (Dict, optional): filters to select values along coordinates.
+            Defaults to {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]}.
+            slice_filters (Dict, optional): filters to slice values along coordinates.
+            Defaults to {"s": [0.7, 150.0]}.
+            transforms (Dict, optional): transforms to apply to data. Defaults to None.
+        """
+        super().__init__(
+            data_path=data_path,
+            statistics=statistics,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            transforms=transforms,
+            avg_los=False,
+        )
+        self.normalization_dict = normalization_dict
+        self.standarize = standarize
+        self.normalize = normalize
+        self.dataset = f"patchy/{dataset}"
+
+    def get_file_path(
+        self,
+        statistic: str,
+    ):
+        """get file path where data is stored for a given statistic
+
+        Args:
+            statistic (str): summary statistic to read
+
+        Returns:
+            Path: path to where data is stored
+        """
+        return super().get_file_path(
+            dataset=self.dataset,
+            statistic=statistic,
+            suffix=f"ngc_landyszalay",
+        )
+
+    def get_observation(
+        self,
+        phase: int,
+    ) -> np.array:
+        """get array of a given observation at a given phase
+
+        Args:
+            phase (int): random phase to read
+
+        Returns:
+            np.array: flattened observation
+        """
+        return super().get_observation(
+            select_from_coords={"realizations": phase},
+            multiple_realizations=True,
+        )
+
+    def get_parameters_for_observation(
+        self,
+        phase: int,
     ) -> Dict:
         """get cosmological parameters for a particular observation
 
@@ -734,6 +709,7 @@ class Patchy(DataReader):
 class CMASS(DataReader):
     def __init__(
         self,
+        dataset="bossprior",
         data_path=DATA_PATH,
         statistics: List[str] = ["density_split_auto", "density_split_cross", "tpcf"],
         select_filters: Dict = {
@@ -764,8 +740,10 @@ class CMASS(DataReader):
             select_filters=select_filters,
             slice_filters=slice_filters,
             transforms=transforms,
-            avg_los=True,
+            avg_los=False,
         )
+
+        self.dataset = f"cmass/{dataset}"
 
     def get_file_path(
         self,
@@ -780,14 +758,14 @@ class CMASS(DataReader):
             Path: path to where data is stored
         """
         return super().get_file_path(
-            dataset="cmass",
+            dataset=self.dataset,
             statistic=statistic,
             suffix="ngc_landyszalay",
         )
 
     def get_observation(
         self,
-        galactic_cap="ngc",
+        region="ngc",
     ) -> np.array:
         """get array of a given observation at a cosmology and ranking
 
@@ -800,7 +778,7 @@ class CMASS(DataReader):
 
     def get_parameters_for_observation(
         self,
-        galactic_cap="ngc",
+        region="ngc",
     ) -> Dict:
         """get cosmological parameters for a particular observation
 
@@ -808,15 +786,16 @@ class CMASS(DataReader):
             Dict: dictionary of cosmology + HOD parameters
         """
         return {
-            "omega_b": 0.02213,
-            "omega_cdm": 0.11891,
-            "sigma8_m": 0.8288,
-            "n_s": 0.9611,
+            "omega_b": 0.02237,
+            "omega_cdm": 0.1200,
+            "sigma8_m": 0.807952,
+            "n_s": 0.9649,
             "nrun": 0.0,
             "N_ur": 2.0328,
             "w0_fld": -1.0,
             "wa_fld": 0.0,
         }
+
 
 
 class Beyond2pt(DataReader):
