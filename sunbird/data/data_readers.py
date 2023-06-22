@@ -317,6 +317,135 @@ class Abacus(DataReader):
             "wa_fld",
         ]
 
+class AbacusCutSky(DataReader):
+    def __init__(
+        self,
+        data_path: Optional[Path] = DATA_PATH,
+        dataset: Optional[str] = "bossprior",
+        statistics: Optional[List[str]] = [
+            "density_split_auto",
+            "density_split_cross",
+            "tpcf",
+        ],
+        select_filters: Optional[Dict] = {
+            "multipoles": [0, 2],
+            "quintiles": [0, 1, 3, 4],
+        },
+        slice_filters: Optional[Dict] = {"s": [0.7, 150.0]},
+        transforms: Optional[Dict[str, BaseTransform]] = None,
+    ):
+        """Abacus data class for the abacus summit latin hypercube of simulations.
+
+        Args:
+            data_path (Path, optional): path where data is stored. Defaults to DATA_PATH.
+            dataset (str, optional): dataset to read. Defaults to "different_hods_linsigma".
+            statistics (List[str], optional): summary statistics to read.
+            Defaults to ["density_split_auto", "density_split_cross", "tpcf"].
+            select_filters (Dict, optional): filters to select values along coordinates.
+            Defaults to {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]}.
+            slice_filters (Dict, optional): filters to slice values along coordinates.
+            Defaults to {"s": [0.7, 150.0]}.
+            transforms (Dict, optional): transforms to apply to data. Defaults to None.
+        """
+        super().__init__(
+            data_path=data_path,
+            statistics=statistics,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            transforms=transforms,
+            avg_los=False,
+        )
+        self.dataset = f"abacus_cutsky/{dataset}"
+
+    def get_file_path(
+        self,
+        statistic: str,
+        cosmology: int,
+        phase: int,
+    ) -> Path:
+        """get file path where data is stored for a given statistic, cosmology, and phase
+
+        Args:
+            statistic (str): summary statistic to read
+            cosmology (int): cosmology to read within abacus' latin hypercube
+            phase (int): phase to read
+
+        Returns:
+            Path: path to where data is stored
+        """
+        return super().get_file_path(
+            dataset=self.dataset,
+            statistic=statistic,
+            suffix=f"c{str(cosmology).zfill(3)}_ph{str(phase).zfill(3)}",
+        )
+
+    def get_observation(
+        self,
+        cosmology: int,
+        hod_idx: int,
+        phase: int = 0,
+    ) -> np.array:
+        """get array of a given observation at a cosmology, hod_idx, and phase
+
+        Args:
+            cosmology (int): cosmology to read within abacus' latin hypercube
+            hod_idx (int): hod_idx to read within a given cosmology
+            phase (int): phase to read
+
+        Returns:
+            np.array: flattened observation
+        """
+        return super().get_observation(
+            cosmology=cosmology,
+            phase=phase,
+            select_from_coords={"realizations": hod_idx},
+        )
+
+    def get_all_parameters(self, cosmology: int) -> pd.DataFrame:
+        """dataframe of parameters used for a given cosmology
+
+        Args:
+            cosmology (int): cosmology to read within abacus' latin hypercube
+
+        Returns:
+            pd.DataFrame: dataframe of cosmology + HOD parameters
+        """
+        return pd.read_csv(
+            self.data_path
+            / f"parameters/{self.dataset}/AbacusSummit_c{str(cosmology).zfill(3)}.csv"
+        )
+
+    def get_parameters_for_observation(
+        self,
+        cosmology: int,
+        hod_idx: int,
+    ) -> Dict:
+        """get cosmology + HOD parameters for a particular observation
+
+        Args:
+            cosmology (int): cosmology to read within abacus' latin hypercube
+            hod_idx (int): hod_idx to read within a given cosmology
+
+        Returns:
+            Dict: dictionary of cosmology + HOD parameters
+        """
+        return self.get_all_parameters(cosmology=cosmology).iloc[hod_idx].to_dict()
+
+    @property
+    def cosmological_parameters(
+        self,
+    ):
+        return [
+            "omega_b",
+            "omega_cdm",
+            "sigma8_m",
+            "n_s",
+            "nrun",
+            "N_ur",
+            "w0_fld",
+            "wa_fld",
+        ]
+
 
 class AbacusSmall(DataReader):
     def __init__(
@@ -345,7 +474,7 @@ class AbacusSmall(DataReader):
             slice_filters=slice_filters,
             transforms=transforms,
             avg_los=True
-            if dataset in ("widreprior_AB", "fixed_cosmo_bossprior")
+            if dataset in ("bossprior", "wideprior_AB", "fixed_cosmo_bossprior")
             else False,
         )
         self.dataset = f"abacus_small/{dataset}"
@@ -368,7 +497,11 @@ class AbacusSmall(DataReader):
         return super().get_file_path(
             dataset=self.dataset,
             statistic=statistic,
+<<<<<<< HEAD
             suffix="c000_hodbest",
+=======
+            suffix="c000_hodbest_avg_los",
+>>>>>>> 3fefc736026f3f84be862e9795f98005666523a0
         )
 
     def get_observation(

@@ -3,7 +3,7 @@ from typing import Optional
 from sunbird.summaries.base import BaseSummaryFolder
 
 
-DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/"
+DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best/"
 DEFAULT_DATA_PATH = Path(__file__).parent.parent.parent / "data/"
 
 
@@ -11,7 +11,7 @@ class DensitySplitCross(BaseSummaryFolder):
     def __init__(
         self,
         dataset: str = "bossprior",
-        loss: str = 'learned_gaussian',
+        loss: str = 'mae',
         n_hod_realizations: Optional[int] = None,
         suffix: Optional[str] = None,
         path_to_models: Path = DEFAULT_PATH,
@@ -19,6 +19,7 @@ class DensitySplitCross(BaseSummaryFolder):
         flax: bool = False,
         **kwargs,
     ):
+        print(f"path_to_models: {path_to_models}")
         super().__init__(
             statistic="ds_cross",
             loss=loss,
@@ -35,7 +36,7 @@ class DensitySplitAuto(BaseSummaryFolder):
     def __init__(
         self,
         dataset: str = "bossprior",
-        loss: str = 'learned_gaussian',
+        loss: str = 'mae',
         n_hod_realizations: Optional[int] = None,
         suffix: Optional[str] = None,
         path_to_models: Path = DEFAULT_PATH,

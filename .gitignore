@@ -1,3 +1,9 @@
+data/
+chains/
+trained_models/*
+!trained_models/best
+!trained_models/enrique/best
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
