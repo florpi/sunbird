@@ -19,7 +19,7 @@ class DensitySplitCross(BaseSummaryFolder):
         flax: bool = False,
         **kwargs,
     ):
-        print(f"path_to_models: {path_to_models}")
+        print(f"cross loss: {loss}")
         super().__init__(
             statistic="ds_cross",
             loss=loss,
@@ -44,6 +44,7 @@ class DensitySplitAuto(BaseSummaryFolder):
         flax: bool = False,
         **kwargs,
     ):
+        print(f"auto loss: {loss}")
         super().__init__(
             statistic="ds_auto",
             loss=loss,
