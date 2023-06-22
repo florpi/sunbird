@@ -10,7 +10,7 @@ class DensityPDF(BaseSummaryFolder):
     def __init__(
         self,
         dataset: str = "bossprior",
-        loss: str = "learned_gaussian",
+        loss: str = "mae",
         n_hod_realizations: Optional[int] = None,
         suffix: Optional[str] = None,
         path_to_models: Path = DEFAULT_PATH,
