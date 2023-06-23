@@ -13,7 +13,7 @@ check_val_every_n_epoch: 1
 default_root_dir: null
 detect_anomaly: false
 devices: null
-dropout_rate: 0.002763949390281852
+dropout_rate: 0.0009555613359031184
 enable_checkpointing: true
 enable_model_summary: true
 enable_progress_bar: true
@@ -26,7 +26,7 @@ independent_avg_scale: false
 inference_mode: true
 input_parameters: null
 ipus: null
-learning_rate: 0.00990053511975868
+learning_rate: 0.006534710218459395
 limit_predict_batches: null
 limit_test_batches: null
 limit_train_batches: null
@@ -44,9 +44,9 @@ model_dir: ../../trained_models
 move_metrics_to_cpu: false
 multiple_trainloader_mode: max_size_cycle
 n_hidden:
-- 767
-- 460
-- 487
+- 1010
+- 930
+- 585
 n_hod_realizations: null
 n_input: 17
 n_output: 288
@@ -79,4 +79,4 @@ tpu_cores: null
 track_grad_norm: -1
 train_test_split_path: ../../data/train_test_split.json
 val_check_interval: null
-weight_decay: 0.0006506060272348849
+weight_decay: 0.0003140639967567734
