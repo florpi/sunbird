@@ -6,7 +6,7 @@ import colorsys
 from sunbird.data.data_readers import Abacus
 from sunbird.summaries import DensitySplitCross, DensitySplitAuto, DensityPDF, TPCF
 from sunbird.covariance import CovarianceMatrix 
-plt.style.use(["science", "no-latex"])
+plt.style.use(["science",])
 #colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 colors = ["lightseagreen", "mediumorchid", "salmon", "royalblue", "rosybrown"]
 
@@ -79,12 +79,9 @@ def plot_density_pdf(
         alpha=0.5,
     )
 
-    #plt.yscale('log')
     plt.xlim(-1,5)
-    plt.ylabel('P')
-    plt.xlabel('delta')
-    #plt.ylabel(r'$\mathcal{P}(\delta), \, R = 10$ Mpc/h')
-    #plt.xlabel(r'$\delta$')
+    plt.ylabel(r'$\mathcal{P}(\delta), \, R = 10$ Mpc/h')
+    plt.xlabel(r'$\delta$')
     plt.legend()
     return fig
 
@@ -107,19 +104,11 @@ def plot_density_multipole(
         hod_idx = hod_idx,
     )
     pred_statistic = pred_statistic.reshape(true_statistic.shape)
-    pred_error_statistic = pred_error_statistic.reshape(true_statistic.shape)
     yerr = yerr.reshape(true_statistic.shape)
     s = stat.coordinates['s']
 
     fig = plt.figure()
     for quantile in range(4):
-        c = plt.fill_between(
-            s,
-            s**2*(pred_statistic[quantile,multipole] - pred_error_statistic[quantile,multipole]),
-            s**2*(pred_statistic[quantile,multipole] + pred_error_statistic[quantile,multipole]),
-            alpha=0.5,
-            color=colors[quantile],
-        )
         plt.plot(
             s,
             s**2*pred_statistic[quantile, multipole],
@@ -138,11 +127,19 @@ def plot_density_multipole(
             marker='o',
             capsize=0.8,
             color=colors[quantile],
-            #alpha=0.5,
         )        
-    plt.ylabel('Monopole')
-    plt.xlabel('r [Mpc/h]')
-    #plt.xlim(0,50)
+    if corr_type == 'cross':
+        if multipole == 0:
+            label =  r'$\xi^{\rm QG}_0(s)$'
+        elif multipole == 1:
+            label =  r'$\xi^{\rm QG}_2(s)$'
+    elif corr_type == 'auto':
+        if multipole == 0:
+            label =  r'$\xi^{\rm QQ}_0(s)$'
+        elif multipole == 1:
+            label =  r'$\xi^{\rm QQ}_2(s)$'
+    plt.ylabel(label)
+    plt.xlabel(r"s $[\mathrm{Mpc}/h]$")
     plt.legend(fontsize=7)
     return fig
 
@@ -153,7 +150,7 @@ def plot_density_multipole(
 if __name__ == '__main__':
     cosmology = 0
     hod_idx = 26  
-    loss = 'learned_gaussian'
+    loss = 'mae'
     dataset = 'bossprior'
     statistic = 'density_pdf'
     emulators = {

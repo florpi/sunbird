@@ -150,22 +150,11 @@ def plot_samples(
 if __name__ == '__main__':
     path_to_chains = Path('/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/emulator_paper')
 
-    statistics = [
-        #'nested_density_split_cross_nopreduncertainty_gauss',
-        #'density_split_cross_gauss',
-        'nested_density_split_cross_gauss_nopreduncertainty',
-        'nested_density_split_cross_mae_nopreduncertainty',
-        #'nested_density_split_cross_nopreduncertainty_mae', 
-    ]
-    filenames = [
-        f'bossprior_smin0.70_smax150.00_q0134_m02_{statistics[0]}',
-        f'bossprior_smin0.70_smax150.00_q0134_m02_{statistics[1]}',
-    ]
     chains = [
-        get_chain_from_full_path(path_to_chains / 'bossprior_c0_h26_smin0.70_smax150.00_q0134_m02_density_split_auto_density_split_cross_losslearned_gaussian_notesterror/results.csv'),
-        get_chain_from_full_path(path_to_chains / 'bossprior_c0_h26_smin0.70_smax150.00_q0134_m02_density_split_auto_density_split_cross_lossmae_noprederror/results.csv'),
-        get_chain_from_full_path(path_to_chains / 'bossprior_c0_h26_smin0.70_smax150.00_q0134_m02_density_split_auto_density_split_cross_losslearned_gaussian_notesterror_noprederror/results.csv'),
-        get_chain_from_full_path(path_to_chains / 'bossprior_c0_h26_smin0.70_smax150.00_q0134_m02_density_split_auto_density_split_cross_lossmae_notesterror_noprederror/results.csv'),
+        get_chain_from_full_path(path_to_chains / 'cross_mae/results.csv'),
+        get_chain_from_full_path(path_to_chains / 'cross_learned_error/results.csv'),
+        get_chain_from_full_path(path_to_chains / 'cross_mae_noerror/results.csv'),
+        get_chain_from_full_path(path_to_chains / 'cross_learned_no_error/results.csv'),
     ]
     true_params = get_true_params(0,26)
     g = plot_samples(
@@ -181,10 +170,10 @@ if __name__ == '__main__':
             "w0_fld",
             "wa_fld",
         ],
-        colors=['lightseagreen', 'mediumorchid',],# 'blue', 'gray'],
+        colors=['lightseagreen', 'mediumorchid','blue', 'gray'],
         #labels=statistics,
         #labels=['TPCF', r'$\mathrm{DS}_\mathrm{cross}$',],
-        labels=['Gaussian + Errors', 'MAE + Test errors', 'Gausian + No errors', 'MAE + No errors'],
+        labels=['MAE + Test errors', 'Gauss + Learned errors', 'MAE + No errors', 'Gauss + No errors'],
         markers=[
             true_params,
         ],
