@@ -4,12 +4,12 @@ from densitysplit.pipeline import DensitySplit
 from pathlib import Path
 from pypower import setup_logging
 from pycorr import TwoPointCorrelationFunction
-from cosmoprimo.fiducial import AbacusSummit
-from cosmoprimo.cosmology import Cosmology
 from scipy.interpolate import RectBivariateSpline
 from scipy import special
 import time
 import warnings
+from cosmoprimo.fiducial import AbacusSummit
+
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
 
@@ -144,13 +144,7 @@ if __name__ == '__main__':
     nquantiles = 5
 
     # Patchy cosmology as our fiducial
-    fid_cosmo = Cosmology(
-        Omega_m=0.307115,
-        Omega_b=0.048,
-        sigma8=0.8288,
-        h=0.677,
-        engine='class'
-    )
+    fid_cosmo = AbacusSummit(0)
     # Uchuu cosmology
     Omega_m = 0.3089
     Omega_l = 1 - Omega_m
@@ -173,8 +167,8 @@ if __name__ == '__main__':
         x, y, z, x_rsd, y_rsd, z_rsd = read_mock(ranked_by_mass=True if ranking=='ranked' else False)
 
         # if output files exist, skip to next iteration
-        cross_fn = uchuu_data / f'ds/ds_cross_xi_smu_{split}split_{filter_shape.lower()}_Rs{smooth_ds}_{ranking}.npy'
-        auto_fn = uchuu_data / f'ds/ds_auto_xi_smu_{split}split_{filter_shape.lower()}_Rs{smooth_ds}_{ranking}.npy'
+        cross_fn = uchuu_data / f'ds/ds_cross_xi_multipoles_{split}split_{filter_shape.lower()}_Rs{smooth_ds}_{ranking}.npy'
+        auto_fn = uchuu_data / f'ds/ds_auto_multipoles_{split}split_{filter_shape.lower()}_Rs{smooth_ds}_{ranking}.npy'
         cross_los = []
         auto_los = []
         mean_density_los = []
