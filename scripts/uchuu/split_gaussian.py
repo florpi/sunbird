@@ -167,8 +167,8 @@ if __name__ == '__main__':
         x, y, z, x_rsd, y_rsd, z_rsd = read_mock(ranked_by_mass=True if ranking=='ranked' else False)
 
         # if output files exist, skip to next iteration
-        cross_fn = uchuu_data / f'ds/ds_cross_xi_multipoles_{split}split_{filter_shape.lower()}_Rs{smooth_ds}_{ranking}.npy'
-        auto_fn = uchuu_data / f'ds/ds_auto_multipoles_{split}split_{filter_shape.lower()}_Rs{smooth_ds}_{ranking}.npy'
+        cross_fn = uchuu_data / f'ds/ds_cross_multipoles_{split}split__Rs{smooth_ds}_{ranking}.npy'
+        auto_fn = uchuu_data / f'ds/ds_auto_multipoles_{split}split_Rs{smooth_ds}_{ranking}.npy'
         cross_los = []
         auto_los = []
         mean_density_los = []

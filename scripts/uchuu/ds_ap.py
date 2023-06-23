@@ -116,6 +116,7 @@ if __name__ == '__main__':
     cellsize = 5.0
     redshift = 0.57
     split = 'z'
+    target_nd = 3.5e-4
     filter_shape = 'Gaussian'
     smoothing_radius = 10
     redges = np.hstack(
@@ -139,12 +140,12 @@ if __name__ == '__main__':
     q_perp = mock_cosmo.comoving_angular_distance(redshift) / fid_cosmo.comoving_angular_distance(redshift)
     q_para = fid_cosmo.efunc(redshift) / mock_cosmo.efunc(redshift)
     q = q_perp**(2/3) * q_para**(1/3)
-    x, y, z, x_rsd, y_rsd, z_rsd = get_rsd_positions()
+    x, y, z, x_rsd, y_rsd, z_rsd = get_rsd_positions(target_nd=target_nd,)
 
     for ranking in ['random', 'ranked']:
         print(f'Ranking = {ranking}')
-        cross_fn = uchuu_data / f'ds/ds_cross_xi_multipoles_{split}split_{filter_shape.lower()}_Rs{smoothing_radius}_{ranking}.npy'
-        auto_fn = uchuu_data / f'ds/ds_auto_multipoles_{split}split_{filter_shape.lower()}_Rs{smoothing_radius}_{ranking}.npy'
+        cross_fn = uchuu_data / f'ds/gaussian/ds_cross_xi_multipoles_{split}split_{filter_shape.lower()}_Rs{smoothing_radius}_{ranking}.npy'
+        auto_fn = uchuu_data / f'ds/gaussian/ds_auto_multipoles_{split}split_{filter_shape.lower()}_Rs{smoothing_radius}_{ranking}.npy'
 
         cross_los = []
         auto_los = []
