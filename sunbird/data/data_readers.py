@@ -192,7 +192,7 @@ class Abacus(DataReader):
     def __init__(
         self,
         data_path: Optional[Path] = DATA_PATH,
-        dataset: Optional[str] = "wideprior_AB",
+        dataset: Optional[str] = "bossprior",
         statistics: Optional[List[str]] = [
             "density_split_auto",
             "density_split_cross",
@@ -486,6 +486,7 @@ class Uchuu(DataReader):
 
     def get_parameters_for_observation(
         self,
+        ranking: str = 'random',
     ) -> Dict:
         """get cosmological parameters for a particular observation
 

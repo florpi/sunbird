@@ -6,7 +6,7 @@ import colorsys
 from sunbird.data.data_readers import Abacus
 from sunbird.summaries import DensitySplitCross, DensitySplitAuto, DensityPDF, TPCF
 from sunbird.covariance import CovarianceMatrix 
-plt.style.use(["science",])
+plt.style.use(["science","no-latex"])
 #colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 colors = ["lightseagreen", "mediumorchid", "salmon", "royalblue", "rosybrown"]
 
@@ -52,6 +52,7 @@ def plot_density_pdf(
         cosmology=cosmology,
         hod_idx = hod_idx,
     )
+    print(stat.coordinates)
     delta = stat.coordinates['delta']
     fig = plt.figure()
     c = plt.plot(
