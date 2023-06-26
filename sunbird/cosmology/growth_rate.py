@@ -143,6 +143,25 @@ class Growth:
             )
         )
 
+    def Omega_de(self, omega_cdm, omega_b, h, omega_ncdm, w0_fld, wa_fld, z):
+        Omega_m = self.Omega_m0(
+            omega_cdm=omega_cdm,
+            omega_b=omega_b,
+            h=h,
+            omega_ncdm=omega_ncdm,
+        )
+        return (
+            (1 - Omega_m)
+            * (1 + z) ** (3 * (1 + w0_fld + wa_fld))
+            * np.exp(-3 * wa_fld * z / (1 + z))
+            / (
+                Omega_m * (1 + z) ** 3
+                + (1 - Omega_m)
+                * (1 + z) ** (3.0 * (1.0 + w0_fld + wa_fld))
+                * np.exp(-3.0 * wa_fld * z / (1 + z))
+            )
+        )
+
     def approximate_growth_rate(
         self,
         omega_cdm,
@@ -163,6 +182,88 @@ class Growth:
         wz1 = w0_fld + (1.0 - 0.5) * wa_fld
         return self.Omega_m(omega_cdm, omega_b, h, omega_ncdm, w0_fld, wa_fld, z) ** (
             0.55 + 0.05 * (1 + wz1)
+        )
+
+    def approximate_growth_factor(
+        self,
+        omega_cdm,
+        omega_b,
+        h,
+        omega_ncdm,
+        w0_fld,
+        wa_fld,
+        z,
+    ):
+        """
+        Approximation of growth factor.
+
+        Parameters
+        ----------
+        z : array_like
+            Redshifts.
+
+        References
+        ----------
+        https://arxiv.org/abs/astro-ph/9709112, eq. 4
+        https://ui.adsabs.harvard.edu/abs/1992ARA%26A..30..499C/abstract, eq. 29
+        """
+
+        def growth(z):
+            Omega_m = self.Omega_m(
+                omega_cdm=omega_cdm,
+                omega_b=omega_b,
+                h=h,
+                omega_ncdm=omega_ncdm,
+                w0_fld=w0_fld,
+                wa_fld=wa_fld,
+                z=z,
+            )
+            Omega_de = self.Omega_de(
+                omega_cdm=omega_cdm,
+                omega_b=omega_b,
+                h=h,
+                omega_ncdm=omega_ncdm,
+                w0_fld=w0_fld,
+                wa_fld=wa_fld,
+                z=z,
+            )
+            return (
+                1.0
+                / (1 + z)
+                * 5
+                * Omega_m
+                / 2.0
+                / (
+                    Omega_m ** (4.0 / 7.0)
+                    - Omega_de
+                    + (1.0 + Omega_m / 2.0) * (1 + Omega_de / 70.0)
+                )
+            )
+
+        return growth(z) / growth(0.0)
+
+    def sigma8_z(
+        self,
+        sigma8,
+        omega_cdm,
+        omega_b,
+        h,
+        omega_ncdm,
+        w0_fld,
+        wa_fld,
+        z,
+    ):
+        return (
+            self.approximate_growth_factor(
+                omega_cdm=omega_cdm,
+                omega_b=omega_b,
+                h=h,
+                omega_ncdm=omega_ncdm,
+                w0_fld=w0_fld,
+                wa_fld=wa_fld,
+                z=z,
+            )
+            * sigma8
         )
 
     def load_emulator_parameters(
@@ -237,18 +338,6 @@ class Growth:
                 omega_ncdm=omega_ncdm,
                 z=z,
             )
-            """
-            cosmology = DESI(**dict(
-                    omega_b=omega_b,
-                    omega_cdm=omega_cdm,
-                    sigma8=sigma8,
-                    n_s=n_s,
-                    N_ur=N_ur,
-                    w0_fld=w0_fld,
-                    wa_fld=wa_fld,
-                    h=h[0],
-                ))
-            """
         else:
             cosmology = self.get_cosmology_fixed_theta_star(
                 DESI(engine="class"),
@@ -264,6 +353,64 @@ class Growth:
                 ),
             )
             return cosmology.growth_rate(z)
+
+    def get_fsigma8(
+        self,
+        omega_b: float,
+        omega_cdm: float,
+        sigma8: float,
+        n_s: float,
+        N_ur: float,
+        w0_fld: float,
+        wa_fld: float,
+        z: float,
+        omega_ncdm: float = 0.00064420,
+    ):
+        if self.emulate:
+            h = self.get_emulated_h(
+                omega_b=omega_b,
+                omega_cdm=omega_cdm,
+                sigma8=sigma8,
+                N_ur=N_ur,
+                n_s=n_s,
+                w0_fld=w0_fld,
+                wa_fld=wa_fld,
+            ).squeeze()
+            growth_rate = self.approximate_growth_rate(
+                omega_cdm=omega_cdm,
+                omega_b=omega_b,
+                h=h,
+                w0_fld=w0_fld,
+                wa_fld=wa_fld,
+                omega_ncdm=omega_ncdm,
+                z=z,
+            )
+            sigma8_z = self.sigma8_z(
+                sigma8=sigma8,
+                omega_cdm=omega_cdm,
+                omega_b=omega_b,
+                h=h,
+                w0_fld=w0_fld,
+                wa_fld=wa_fld,
+                omega_ncdm=omega_ncdm,
+                z=z,
+            )
+            return growth_rate * sigma8_z
+        else:
+            cosmology = self.get_cosmology_fixed_theta_star(
+                DESI(engine="class"),
+                dict(
+                    theta_star=self.theta_star,
+                    omega_b=omega_b,
+                    omega_cdm=omega_cdm,
+                    sigma8=sigma8,
+                    n_s=n_s,
+                    N_ur=N_ur,
+                    w0_fld=w0_fld,
+                    wa_fld=wa_fld,
+                ),
+            )
+            return cosmology.sigma8_z(z) * cosmology.growth_rate(z)
 
 
 if __name__ == "__main__":
