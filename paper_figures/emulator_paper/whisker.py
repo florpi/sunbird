@@ -6,15 +6,26 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import argparse
 from cosmoprimo.fiducial import AbacusSummit
+from sunbird.cosmology.growth_rate import Growth
 
-plt.style.use(['science.mplstyle', 'no-latex'])
+plt.style.use(['science.mplstyle',])# 'no-latex'])
 
-redshift = 0.4
+redshift = 0.5
 
-def read_dynesty_chain(filename,): 
+def read_dynesty_chain(filename, add_fsigma8=False,): 
     data = pd.read_csv(filename)
-    # remove column
-    data = data.drop(columns=['weights'])
+    if add_fsigma8:
+        growth_rate = growth.get_growth(
+            omega_b = data['omega_b'].to_numpy(),
+            omega_cdm = data['omega_cdm'].to_numpy(),
+            sigma8 = data['sigma8_m'].to_numpy(),
+            n_s = data['n_s'].to_numpy(),
+            N_ur = data['N_ur'].to_numpy(),
+            w0_fld = data['w0_fld'].to_numpy(),
+            wa_fld = data['wa_fld'].to_numpy(),
+            z=redshift,
+        )
+        data['fsigma8'] = growth_rate * data['sigma8_m'].to_numpy()
     data = data.to_numpy()
     chain = data[:, 4:]
     weights = np.exp(data[:, 1] - data[-1, 2])
@@ -29,7 +40,7 @@ def get_true_params(cosmology, hod_idx):
     )
 
 args  = argparse.ArgumentParser()
-args.add_argument('--chain_dir', type=str, default='/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/enrique/emulator_paper/')
+args.add_argument('--chain_dir', type=str, default='/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/enrique/')
 args = args.parse_args()
 
 chain_dir = Path(args.chain_dir)
@@ -57,13 +68,31 @@ chain_labels = [
     r'$s_{\rm min}=30\,h^{-1}{\rm Mpc}$',
     'baseline',
 ]
+growth = Growth(emulate=True,)
+
 true_params = get_true_params(0,26)
-true_params['fsigma8'] =  AbacusSummit(0).growth_rate(redshift)
+pred_growth = growth.get_growth(
+    omega_b = np.array(true_params['omega_b']).reshape(1,1),
+    omega_cdm = np.array(true_params['omega_cdm']).reshape(1,1),
+    sigma8 = np.array(true_params['sigma8_m']).reshape(1,1),
+    n_s = np.array(true_params['n_s']).reshape(1,1),
+    N_ur = np.array(true_params['N_ur']).reshape(1,1),
+    w0_fld = np.array(true_params['w0_fld']).reshape(1,1),
+    wa_fld = np.array(true_params['wa_fld']).reshape(1,1),
+    z=redshift,
+)
+
+true_growth = AbacusSummit(0).growth_rate(redshift)
+print(pred_growth)
+print(true_growth)
+print((pred_growth - true_growth)/true_growth)
+true_params['fsigma8'] = true_params['sigma8_m'] * AbacusSummit(0).growth_rate(redshift)
 print(true_params)
 
 yvals = np.linspace(0, 10, len(chain_handles))
 params_toplot = ['omega_cdm', 'sigma8_m', 'n_s', 'fsigma8']
 labels_toplot = [r'$\omega_{\rm cdm}$', r'$\sigma_8$', r'$n_s$', r'$f\sigma_8$']
+
 
 fig, ax = plt.subplots(1, len(params_toplot), figsize=(11, 4.5))
 for iparam, param in enumerate(params_toplot):
@@ -92,11 +121,12 @@ for iparam, param in enumerate(params_toplot):
             labels = [r'\omega_b', r'\omega_{\rm cdm}', r'\sigma_8', 'n_s',
                     'logM_1', r'logM_{\rm cut}', r'\alpha', r'\alpha_{\rm vel, s}',
                     r'\alpha_{\rm vel, c}', r'\log \sigma', r'\kappa', r'B_{\rm cen}', r'B_{\rm sat}']
-        names.append('fsigma8')
-        labels.append(r'f\sigma_8')
+        if param == 'fsigma8':
+            names.append('fsigma8')
+            labels.append(r'f\sigma_8')
 
+        chain, weights = read_dynesty_chain(chain_fn, add_fsigma8=True if param == 'fsigma8' else False)
 
-        chain, weights = read_dynesty_chain(chain_fn,)
         samples = MCSamples(samples=chain, weights=weights, labels=labels, names=names)
         # print(samples.getTable(limit=1).tableTex())
 
