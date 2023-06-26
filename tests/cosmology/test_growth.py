@@ -22,6 +22,28 @@ def test_Omega_m():
         pred_Omega_ms.append(pred_Om)
     np.testing.assert_allclose(true_Omega_ms, pred_Omega_ms, rtol=0.01)
 
+
+
+def test_growth_given_true():
+    growth = Growth(emulate=True)
+    cosmologies = list(range(5)) + list(range(130,181, 5))
+    true_growth, pred_growth= [], []
+    for cosmo in cosmologies:
+        original_abacus = AbacusSummit(cosmo)
+        abacus_params = AbacusSummit_params(name=cosmo)
+        pred_g= growth.approximate_growth_rate(
+            omega_cdm=abacus_params['omega_cdm'],
+            omega_b=abacus_params['omega_b'],
+            h=abacus_params['h'],
+            omega_ncdm=abacus_params['omega_ncdm'],
+            w0_fld=abacus_params['w0_fld'],
+            wa_fld=abacus_params['wa_fld'],
+            z=0.5,
+        )
+        true_growth.append(original_abacus.growth_rate(0.5))
+        pred_growth.append(pred_g)
+    np.testing.assert_allclose(true_growth, pred_growth, rtol=0.01)
+
 def test__solve_eq_abacus_emulated():
     redshift = 0.4
     growth = Growth(emulate=True)

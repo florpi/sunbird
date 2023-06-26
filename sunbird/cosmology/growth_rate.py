@@ -16,8 +16,6 @@ import optax
 from sunbird.emulators.models.simple_flax import SimpleNN
 
 DEFAULT_PATH = Path(__file__).parent.parent.parent
-# Omega_m = (w_b + w_c + w_nu) / h^2
-# https://github.com/cosmodesi/cosmoprimo/blob/6cb2850432f760f3100fb8fe1256c6a9175282eb/cosmoprimo/eisenstein_hu.py#L139
 
 
 class Growth:
@@ -89,8 +87,6 @@ class Growth:
             # samples_matrix = np.concatenate(all_samples,axis=0)
             h_values = [item for sublist in h_values for item in sublist]
             samples = np.array([item for sublist in samples for item in sublist])
-            print("h shape = ", len(h_values))
-            print("samples shape = ", samples.shape)
             data_dict = dict(zip(parameters.keys(), samples.T))
             data_dict["h"] = np.array(h_values)
             for key in data_dict.keys():
