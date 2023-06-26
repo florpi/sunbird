@@ -1,11 +1,10 @@
-import pandas as pd
+import time
 import numpy as np
+import pandas as pd
 from pathlib import Path
-from pycorr import setup_logging, TwoPointCorrelationFunction
+from pypower import setup_logging
+from pycorr import TwoPointCorrelationFunction
 from cosmoprimo.fiducial import AbacusSummit
-from cosmoprimo.cosmology import Cosmology
-from scipy.interpolate import RectBivariateSpline
-from scipy import special
 import time
 import warnings
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
@@ -17,8 +16,7 @@ def downsample(df, target_nd, ranked_by_mass=True,):
         return df.sort_values(by='mgal', ascending=False).iloc[:n]
     return df.sample(n=n)
 
-
-def read_mock(target_nd=3.e-4, ranked_by_mass=True, return_rsd=True):
+def get_rsd_positions(target_nd=3.e-4, ranked_by_mass=True, return_rsd=True):
     """Read positions and velocities from input fits
     catalogue and return real and redshift-space
     positions."""
@@ -35,9 +33,9 @@ def read_mock(target_nd=3.e-4, ranked_by_mass=True, return_rsd=True):
     vy = df['vy'].values
     vz = df['vz'].values
     if return_rsd:
-        x_rsd = x + vx / (Hz * az)
-        y_rsd = y + vy / (Hz * az)
-        z_rsd = z + vz / (Hz * az)
+        x_rsd = x + vx / (hubble * az)
+        y_rsd = y + vy / (hubble * az)
+        z_rsd = z + vz / (hubble * az)
         x_rsd = x_rsd % boxsize
         y_rsd = y_rsd % boxsize
         z_rsd = z_rsd % boxsize
@@ -45,107 +43,104 @@ def read_mock(target_nd=3.e-4, ranked_by_mass=True, return_rsd=True):
     else:
         return x, y, z
 
-def project_to_multipoles(r_c, mu_edges, corr, ells=(0,2,4)):
-    """Return the multiple decomposition of an input correlation
-    function measurement"""
-    if np.ndim(ells) == 0:
-        ells = (ells,)
-    ells = tuple(ells)
-    toret = []
-    for ill,ell in enumerate(ells):
-        dmu = np.diff(mu_edges, axis=-1)
-        poly = special.legendre(ell)(mu_edges)
-        legendre = (2*ell + 1) * (poly[1:] + poly[:-1])/2. * dmu
-        toret.append(np.sum(corr*legendre, axis=-1)/np.sum(dmu))
-    return r_c, toret
 
-def get_distorted_multipoles(result, q_perp, q_para, ells=(0, 2)):
-    """Given an input correlation function measured by pycorr,
-    return the multipoles distorted by the Alcock-Paczynski effect"""
-    s = result.sep[:, 0]
-    mu = result.seps[1][0, :]
-    S, MU = np.meshgrid(s, mu)
-    true_sperp = (S * np.sqrt(1 - MU ** 2) * q_perp).T
-    true_spara = (S * MU * q_para).T
+def get_distorted_positions(positions, q_perp, q_para, los='z'):
+    """Given a set of comoving galaxy positions in cartesian
+    coordinates, return the positions distorted by the 
+    Alcock-Pacynski effect"""
+    positions_ap = np.copy(positions)
+    factor_x = q_para if los == 'x' else q_perp
+    factor_y = q_para if los == 'y' else q_perp
+    factor_z = q_para if los == 'z' else q_perp
+    positions_ap[:, 0] /= factor_x
+    positions_ap[:, 1] /= factor_y
+    positions_ap[:, 2] /= factor_z
+    return positions_ap
 
-    true_s = np.sqrt(true_sperp**2 + true_spara**2)
-    true_mu = true_spara / true_s
-
-    xi_func = RectBivariateSpline(s, mu, result.corr, kx=1, ky=1)
-    true_xi = np.zeros_like(result.corr)
-    for i in range(len(s)):
-        for j in range(len(mu)):
-            true_xi[i, j] = xi_func(true_s[i, j], true_mu[i, j])
-
-    s, multipoles = project_to_multipoles(r_c=s, mu_edges=np.linspace(-1, 1, 241),
-                                          corr=true_xi, ells=ells)
-    return s, multipoles
-
+def get_distorted_box(boxsize, q_perp, q_para, los='z'):
+    """Distort the dimensions of a cubic box with the
+    Alcock-Pacynski effect"""
+    factor_x = q_para if los == 'x' else q_perp
+    factor_y = q_para if los == 'y' else q_perp
+    factor_z = q_para if los == 'z' else q_perp
+    boxsize_ap = [boxsize/factor_x, boxsize/factor_y, boxsize/factor_z]
+    return boxsize_ap
 
 if __name__ == '__main__':
     setup_logging(level='WARNING')
     uchuu_data = Path('../../data/clustering/uchuu/')
+    overwrite = True
+    nthreads = 32 
+    save_mock = True
     boxsize = 2000
+    cellsize = 5.0
     redshift = 0.57
-    # redges = np.hstack([np.arange(0, 5, 1), np.arange(7, 30, 3), np.arange(30, 155, 5)])
-    redges = np.hstack([np.arange(0, 5, 1), np.arange(7, 30, 3), np.arange(31, 155, 5)]) # fixed spacing
+    split = 'z'
+    target_nd = 3.5e-4
+    filter_shape = 'Gaussian'
+    smoothing_radius = 10
+    redges = np.hstack(
+        [np.arange(0, 5, 1),
+        np.arange(7, 30, 3),
+        np.arange(31, 155, 5)]
+    )
     muedges = np.linspace(-1, 1, 241)
     edges = (redges, muedges)
+    nquantiles = 5
 
-    # Patchy cosmology as our fiducial
-    fid_cosmo = Cosmology(
-        Omega_m=0.307115,
-        Omega_b=0.048,
-        sigma8=0.8288,
-        h=0.677,
-        engine='class'
-    )
+    # baseline AbacusSummit cosmology as our fiducial
+    fid_cosmo = AbacusSummit(0)
     # Uchuu cosmology
     Omega_m = 0.3089
-    Omega_l = 1 - Omega_m
-    H_0 = 100.0
-    az = 1 / (1 + redshift)
-    Hz = H_0 * np.sqrt(Omega_m * (1 + redshift)**3 + Omega_l)
+    # cosmology of the mock as the truth
     mock_cosmo = AbacusSummit(Omega_m=Omega_m)
+    az = 1 / (1 + redshift)
+    hubble = 100 * mock_cosmo.efunc(redshift)
     # calculate distortion parameters
-    q_perp = mock_cosmo.comoving_angular_distance(0.5)/fid_cosmo.comoving_angular_distance(0.5)
-    q_para = fid_cosmo.hubble_function(0.5)/mock_cosmo.hubble_function(0.5)
+    q_perp = mock_cosmo.comoving_angular_distance(redshift) / fid_cosmo.comoving_angular_distance(redshift)
+    q_para = fid_cosmo.efunc(redshift) / mock_cosmo.efunc(redshift)
     q = q_perp**(2/3) * q_para**(1/3)
-    print(f'q_perp = {q_perp:.3f}')
-    print(f'q_para = {q_para:.3f}')
-    print(f'q = {q:.3f}')
-
-    for ranking in ['ranked', 'random']:
-        start_time = time.time()
-        x, y, z, x_rsd, y_rsd, z_rsd = read_mock(ranked_by_mass=True if ranking=='ranked' else False)
-
-        auto_los = []
+    for ranking in ['random', 'ranked']:
+        print(f'Ranking = {ranking}')
+        x, y, z, x_rsd, y_rsd, z_rsd = get_rsd_positions(
+            target_nd=target_nd,
+            ranked_by_mass=ranking == 'ranked',
+        )
+        tpcf_los = []
         for los in ['x', 'y', 'z']:
-            xpos = x_rsd if los == 'x' else x
-            ypos = y_rsd if los == 'y' else y
-            zpos = z_rsd if los == 'z' else z
+            if split == 'z':
+                xpos = x_rsd if los == 'x' else x
+                ypos = y_rsd if los == 'y' else y
+                zpos = z_rsd if los == 'z' else z
+            else:
+                xpos, ypos, zpos = x, y, z
 
             data_positions = np.c_[xpos, ypos, zpos]
 
-            # AUTOCORRELATION FUNCTION
-            result = TwoPointCorrelationFunction(
-                'smu', edges=edges, data_positions1=data_positions,
-                los=los, engine='corrfunc', boxsize=boxsize, nthreads=16,
-                compute_sepsavg=False, position_type='pos'
-            )
-            s, multipoles = get_distorted_multipoles(result, q_perp, q_para, ells=(0, 2, 4))
-            auto_los.append(multipoles)
+            data_positions_ap = get_distorted_positions(positions=data_positions, los=los,
+                                                        q_perp=q_perp, q_para=q_para)
+            boxsize_ap = np.array(get_distorted_box(boxsize=boxsize, q_perp=q_perp, q_para=q_para,
+                                                    los=los))
+            boxcenter_ap = boxsize_ap / 2
 
-        auto_los = np.asarray(auto_los)
+            # GALAXY 2PCF
+            start_time = time.time()
+            result = TwoPointCorrelationFunction(
+                'smu', edges=edges, data_positions1=data_positions_ap,
+                engine='corrfunc', boxsize=boxsize_ap, nthreads=nthreads,
+                compute_sepsavg=False, position_type='pos', los=los,
+            )
+            s, multipoles = result(ells=(0, 2, 4), return_sep=True)
+            tpcf_los.append(multipoles)
+            # print(f'2PCF took {time.time() - start_time} sec')
+
+        tpcf_los = np.asarray(tpcf_los)
 
         cout = {
             's': s,
-            'multipoles': auto_los
+            'multipoles': tpcf_los
         }
-        output_dir =  uchuu_data / 'xi_smu/'
+        output_dir = uchuu_data / f'tpcf'
         Path(output_dir).mkdir(parents=True, exist_ok=True)
-        output_fn = Path(output_dir, f'xi_smu_{ranking}.npy')
+        output_fn = output_dir / f'tpcf_multipoles_{ranking}.npy'
         np.save(output_fn, cout)
-
-        end_time = time.time() - start_time
-        print(f'Uchuu took {end_time:.3f} sec')

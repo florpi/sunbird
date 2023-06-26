@@ -1,21 +1,35 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from getdist import plots, MCSamples
 import matplotlib.pyplot as plt
 from pathlib import Path
 import argparse
+from cosmoprimo.fiducial import AbacusSummit
 
-plt.style.use(['science.mplstyle'])
+plt.style.use(['science.mplstyle', 'no-latex'])
 
-def read_dynesty_chain(filename):
-    data = np.genfromtxt(filename, skip_header=1, delimiter=",")
+redshift = 0.4
+
+def read_dynesty_chain(filename,): 
+    data = pd.read_csv(filename)
+    # remove column
+    data = data.drop(columns=['weights'])
+    data = data.to_numpy()
     chain = data[:, 4:]
     weights = np.exp(data[:, 1] - data[-1, 2])
     return chain, weights
 
 
+def get_true_params(cosmology, hod_idx):
+    return dict(
+        pd.read_csv(
+            f"../../data/parameters/abacus/bossprior/AbacusSummit_c{str(cosmology).zfill(3)}.csv"
+        ).iloc[hod_idx]
+    )
+
 args  = argparse.ArgumentParser()
-args.add_argument('--chain_dir', type=str, default='../../chains/enrique')
+args.add_argument('--chain_dir', type=str, default='/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/enrique/emulator_paper/')
 args = args.parse_args()
 
 chain_dir = Path(args.chain_dir)
@@ -43,12 +57,15 @@ chain_labels = [
     r'$s_{\rm min}=30\,h^{-1}{\rm Mpc}$',
     'baseline',
 ]
+true_params = get_true_params(0,26)
+true_params['fsigma8'] =  AbacusSummit(0).growth_rate(redshift)
+print(true_params)
 
 yvals = np.linspace(0, 10, len(chain_handles))
-params_toplot = ['omega_cdm', 'sigma8_m', 'n_s']
-labels_toplot = [r'$\omega_{\rm cdm}$', r'$\sigma_8$', r'$n_s$']
+params_toplot = ['omega_cdm', 'sigma8_m', 'n_s', 'fsigma8']
+labels_toplot = [r'$\omega_{\rm cdm}$', r'$\sigma_8$', r'$n_s$', r'$f\sigma_8$']
 
-fig, ax = plt.subplots(1, len(params_toplot), figsize=(8, 4.5))
+fig, ax = plt.subplots(1, len(params_toplot), figsize=(11, 4.5))
 for iparam, param in enumerate(params_toplot):
     for ichain, chain_handle in enumerate(chain_handles):
         chain_fn = chain_dir / chain_handle / 'results.csv'
@@ -75,19 +92,23 @@ for iparam, param in enumerate(params_toplot):
             labels = [r'\omega_b', r'\omega_{\rm cdm}', r'\sigma_8', 'n_s',
                     'logM_1', r'logM_{\rm cut}', r'\alpha', r'\alpha_{\rm vel, s}',
                     r'\alpha_{\rm vel, c}', r'\log \sigma', r'\kappa', r'B_{\rm cen}', r'B_{\rm sat}']
+        names.append('fsigma8')
+        labels.append(r'f\sigma_8')
 
 
-        chain, weights = read_dynesty_chain(chain_fn)
+        chain, weights = read_dynesty_chain(chain_fn,)
         samples = MCSamples(samples=chain, weights=weights, labels=labels, names=names)
         # print(samples.getTable(limit=1).tableTex())
 
-        ax[iparam].errorbar(samples.mean(param), yvals[ichain],
-                       xerr=samples.std(param), marker='o',
-                       ms=5.0, color='darkblue')
 
         if ichain == len(chain_handles) - 1:
             ax[iparam].fill_betweenx(yvals, samples.mean(param) - samples.std(param),
                                      samples.mean(param) + samples.std(param), alpha=0.2)
+            ax[iparam].plot([true_params[param]]*len(yvals), yvals, color='darkblue',alpha=0.3)
+
+        ax[iparam].errorbar(samples.mean(param), yvals[ichain],
+                       xerr=samples.std(param), marker='o',
+                       ms=5.0, color='darkblue')
 
     ax[iparam].set_xlabel(labels_toplot[iparam], fontsize=20)
     ax[iparam].tick_params(axis='x', labelsize=13, rotation=45)
@@ -99,5 +120,5 @@ for iparam, param in enumerate(params_toplot):
 
 plt.tight_layout()
 plt.subplots_adjust(wspace=0.1)
-plt.savefig('fig/whisker.pdf', bbox_inches='tight')
-plt.show()
+plt.savefig('figures/pdf/whisker.pdf', bbox_inches='tight')
+plt.savefig(f"figures/png/whisker.png", bbox_inches='tight', dpi=300)
