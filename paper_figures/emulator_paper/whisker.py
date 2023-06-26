@@ -8,14 +8,14 @@ import argparse
 from cosmoprimo.fiducial import AbacusSummit
 from sunbird.cosmology.growth_rate import Growth
 
-plt.style.use(['science.mplstyle',])# 'no-latex'])
+plt.style.use(['science.mplstyle', 'no-latex'])
 
 redshift = 0.5
 
 def read_dynesty_chain(filename, add_fsigma8=False,): 
     data = pd.read_csv(filename)
     if add_fsigma8:
-        growth_rate = growth.get_growth(
+        data['fsigma8'] = growth.get_fsigma8(
             omega_b = data['omega_b'].to_numpy(),
             omega_cdm = data['omega_cdm'].to_numpy(),
             sigma8 = data['sigma8_m'].to_numpy(),
@@ -25,7 +25,6 @@ def read_dynesty_chain(filename, add_fsigma8=False,):
             wa_fld = data['wa_fld'].to_numpy(),
             z=redshift,
         )
-        data['fsigma8'] = growth_rate * data['sigma8_m'].to_numpy()
     data = data.to_numpy()
     chain = data[:, 4:]
     weights = np.exp(data[:, 1] - data[-1, 2])
@@ -61,12 +60,12 @@ chain_labels = [
     'Galaxy 2PCF only',
     'DS CCF only',
     'DS CCF + Galaxy 2PCF',
-    'no simulation error',
-    'no emulator error',
+    'No simulation error',
+    'No emulator error',
     r'${\rm Q_0 + Q_4}$'' only',
     r'$s_{\rm max}=30\,h^{-1}{\rm Mpc}$',
     r'$s_{\rm min}=30\,h^{-1}{\rm Mpc}$',
-    'baseline',
+    'Baseline',
 ]
 growth = Growth(emulate=True,)
 
@@ -82,25 +81,22 @@ pred_growth = growth.get_growth(
     z=redshift,
 )
 
-true_growth = AbacusSummit(0).growth_rate(redshift)
-print(pred_growth)
-print(true_growth)
-print((pred_growth - true_growth)/true_growth)
-true_params['fsigma8'] = true_params['sigma8_m'] * AbacusSummit(0).growth_rate(redshift)
-print(true_params)
-
+cosmo = AbacusSummit(0)
+true_params['fsigma8'] = cosmo.sigma8_z(redshift) * cosmo.growth_rate(redshift)
 yvals = np.linspace(0, 10, len(chain_handles))
-params_toplot = ['omega_cdm', 'sigma8_m', 'n_s', 'fsigma8']
+#params_toplot = ['omega_cdm', 'sigma8_m', 'n_s', 'w0_fld', 'wa_fld', 'fsigma8']
+params_toplot = ['omega_cdm', 'sigma8_m', 'n_s','fsigma8']
+#labels_toplot = [r'$\omega_{\rm cdm}$', r'$\sigma_8$', r'$n_s$', r'$w_0$', r'$w_a$', r'$f\sigma_8$']
 labels_toplot = [r'$\omega_{\rm cdm}$', r'$\sigma_8$', r'$n_s$', r'$f\sigma_8$']
 
 
-fig, ax = plt.subplots(1, len(params_toplot), figsize=(11, 4.5))
+fig, ax = plt.subplots(1, len(params_toplot), figsize=(2.5 * len(params_toplot), 4.5))
 for iparam, param in enumerate(params_toplot):
     for ichain, chain_handle in enumerate(chain_handles):
         chain_fn = chain_dir / chain_handle / 'results.csv'
         if 'noabias' in chain_handle:
             names = ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s',
-                     'nrun', 'N_ur', 'w_0', 'w_a',
+                     'nrun', 'N_ur', 'w0_fld', 'wa_fld',
                      'logM1', 'logM_cut', 'alpha', 'alpha_s',
                      'alpha_c', 'sigma', 'kappa',]
             labels = [r'\omega_b', r'\omega_{\rm cdm}', r'\sigma_8', 'n_s',
@@ -108,14 +104,14 @@ for iparam, param in enumerate(params_toplot):
                       r'\alpha_{\rm vel, c}', r'\log \sigma', r'\kappa',]
         elif 'novelbias' in chain_handle:
             names = ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s',
-                     'nrun', 'N_ur', 'w_0', 'w_a',
+                     'nrun', 'N_ur', 'w0_fdl', 'wa_fld',
                      'logM1', 'logM_cut', 'alpha', 'sigma', 'kappa', 'B_cen', 'B_sat']
             labels = [r'\omega_b', r'\omega_{\rm cdm}', r'\sigma_8', 'n_s',
                       'logM_1', r'logM_{\rm cut}', r'\alpha', r'\alpha_{\rm vel, c}',
                       r'\log \sigma', r'\kappa', r'B_{\rm cen}', r'B_{\rm sat}']
         else:
             names = ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s',
-                     'nrun', 'N_ur', 'w_0', 'w_a',
+                     'nrun', 'N_ur', 'w0_fld', 'wa_fld',
                     'logM1', 'logM_cut', 'alpha', 'alpha_s',
                     'alpha_c', 'sigma', 'kappa', 'B_cen', 'B_sat']
             labels = [r'\omega_b', r'\omega_{\rm cdm}', r'\sigma_8', 'n_s',
@@ -123,7 +119,7 @@ for iparam, param in enumerate(params_toplot):
                     r'\alpha_{\rm vel, c}', r'\log \sigma', r'\kappa', r'B_{\rm cen}', r'B_{\rm sat}']
         if param == 'fsigma8':
             names.append('fsigma8')
-            labels.append(r'f\sigma_8')
+            labels.append(r'f\sigma_8(z=0.5)')
 
         chain, weights = read_dynesty_chain(chain_fn, add_fsigma8=True if param == 'fsigma8' else False)
 
@@ -133,12 +129,15 @@ for iparam, param in enumerate(params_toplot):
 
         if ichain == len(chain_handles) - 1:
             ax[iparam].fill_betweenx(yvals, samples.mean(param) - samples.std(param),
-                                     samples.mean(param) + samples.std(param), alpha=0.2)
-            ax[iparam].plot([true_params[param]]*len(yvals), yvals, color='darkblue',alpha=0.3)
+                                     samples.mean(param) + samples.std(param), alpha=0.2, color='gray', edgecolor=None,)
+            ax[iparam].plot([true_params[param]]*len(yvals), yvals, color='gray', linestyle='dashed', alpha=0.3)
 
+        #colors = ["lightseagreen", "mediumorchid", "salmon", "royalblue", "rosybrown"]
         ax[iparam].errorbar(samples.mean(param), yvals[ichain],
                        xerr=samples.std(param), marker='o',
-                       ms=5.0, color='darkblue')
+                       ms=5.0, 
+                       color='maroon', 
+                       capsize=3,)
 
     ax[iparam].set_xlabel(labels_toplot[iparam], fontsize=20)
     ax[iparam].tick_params(axis='x', labelsize=13, rotation=45)
@@ -149,6 +148,6 @@ for iparam, param in enumerate(params_toplot):
         ax[iparam].set_yticklabels(chain_labels, minor=False, rotation=0, fontsize=13)
 
 plt.tight_layout()
-plt.subplots_adjust(wspace=0.1)
+plt.subplots_adjust(wspace=0.125)
 plt.savefig('figures/pdf/whisker.pdf', bbox_inches='tight')
 plt.savefig(f"figures/png/whisker.png", bbox_inches='tight', dpi=300)
