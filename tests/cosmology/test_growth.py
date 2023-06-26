@@ -50,7 +50,6 @@ def test__solve_eq_abacus_emulated():
     mean_error = np.mean((pred_growths - true_growths) / true_growths)
     assert mean_error < 0.01
 
-'''
 def test__solve_eq_abacus():
     redshift = 0.4
     growth = Growth()
@@ -73,4 +72,3 @@ def test__solve_eq_abacus():
         pred_growths.append(pred_growth)
     # assert that the maximum error is less than 1%
     np.testing.assert_allclose(true_growths, pred_growths, rtol=0.01)
-'''
