@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from sunbird.data.data_readers import AbacusSmall
 
-plt.style.use(['science.mplstyle', 'no-latex'])
+plt.style.use(['science.mplstyle'])
 
 
 def compute_mean_cov(summaries, volume_factor=1.):
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     )
     tpcf = abacus.gather_summaries_for_covariance()
 
-    fig, ax = plt.subplots(ncols=3, figsize=(15, 6))
+    fig, ax = plt.subplots(ncols=3, figsize=(15, 4.5))
 
     plot_gaussianity(tpcf.reshape(len(tpcf), -1), ax[0],)
     plot_gaussianity(cross_ds.reshape(len(cross_ds), -1), ax[1])
