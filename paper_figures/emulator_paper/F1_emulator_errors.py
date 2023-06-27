@@ -5,7 +5,7 @@ from sunbird.summaries import Bundle
 from sunbird.covariance import CovarianceMatrix
 import matplotlib.pyplot as plt
 
-plt.style.use(['science.mplstyle', 'no-latex'])
+plt.style.use(['science.mplstyle',])# 'no-latex'])
 
 
 def get_data_errors(
