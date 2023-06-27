@@ -706,6 +706,107 @@ class Patchy(DataReader):
         }
 
 
+class NSeriesCutsky(DataReader):
+    def __init__(
+        self,
+        dataset: str = "bossprior",
+        data_path: Optional[Path] = DATA_PATH,
+        statistics: Optional[List[str]] = [
+            "density_split_auto",
+            "density_split_cross",
+            "tpcf",
+        ],
+        select_filters: Optional[Dict] = {
+            "multipoles": [0, 2],
+            "quintiles": [0, 1, 3, 4],
+        },
+        slice_filters: Optional[Dict] = {"s": [0.7, 150.0]},
+        normalization_dict: Optional[Dict] = None,
+        standarize: bool = False,
+        normalize: bool = False,
+        transforms: Optional[Dict[str, BaseTransform]] = None,
+    ):
+        """Patchy data class for the pathcy mocks.
+
+        Args:
+            data_path (Path, optional): path where data is stored. Defaults to DATA_PATH.
+            statistics (List[str], optional): summary statistics to read.
+            Defaults to ["density_split_auto", "density_split_cross", "tpcf"].
+            select_filters (Dict, optional): filters to select values along coordinates.
+            Defaults to {"multipoles": [0, 2], "quintiles": [0, 1, 3, 4]}.
+            slice_filters (Dict, optional): filters to slice values along coordinates.
+            Defaults to {"s": [0.7, 150.0]}.
+            transforms (Dict, optional): transforms to apply to data. Defaults to None.
+        """
+        super().__init__(
+            data_path=data_path,
+            statistics=statistics,
+            select_filters=select_filters,
+            slice_filters=slice_filters,
+            transforms=transforms,
+            avg_los=False,
+        )
+        self.normalization_dict = normalization_dict
+        self.standarize = standarize
+        self.normalize = normalize
+        self.dataset = f"nseries_cutsky/{dataset}"
+
+    def get_file_path(
+        self,
+        statistic: str,
+    ):
+        """get file path where data is stored for a given statistic
+
+        Args:
+            statistic (str): summary statistic to read
+
+        Returns:
+            Path: path to where data is stored
+        """
+        return super().get_file_path(
+            dataset=self.dataset,
+            statistic=statistic,
+            suffix=f"ngc_landyszalay",
+        )
+
+    def get_observation(
+        self,
+        phase: int,
+    ) -> np.array:
+        """get array of a given observation at a given phase
+
+        Args:
+            phase (int): random phase to read
+
+        Returns:
+            np.array: flattened observation
+        """
+        return super().get_observation(
+            select_from_coords={"realizations": phase},
+            multiple_realizations=True,
+        )
+
+    def get_parameters_for_observation(
+        self,
+        phase: int,
+    ) -> Dict:
+        """get cosmological parameters for a particular observation
+
+        Returns:
+            Dict: dictionary of cosmology + HOD parameters
+        """
+        return {
+            "omega_b": 0.02213,
+            "omega_cdm": 0.11891,
+            "sigma8_m": 0.8288,
+            "n_s": 0.9611,
+            "nrun": 0.0,
+            "N_ur": 2.0328,
+            "w0_fld": -1.0,
+            "wa_fld": 0.0,
+        }
+
+
 class CMASS(DataReader):
     def __init__(
         self,
