@@ -8,7 +8,7 @@ import argparse
 from cosmoprimo.fiducial import AbacusSummit
 from sunbird.cosmology.growth_rate import Growth
 
-plt.style.use(['science.mplstyle', 'no-latex'])
+plt.style.use(['science.mplstyle'])#, 'no-latex'])
 
 redshift = 0.5
 
@@ -136,7 +136,7 @@ for iparam, param in enumerate(params_toplot):
         ax[iparam].errorbar(samples.mean(param), yvals[ichain],
                        xerr=samples.std(param), marker='o',
                        ms=5.0, 
-                       color='maroon', 
+                       color='indigo',#'#4165c0', 
                        capsize=3,)
 
     ax[iparam].set_xlabel(labels_toplot[iparam], fontsize=20)
