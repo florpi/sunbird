@@ -1,6 +1,7 @@
+import pandas as pd
 import time
 import numpy as np
-import pandas as pd
+from densitysplit.pipeline import DensitySplit
 from pathlib import Path
 from pypower import setup_logging
 from pycorr import TwoPointCorrelationFunction
@@ -8,6 +9,8 @@ from cosmoprimo.fiducial import AbacusSummit
 import time
 import warnings
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+
+
 
 
 def downsample(df, target_nd, ranked_by_mass=True,):
@@ -44,6 +47,30 @@ def get_rsd_positions(target_nd=3.e-4, ranked_by_mass=True, return_rsd=True):
         return x, y, z
 
 
+
+def density_split(data_positions, boxsize, boxcenter, seed=42,
+    smoothing_radius=20, nquantiles=5, filter_shape='Gaussian',
+    nthreads=1, method='mesh', cellsize=5.0):
+    """Split random points according to their local density
+    density."""
+    ds = DensitySplit(data_positions=data_positions, boxsize=boxsize,
+                      cellsize=cellsize, boxcenter=boxcenter,
+                      wrap=True, nthreads=nthreads)
+    np.random.seed(seed=seed)
+    sampling_positions = np.random.uniform(0,
+        boxsize, (nquantiles * len(data_positions), 3))
+    if method == 'mesh':
+        density = ds.get_density_mesh(smoothing_radius=smoothing_radius,
+                                      sampling_positions=sampling_positions,)
+    elif method == 'paircount':
+        density = ds.get_density_paircount(smoothing_radius=smoothing_radius,
+            sampling_positions=sampling_positions, nthreads=nthreads,
+            filter_shape=filter_shape)
+    quantiles, quantiles_idx = ds.get_quantiles(
+        nquantiles=nquantiles, return_idx=True)
+    return quantiles, quantiles_idx, density
+
+
 def get_distorted_positions(positions, q_perp, q_para, los='z'):
     """Given a set of comoving galaxy positions in cartesian
     coordinates, return the positions distorted by the 
@@ -66,7 +93,9 @@ def get_distorted_box(boxsize, q_perp, q_para, los='z'):
     boxsize_ap = [boxsize/factor_x, boxsize/factor_y, boxsize/factor_z]
     return boxsize_ap
 
+
 if __name__ == '__main__':
+
     setup_logging(level='WARNING')
     uchuu_data = Path('../../data/clustering/uchuu/')
     overwrite = True
@@ -100,13 +129,18 @@ if __name__ == '__main__':
     q_perp = mock_cosmo.comoving_angular_distance(redshift) / fid_cosmo.comoving_angular_distance(redshift)
     q_para = fid_cosmo.efunc(redshift) / mock_cosmo.efunc(redshift)
     q = q_perp**(2/3) * q_para**(1/3)
+
     for ranking in ['random', 'ranked']:
         print(f'Ranking = {ranking}')
         x, y, z, x_rsd, y_rsd, z_rsd = get_rsd_positions(
             target_nd=target_nd,
             ranked_by_mass=ranking == 'ranked',
         )
-        tpcf_los = []
+        cross_fn = uchuu_data / f'ds/gaussian/ds_cross_multipoles_{split}split_Rs{smoothing_radius}_{ranking}.npy'
+        auto_fn = uchuu_data / f'ds/gaussian/ds_auto_multipoles_{split}split_Rs{smoothing_radius}_{ranking}.npy'
+
+        cross_los = []
+        auto_los = []
         for los in ['x', 'y', 'z']:
             if split == 'z':
                 xpos = x_rsd if los == 'x' else x
@@ -123,24 +157,53 @@ if __name__ == '__main__':
                                                     los=los))
             boxcenter_ap = boxsize_ap / 2
 
-            # GALAXY 2PCF
             start_time = time.time()
-            result = TwoPointCorrelationFunction(
-                'smu', edges=edges, data_positions1=data_positions_ap,
-                engine='corrfunc', boxsize=boxsize_ap, nthreads=nthreads,
-                compute_sepsavg=False, position_type='pos', los=los,
-            )
-            s, multipoles = result(ells=(0, 2, 4), return_sep=True)
-            tpcf_los.append(multipoles)
-            # print(f'2PCF took {time.time() - start_time} sec')
+            quantiles_ap, quantiles_idx, density = density_split(
+                data_positions=data_positions_ap, boxsize=boxsize_ap,
+                boxcenter=boxcenter_ap, cellsize=cellsize, 
+                filter_shape=filter_shape, smoothing_radius=smoothing_radius,
+                nquantiles=5, method='mesh', nthreads=nthreads,)
+            print(f'split took {time.time() - start_time} sec')
+            # QUINTILE-GALAXY CROSS-CORRELATION
+            start_time = time.time()
+            cross_ds = []
+            for i in [0, 1, 3, 4]:
+                result = TwoPointCorrelationFunction(
+                    'smu', edges=edges, data_positions1=quantiles_ap[i],
+                    data_positions2=data_positions_ap, los=los,
+                    engine='corrfunc', boxsize=boxsize_ap, nthreads=nthreads,
+                    compute_sepsavg=False, position_type='pos',
+                )
 
-        tpcf_los = np.asarray(tpcf_los)
+                s, multipoles = result(ells=(0, 2, 4), return_sep=True)
+                cross_ds.append(multipoles)
+            cross_los.append(cross_ds)
+            print(f'CCF took {time.time() - start_time} sec')
+
+            # QUINTILE AUTOCORRELATION
+            start_time = time.time()
+            auto_ds = []
+            for i in [0, 1, 3, 4]:
+                result = TwoPointCorrelationFunction(
+                    'smu', edges=edges, data_positions1=quantiles_ap[i],
+                    los=los, engine='corrfunc', boxsize=boxsize_ap, nthreads=nthreads,
+                    compute_sepsavg=False, position_type='pos'
+                )
+                s, multipoles = result(ells=(0, 2, 4), return_sep=True)
+                auto_ds.append(multipoles)
+            auto_los.append(auto_ds)
+            print(f'ACF took {time.time() - start_time} sec')
+
+        cross_los = np.asarray(cross_los)
+        auto_los = np.asarray(auto_los)
+        cout = {
+            's': s,
+            'multipoles': cross_los
+        }
+        np.save(cross_fn, cout)
 
         cout = {
             's': s,
-            'multipoles': tpcf_los
+            'multipoles': auto_los
         }
-        output_dir = uchuu_data / f'tpcf'
-        Path(output_dir).mkdir(parents=True, exist_ok=True)
-        output_fn = output_dir / f'tpcf_multipoles_{ranking}.npy'
-        np.save(output_fn, cout)
+        np.save(auto_fn, cout)
