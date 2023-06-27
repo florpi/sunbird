@@ -42,8 +42,8 @@ chain_handles = [
     f'abacus_cosmo{cosmo}_hod{hod}_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0134',
 ]
 chain_labels = [
-    'Galaxy 2PCF',
-    'Density-split clustering',
+    'galaxy 2PCF',
+    'density-split clustering',
 ]
 
 names = [
@@ -58,6 +58,16 @@ labels = [
     'logM_1', r'logM_{\rm cut}', r'\alpha', r'\alpha_{\rm vel, s}',
     r'\alpha_{\rm vel, c}', r'\log \sigma', r'\kappa', r'B_{\rm cen}', r'B_{\rm sat}'
 ]
+priors = {
+    "omega_b": [0.0207, 0.0243],
+    "omega_cdm": [0.1032, 0.140],
+    "sigma8_m": [0.678, 0.938],
+    "n_s": [0.9012, 1.025],
+    "nrun": [-0.038, 0.038],
+    "N_ur": [1.188, 2.889],
+    "w0_fld": [-1.22, -0.726],
+    "wa_fld": [-0.628, 0.621]
+}
 
 params_toplot = [
     'omega_cdm', 'sigma8_m', 'n_s',
@@ -74,11 +84,12 @@ for i in range(len(chain_handles)):
     data = np.genfromtxt(chain_fn, skip_header=1, delimiter=",")
     chain = data[:, 4:]
     weights = np.exp(data[:, 1] - data[-1, 2])
-    samples = MCSamples(samples=chain, weights=weights, labels=labels, names=names)
+    samples = MCSamples(samples=chain, weights=weights, labels=labels,
+                        names=names, ranges=priors)
     samples_list.append(samples)
     print(samples.getTable(limit=1).tableTex())
 
-g = plots.get_subplot_plotter(width_inch=8)
+g = plots.get_subplot_plotter(width_inch=9)
 g.settings.constrained_layout = True
 g.settings.axis_marker_lw = 1.0
 g.settings.axis_marker_ls = ':'
@@ -87,9 +98,9 @@ g.settings.axis_marker_color = 'k'
 g.settings.legend_colored_text = True
 g.settings.figure_legend_frame = False
 g.settings.linewidth_contour = 1.0
-g.settings.legend_fontsize = 21
+g.settings.legend_fontsize = 22
 g.settings.axes_fontsize = 16
-g.settings.axes_labelsize = 21
+g.settings.axes_labelsize = 20
 g.settings.axis_tick_x_rotation = 45
 # g.settings.axis_tick_y_rotation = 45
 g.settings.axis_tick_max_labels = 6
@@ -101,6 +112,9 @@ g.triangle_plot(roots=samples_list,
                 legend_loc='upper right',
                 # title_limit=1,
                 markers=true_params,
+                param_limits={
+                    'sigma8_m': [0.75, 0.85],
+                    'w0_fld': [-1.2, -0.8]}
 )
-plt.tight_layout()
+# plt.tight_layout()
 plt.savefig('fig/cosmo_inference_c0_hod26.pdf', bbox_inches='tight')
