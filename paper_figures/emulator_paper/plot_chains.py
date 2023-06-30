@@ -3,7 +3,8 @@ from pathlib import Path
 import numpy as np
 from getdist import plots, MCSamples
 import matplotlib.pyplot as plt
-plt.style.use(["science","no-latex"])
+
+plt.style.use(["science", "no-latex"])
 
 
 labels = {
@@ -66,8 +67,6 @@ def get_chain_from_full_path(full_path):
     )
 
 
-
-
 def get_chain_from_full_path_hmc(full_path):
     df = pd.read_csv(full_path)
     params = [
@@ -81,6 +80,8 @@ def get_chain_from_full_path_hmc(full_path):
         labels=[labels[p] for p in params],
         names=params,
     )
+
+
 def plot_samples(
     samples_list,
     true_params,
@@ -147,41 +148,48 @@ def plot_samples(
                         )
     return g
 
-if __name__ == '__main__':
-    path_to_chains = Path('/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/emulator_paper')
+
+if __name__ == "__main__":
+    path_to_chains = Path(
+        "/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/emulator_paper"
+    )
 
     chains = [
-        get_chain_from_full_path(path_to_chains / 'cross_mae/results.csv'),
-        get_chain_from_full_path(path_to_chains / 'cross_learned_error/results.csv'),
-        get_chain_from_full_path(path_to_chains / 'cross_mae_noerror/results.csv'),
-        get_chain_from_full_path(path_to_chains / 'cross_learned_no_error/results.csv'),
+        get_chain_from_full_path(path_to_chains / "cross_mae/results.csv"),
+        get_chain_from_full_path(path_to_chains / "cross_learned_error/results.csv"),
+        get_chain_from_full_path(path_to_chains / "cross_mae_noerror/results.csv"),
+        get_chain_from_full_path(path_to_chains / "cross_learned_no_error/results.csv"),
     ]
-    true_params = get_true_params(0,26)
+    true_params = get_true_params(0, 26)
     g = plot_samples(
         chains,
         true_params=None,
         params=[
-            'omega_b',
-            'omega_cdm', 
-            'sigma8_m',  
-            'n_s', 
+            "omega_b",
+            "omega_cdm",
+            "sigma8_m",
+            "n_s",
             "nrun",
             "N_ur",
             "w0_fld",
             "wa_fld",
         ],
-        colors=['lightseagreen', 'mediumorchid','blue', 'gray'],
-        #labels=statistics,
-        #labels=['TPCF', r'$\mathrm{DS}_\mathrm{cross}$',],
-        labels=['MAE + Test errors', 'Gauss + Learned errors', 'MAE + No errors', 'Gauss + No errors'],
+        colors=["lightseagreen", "mediumorchid", "blue", "gray"],
+        # labels=statistics,
+        # labels=['TPCF', r'$\mathrm{DS}_\mathrm{cross}$',],
+        labels=[
+            "MAE + Test errors",
+            "Gauss + Learned errors",
+            "MAE + No errors",
+            "Gauss + No errors",
+        ],
         markers=[
             true_params,
         ],
-        markers_colors=['lightgray'],
+        markers_colors=["lightgray"],
     )
     plt.savefig(f"figures/png/inference.png", dpi=600, bbox_inches="tight")
     plt.savefig(f"figures/pdf/inference.pdf", bbox_inches="tight")
-
 
     g = plot_samples(
         chains,
@@ -197,14 +205,22 @@ if __name__ == '__main__':
             "B_cen",
             "B_sat",
         ],
-        colors=['lightseagreen', 'mediumorchid',],# 'blue', 'gray'],
-        #labels=statistics,
-        #labels=['TPCF', r'$\mathrm{DS}_\mathrm{cross}$',],
-        labels=['Gaussian + Errors', 'MAE + Test errors', 'Gausian + No errors', 'MAE + No errors'],
+        colors=[
+            "lightseagreen",
+            "mediumorchid",
+        ],  # 'blue', 'gray'],
+        # labels=statistics,
+        # labels=['TPCF', r'$\mathrm{DS}_\mathrm{cross}$',],
+        labels=[
+            "Gaussian + Errors",
+            "MAE + Test errors",
+            "Gausian + No errors",
+            "MAE + No errors",
+        ],
         markers=[
             true_params,
         ],
-        markers_colors=['lightgray'],
+        markers_colors=["lightgray"],
     )
     plt.savefig(f"figures/png/inference_hod.png", dpi=600, bbox_inches="tight")
     plt.savefig(f"figures/pdf/inference_hod.pdf", bbox_inches="tight")

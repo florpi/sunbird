@@ -1,146 +1,100 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-from getdist import plots, MCSamples
 import matplotlib.pyplot as plt
 from pathlib import Path
 import argparse
-from cosmoprimo.fiducial import AbacusSummit
-from sunbird.cosmology.growth_rate import Growth
+from inference_plot_utils import *
 
-plt.style.use(['science.mplstyle'])#, 'no-latex'])
-
-redshift = 0.5
-
-def read_dynesty_chain(filename, add_fsigma8=False,): 
-    data = pd.read_csv(filename)
-    if add_fsigma8:
-        data['fsigma8'] = growth.get_fsigma8(
-            omega_b = data['omega_b'].to_numpy(),
-            omega_cdm = data['omega_cdm'].to_numpy(),
-            sigma8 = data['sigma8_m'].to_numpy(),
-            n_s = data['n_s'].to_numpy(),
-            N_ur = data['N_ur'].to_numpy(),
-            w0_fld = data['w0_fld'].to_numpy(),
-            wa_fld = data['wa_fld'].to_numpy(),
-            z=redshift,
-        )
-    data = data.to_numpy()
-    chain = data[:, 4:]
-    weights = np.exp(data[:, 1] - data[-1, 2])
-    return chain, weights
+plt.style.use(["science.mplstyle"])
 
 
-def get_true_params(cosmology, hod_idx):
-    return dict(
-        pd.read_csv(
-            f"../../data/parameters/abacus/bossprior/AbacusSummit_c{str(cosmology).zfill(3)}.csv"
-        ).iloc[hod_idx]
-    )
-
-args  = argparse.ArgumentParser()
-args.add_argument('--chain_dir', type=str, default='/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/enrique/')
+args = argparse.ArgumentParser()
+args.add_argument(
+    "--chain_dir",
+    type=str,
+    default="/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/enrique/",
+)
 args = args.parse_args()
 
 chain_dir = Path(args.chain_dir)
 
 chain_handles = [
-    'abacus_cosmo0_hod26_tpcf_mae_vol64_smin0.70_smax150.00_m02_q0134',
-    'abacus_cosmo0_hod26_density_split_cross_mae_vol64_smin0.70_smax150.00_m02_q0134',
-    'abacus_cosmo0_hod26_density_split_cross_tpcf_mae_vol64_smin0.70_smax150.00_m02_q0134',
-    'abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0134_nosimerr',
-    'abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0134_noemuerr',
-    'abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q04',
-    'abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin30.00_smax150.00_m02_q0134',
-    'abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax30.00_m02_q0134',
-    'abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0134',
-] 
+    "abacus_cosmo0_hod26_tpcf_learned_gaussian_vol64_smin0.70_smax150.00_m02_q0134",
+    "abacus_cosmo0_hod26_density_split_cross_mae_vol64_smin0.70_smax150.00_m02_q0134",
+    "abacus_cosmo0_hod26_density_split_cross_tpcf_mae_vol64_smin0.70_smax150.00_m02_q0134",
+    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0134_nosimerr",
+    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0134_noemuerr",
+    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q04",
+    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0",
+    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q4",
+    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin30.00_smax150.00_m02_q0134",
+    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax30.00_m02_q0134",
+    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0134",
+]
 
 chain_labels = [
-    'Galaxy 2PCF only',
-    'DS CCF only',
-    'DS CCF + Galaxy 2PCF',
-    'No simulation error',
-    'No emulator error',
-    r'${\rm Q_0 + Q_4}$'' only',
-    r'$s_{\rm max}=30\,h^{-1}{\rm Mpc}$',
-    r'$s_{\rm min}=30\,h^{-1}{\rm Mpc}$',
-    'Baseline',
+    "Galaxy 2PCF only",
+    "DS CCF only",
+    "DS CCF + Galaxy 2PCF",
+    "No simulation error",
+    "No emulator error",
+    r"${\rm Q_0 + Q_4}$" " only",
+    r"${\rm Q_0}$" " only",
+    r"${\rm Q_4}$" " only",
+    r"$s_{\rm max}=30\,h^{-1}{\rm Mpc}$",
+    r"$s_{\rm min}=30\,h^{-1}{\rm Mpc}$",
+    "Baseline",
 ]
-growth = Growth(emulate=True,)
 
-true_params = get_true_params(0,26)
-pred_growth = growth.get_growth(
-    omega_b = np.array(true_params['omega_b']).reshape(1,1),
-    omega_cdm = np.array(true_params['omega_cdm']).reshape(1,1),
-    sigma8 = np.array(true_params['sigma8_m']).reshape(1,1),
-    n_s = np.array(true_params['n_s']).reshape(1,1),
-    N_ur = np.array(true_params['N_ur']).reshape(1,1),
-    w0_fld = np.array(true_params['w0_fld']).reshape(1,1),
-    wa_fld = np.array(true_params['wa_fld']).reshape(1,1),
-    z=redshift,
-)
+redshift = 0.5
 
-cosmo = AbacusSummit(0)
-true_params['fsigma8'] = cosmo.sigma8_z(redshift) * cosmo.growth_rate(redshift)
 yvals = np.linspace(0, 10, len(chain_handles))
-#params_toplot = ['omega_cdm', 'sigma8_m', 'n_s', 'w0_fld', 'wa_fld', 'fsigma8']
-params_toplot = ['omega_cdm', 'sigma8_m', 'n_s','fsigma8']
-#labels_toplot = [r'$\omega_{\rm cdm}$', r'$\sigma_8$', r'$n_s$', r'$w_0$', r'$w_a$', r'$f\sigma_8$']
-labels_toplot = [r'$\omega_{\rm cdm}$', r'$\sigma_8$', r'$n_s$', r'$f\sigma_8$']
+params_toplot = ["omega_cdm", "sigma8_m", "n_s", "fsigma8"]
+labels_toplot = [r"$\omega_{\rm cdm}$", r"$\sigma_8$", r"$n_s$", r"$f\sigma_8$"]
 
+true_params = get_true_params(
+    cosmology=0, hod_idx=26, add_fsigma8=True, redshift=redshift
+)
 
 fig, ax = plt.subplots(1, len(params_toplot), figsize=(2.5 * len(params_toplot), 4.5))
 for iparam, param in enumerate(params_toplot):
     for ichain, chain_handle in enumerate(chain_handles):
-        chain_fn = chain_dir / chain_handle / 'results.csv'
-        if 'noabias' in chain_handle:
-            names = ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s',
-                     'nrun', 'N_ur', 'w0_fld', 'wa_fld',
-                     'logM1', 'logM_cut', 'alpha', 'alpha_s',
-                     'alpha_c', 'sigma', 'kappa',]
-            labels = [r'\omega_b', r'\omega_{\rm cdm}', r'\sigma_8', 'n_s',
-                      'logM_1', r'logM_{\rm cut}', r'\alpha', r'\alpha_{\rm vel, s}',
-                      r'\alpha_{\rm vel, c}', r'\log \sigma', r'\kappa',]
-        elif 'novelbias' in chain_handle:
-            names = ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s',
-                     'nrun', 'N_ur', 'w0_fdl', 'wa_fld',
-                     'logM1', 'logM_cut', 'alpha', 'sigma', 'kappa', 'B_cen', 'B_sat']
-            labels = [r'\omega_b', r'\omega_{\rm cdm}', r'\sigma_8', 'n_s',
-                      'logM_1', r'logM_{\rm cut}', r'\alpha', r'\alpha_{\rm vel, c}',
-                      r'\log \sigma', r'\kappa', r'B_{\rm cen}', r'B_{\rm sat}']
-        else:
-            names = ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s',
-                     'nrun', 'N_ur', 'w0_fld', 'wa_fld',
-                    'logM1', 'logM_cut', 'alpha', 'alpha_s',
-                    'alpha_c', 'sigma', 'kappa', 'B_cen', 'B_sat']
-            labels = [r'\omega_b', r'\omega_{\rm cdm}', r'\sigma_8', 'n_s',
-                    'logM_1', r'logM_{\rm cut}', r'\alpha', r'\alpha_{\rm vel, s}',
-                    r'\alpha_{\rm vel, c}', r'\log \sigma', r'\kappa', r'B_{\rm cen}', r'B_{\rm sat}']
-        if param == 'fsigma8':
-            names.append('fsigma8')
-            labels.append(r'f\sigma_8(z=0.5)')
-
-        chain, weights = read_dynesty_chain(chain_fn, add_fsigma8=True if param == 'fsigma8' else False)
-
-        samples = MCSamples(samples=chain, weights=weights, labels=labels, names=names)
-        # print(samples.getTable(limit=1).tableTex())
-
+        chain_fn = chain_dir / chain_handle / "results.csv"
+        # names, chain, weights = read_dynesty_chain(chain_fn, add_fsigma8=True if param == 'fsigma8' else False)
+        samples = get_MCSamples(
+            chain_fn,
+            add_fsigma8=True,
+            redshift=redshift,
+        )
 
         if ichain == len(chain_handles) - 1:
-            ax[iparam].fill_betweenx(yvals, samples.mean(param) - samples.std(param),
-                                     samples.mean(param) + samples.std(param), alpha=0.2, color='gray', edgecolor=None,)
-            ax[iparam].plot([true_params[param]]*len(yvals), yvals, color='gray', linestyle='dashed', alpha=0.3)
-
-        #colors = ["lightseagreen", "mediumorchid", "salmon", "royalblue", "rosybrown"]
-        ax[iparam].errorbar(samples.mean(param), yvals[ichain],
-                       xerr=samples.std(param), marker='o',
-                       ms=5.0, 
-                       color='indigo',#'#4165c0', 
-                       capsize=3,)
+            ax[iparam].fill_betweenx(
+                yvals,
+                samples.mean(param) - samples.std(param),
+                samples.mean(param) + samples.std(param),
+                alpha=0.2,
+                color="gray",
+                edgecolor=None,
+            )
+            ax[iparam].plot(
+                [true_params[param]] * len(yvals),
+                yvals,
+                color="gray",
+                linestyle="dashed",
+                alpha=0.3,
+            )
+        ax[iparam].errorbar(
+            samples.mean(param),
+            yvals[ichain],
+            xerr=samples.std(param),
+            marker="o",
+            ms=5.0,
+            color="indigo",
+            capsize=3,
+        )
 
     ax[iparam].set_xlabel(labels_toplot[iparam], fontsize=20)
-    ax[iparam].tick_params(axis='x', labelsize=13, rotation=45)
+    ax[iparam].tick_params(axis="x", labelsize=13, rotation=45)
     if iparam > 0:
         ax[iparam].axes.get_yaxis().set_visible(False)
     else:
@@ -149,5 +103,5 @@ for iparam, param in enumerate(params_toplot):
 
 plt.tight_layout()
 plt.subplots_adjust(wspace=0.125)
-plt.savefig('figures/pdf/whisker.pdf', bbox_inches='tight')
-plt.savefig(f"figures/png/whisker.png", bbox_inches='tight', dpi=300)
+plt.savefig("figures/pdf/whisker.pdf", bbox_inches="tight")
+plt.savefig(f"figures/png/whisker.png", bbox_inches="tight", dpi=300)

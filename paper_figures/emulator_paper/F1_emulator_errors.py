@@ -5,7 +5,11 @@ from sunbird.summaries import Bundle
 from sunbird.covariance import CovarianceMatrix
 import matplotlib.pyplot as plt
 
-plt.style.use(['science.mplstyle',])# 'no-latex'])
+plt.style.use(
+    [
+        "science.mplstyle",
+    ]
+)  
 
 
 def get_data_errors(
@@ -117,7 +121,7 @@ def get_emulator_errors(emulated_corrs, emulated_error_pred, abacus_corrs):
 
 if __name__ == "__main__":
     dataset = "bossprior"
-    loss = "mae"
+    loss = "learned_gaussian"
     plot_predicted_errors = False
     suffix = None
     volume_scaling = 64.0  # 8. for BOSS volume, 64 for AbacusSummit/Beyond2pt volume
@@ -180,7 +184,7 @@ if __name__ == "__main__":
             0,
             0.05,
             color="gray",
-            alpha=0.15,
+            alpha=0.1,
             edgecolor=None,
         )
         ax[i].fill_between(
@@ -188,7 +192,7 @@ if __name__ == "__main__":
             0,
             0.01,
             color="gray",
-            alpha=0.3,
+            alpha=0.2,
             edgecolor=None,
         )
 
@@ -247,10 +251,10 @@ if __name__ == "__main__":
                 linestyle="dashed",
             )
 
-    ax[0].set_ylabel(r"$\Delta \xi^\mathrm{QQ}_0 / \xi^\mathrm{QQ}_0$")
-    ax[1].set_ylabel(r"$\Delta \xi^\mathrm{QQ}_2 / \xi^\mathrm{QQ}_2$")
-    ax[2].set_ylabel(r"$\Delta \xi^\mathrm{QG}_0 / \xi^\mathrm{QG}_0$")
-    ax[3].set_ylabel(r"$\Delta \xi^\mathrm{QG}_2 / \xi^\mathrm{QG}_2$")
+    ax[0].set_ylabel(r"$|\Delta \xi^\mathrm{QQ}_0| / \xi^\mathrm{QQ}_0$")
+    ax[1].set_ylabel(r"$|\Delta \xi^\mathrm{QQ}_2| / \xi^\mathrm{QQ}_2$")
+    ax[2].set_ylabel(r"$|\Delta \xi^\mathrm{QG}_0| / \xi^\mathrm{QG}_0$")
+    ax[3].set_ylabel(r"$|\Delta \xi^\mathrm{QG}_2| / \xi^\mathrm{QG}_2$")
     ax[0].legend(loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.5))
     current_labels = [13, 13, 11] * 4
     current_labels = np.cumsum(current_labels)
@@ -273,12 +277,24 @@ if __name__ == "__main__":
     )
     plt.savefig(f"figures/pdf/F1_emulator_errors_frac.pdf", bbox_inches="tight")
 
-
     fig, ax = plt.subplots(nrows=4, figsize=(9, 6), sharex=True, sharey=False)
 
     for i in range(4):
         ax[i].fill_between(
-            x_range[: len(x_range) // 2], 0, 1, color="gray", alpha=0.1, edgecolor=None
+            x_range[: len(x_range) // 2],
+            0,
+            1,
+            color="gray",
+            alpha=0.2,
+            edgecolor=None,
+        )
+        ax[i].fill_between(
+            x_range[: len(x_range) // 2],
+            0,
+            2,
+            color="gray",
+            alpha=0.1,
+            edgecolor=None,
         )
 
     for q in range(4):
@@ -357,10 +373,7 @@ if __name__ == "__main__":
     plt.subplots_adjust(wspace=0, hspace=0)
     plt.tight_layout()
 
-
     plt.savefig(
-        f"figures/png/F1_emulators_errors_std.png",
-        dpi=600, bbox_inches="tight"
+        f"figures/png/F1_emulators_errors_std.png", dpi=600, bbox_inches="tight"
     )
     plt.savefig(f"figures/pdf/F1_emulators_errors_std.pdf", bbox_inches="tight")
-
