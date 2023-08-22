@@ -5,7 +5,7 @@ import torch
 
 from sunbird.emulators.models import BaseModel
 from sunbird.covariance import CovarianceMatrix
-from sunbird.emulators.loss import GaussianNLoglike, WeightedL1Loss, WeightedMSELoss
+from sunbird.emulators.loss import MultivariateGaussianNLLLoss, get_cholesky_decomposition_covariance, WeightedL1Loss, WeightedMSELoss
 
 
 class ResNet(torch.nn.Module):
@@ -29,8 +29,11 @@ class FCN(BaseModel):
         self.weight_decay = kwargs["weight_decay"]
         act_fn = getattr(nn, kwargs["act_fn"])()
         self.loss = kwargs["loss"]
+        self.data_dim = n_output
         if self.loss == "learned_gaussian":
             n_output *= 2
+        elif self.loss == "multivariate_learned_gaussian":
+            n_output += (n_output*(n_output+1))//2
         self.mlp = self.get_model(
             n_input=n_input,
             n_hidden=n_hidden,
@@ -142,7 +145,7 @@ class FCN(BaseModel):
         Args:
             loss (str): loss to load
         """
-        if loss == "gaussian" or "weighted" in loss:
+        if "weighted" in loss:
             covariance = CovarianceMatrix(
                 statistics=[kwargs["statistic"]],
                 slice_filters=kwargs.get("slice_filters", None),
@@ -155,11 +158,7 @@ class FCN(BaseModel):
             covariance = Tensor(
                 covariance.astype(np.float32),
             )
-            if loss == "gaussian":
-                self.loss_fct = GaussianNLoglike(
-                    covariance=covariance,
-                )
-            elif loss == "weighted_mae":
+            if loss == "weighted_mae":
                 self.loss_fct = WeightedL1Loss(
                     variance=torch.sqrt(torch.diagonal(covariance))
                 )
@@ -167,6 +166,8 @@ class FCN(BaseModel):
                 self.loss_fct = WeightedMSELoss(variance=torch.diagonal(covariance))
         elif loss == "learned_gaussian":
             self.loss_fct = nn.GaussianNLLLoss()
+        elif loss == "multivariate_learned_gaussian":
+            self.loss_fct = MultivariateGaussianNLLLoss()
         elif loss == "mse":
             self.loss_fct = nn.MSELoss()
         elif loss == "mae":
@@ -188,6 +189,12 @@ class FCN(BaseModel):
             y_pred, y_var = torch.chunk(y_pred, 2, dim=-1)
             y_var = nn.Softplus()(y_var)
             return y_pred, y_var
+        elif self.loss == "multivariate_learned_gaussian":
+            y_pred = self.mlp(x)
+            y_cov = y_pred[..., self.data_dim:]
+            y_pred = y_pred[..., :self.data_dim]
+            L = get_cholesky_decomposition_covariance(y_cov, data_dim=self.data_dim,)
+            return y_pred, L 
         y_pred = self.mlp(x)
         y_var = torch.zeros_like(y_pred)
         return y_pred, y_var
@@ -205,5 +212,7 @@ class FCN(BaseModel):
         x, y = batch
         y_pred, y_var = self.forward(x)
         if self.loss == "learned_gaussian":
+            return self.loss_fct(y_pred, y, y_var)
+        elif self.loss == "multivariate_learned_gaussian":
             return self.loss_fct(y_pred, y, y_var)
         return self.loss_fct(y, y_pred)

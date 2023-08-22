@@ -5,7 +5,7 @@ from sunbird.inference import Nested
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config_path", type=str, default="configs/infer_combined.yaml"
+        "--config_path", type=str, default="configs/dyn_2pcf.yaml"
     )
     args = parser.parse_args()
     nested = Nested.from_config(args.config_path)

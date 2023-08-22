@@ -91,6 +91,7 @@ class Inference(ABC):
         select_filters = config["select_filters"]
         slice_filters = config["slice_filters"]
         statistics = config["statistics"]
+        print(f'Fitting statistics = {statistics}')
         observation, parameters = cls.get_observation_and_parameters(
             config["data"]["observation"],
             statistics=statistics,

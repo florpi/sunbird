@@ -1,7 +1,10 @@
 from typing import Dict
 import numpy as np
 import pandas as pd
+import dill
 from dynesty import NestedSampler
+import dynesty.utils
+dynesty.utils.pickle_module = dill
 from sunbird.inference import Inference
 
 

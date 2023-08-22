@@ -1,5 +1,7 @@
 from typing import Dict
+from functools import partial
 import pandas as pd
+import jax
 from jax import random
 import jax.numpy as np
 import numpyro
@@ -32,6 +34,7 @@ class HMC(Inference):
                 )
         return x
 
+
     def model(
         self,
         y: np.array,
@@ -58,7 +61,7 @@ class HMC(Inference):
     def __call__(
         self,
         kernel: str = "NUTS",
-        num_warmup: int = 500,
+        num_warmup: int = 100,
         num_samples: int = 1000,
     ):
         """Run the HMC inference
