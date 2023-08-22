@@ -5,7 +5,7 @@ from sunbird.inference import HMC
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config_path", type=str, default="configs/infer_cross_hmc.yaml"
+        "--config_path", type=str, default="configs/hmc_2pcf.yaml"
     )
     args = parser.parse_args()
     nested = HMC.from_config(args.config_path)

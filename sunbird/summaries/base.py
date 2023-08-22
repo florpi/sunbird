@@ -217,30 +217,37 @@ class BaseSummary:
             inputs = self.input_transforms.transform(inputs)
         if self.flax:
             prediction, variance = self.model_apply(self.flax_params, inputs)
-            errors = jnp.sqrt(variance)
+            if prediction.shape == variance.shape:
+                errors = jnp.sqrt(variance)
+            else:
+                errors = variance
         else:
             inputs = torch.tensor(inputs, dtype=torch.float32)
             prediction, variance = self.model(inputs)
             prediction = prediction.detach()
-            errors = torch.sqrt(variance).detach()
+            if prediction.shape == variance.shape:
+                errors = torch.sqrt(variance).detach()
+            else:
+                errors = variance.detach()
         if self.output_transforms is not None:
             prediction, errors = self.apply_output_transforms(
                 prediction, errors, batch=batch
             )
-        prediction = self.apply_filters(
-            prediction=prediction,
-            select_filters=select_filters,
-            slice_filters=slice_filters,
-            batch=batch,
-            use_xarray=use_xarray,
-        )
-        errors = self.apply_filters(
-            prediction=errors,
-            select_filters=select_filters,
-            slice_filters=slice_filters,
-            batch=batch,
-            use_xarray=use_xarray,
-        )
+        if select_filters is not None or slice_filters is not None:
+            prediction = self.apply_filters(
+                prediction=prediction,
+                select_filters=select_filters,
+                slice_filters=slice_filters,
+                batch=batch,
+                use_xarray=use_xarray,
+            )
+            errors = self.apply_filters(
+                prediction=errors,
+                select_filters=select_filters,
+                slice_filters=slice_filters,
+                batch=batch,
+                use_xarray=use_xarray,
+            )
         if use_xarray:
             return prediction, errors
         return prediction.reshape(-1), errors.reshape(-1)
@@ -340,22 +347,33 @@ class BaseSummary:
         if batch:
             coordinates = self.coordinates.copy()
             coordinates["batch"] = range(len(prediction))
-            prediction = prediction.reshape(
-                (
-                    len(prediction),
-                    *self.coordinates_shape,
+            if predicted_errors.shape == prediction.shape:
+                prediction = prediction.reshape(
+                    (
+                        len(prediction),
+                        *self.coordinates_shape,
+                    )
                 )
-            )
-            predicted_errors = predicted_errors.reshape(
-                (
-                    len(prediction),
-                    *self.coordinates_shape,
+                predicted_errors = predicted_errors.reshape(
+                    (
+                        len(prediction),
+                        *self.coordinates_shape,
+                    )
                 )
-            )
+            else:
+                prediction = prediction.reshape(
+                    (
+                        len(prediction),
+                        *self.coordinates_shape,
+                    )
+                )
         else:
             coordinates = self.coordinates
-            prediction = prediction.reshape(self.coordinates_shape)
-            predicted_errors = predicted_errors.reshape(self.coordinates_shape)
+            if predicted_errors.shape == prediction.shape:
+                prediction = prediction.reshape(self.coordinates_shape)
+                predicted_errors = predicted_errors.reshape(self.coordinates_shape)
+            else:
+                prediction = prediction.reshape(self.coordinates_shape)
         dimensions = list(self.coordinates.keys())
         return self.output_transforms.inverse_transform(
             prediction, predicted_errors, summary_dimensions=dimensions, batch=batch
