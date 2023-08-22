@@ -79,7 +79,7 @@ def plot_coverage(ranks, labels, plotscatter=True):
     ax.set_xlabel('Confidence Level')
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25), ncol=3)
     ax.set_ylabel('Empirical Coverage')
-    ax.text(0.1, 0.85, 'Underconfident', ha='left', va='top', transform=ax.transAxes, style='italic',fontsize=9)
+    ax.text(0.1, 0.85, 'Conservative', ha='left', va='top', transform=ax.transAxes, style='italic',fontsize=9)
     ax.text(0.9, 0.15, 'Overconfident', ha='right', va='bottom', transform=ax.transAxes, style='italic',fontsize=9)
     if plotscatter:
         for j in range(len(unicov)): ax.plot(unicov[j], cdf, lw=1, color='gray', alpha=0.2)
