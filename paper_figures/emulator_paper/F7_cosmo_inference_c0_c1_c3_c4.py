@@ -10,7 +10,12 @@ args = argparse.ArgumentParser()
 args.add_argument(
     "--chain_dir",
     type=str,
-    default="/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/enrique",
+    default="/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/emulator_paper/",
+)
+args.add_argument(
+    "--loss",
+    type=str,
+    default='learned_gaussian',
 )
 args = args.parse_args()
 
@@ -35,7 +40,7 @@ for cosmo in cosmologies:
     hod = best_hod[cosmo]
     chain_fn = (
         chain_dir
-        / f"abacus_cosmo{cosmo}_hod{hod}_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0134"
+        / f'cos={cosmo}-h={hod}-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1'
     )
     samples_list.append(
         inference_plots.get_MCSamples(
@@ -54,5 +59,5 @@ ax = inference_plots.plot_corner(
     markers_colors=colors[::-1],
     inches_per_param=15.5 / 7,
 )
-plt.savefig("figures/pdf/cosmo_inference_c0_c1_c3_c4.pdf", bbox_inches="tight")
-plt.savefig("figures/png/cosmo_inference_c0_c1_c3_c4.png", bbox_inches="tight")
+plt.savefig("figures/pdf/F7_cosmo_c0_c1_c3_c4.pdf", bbox_inches="tight")
+plt.savefig("figures/png/F7_cosmo_c0_c1_c3_c4.png", bbox_inches="tight")
