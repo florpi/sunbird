@@ -12,32 +12,43 @@ args = argparse.ArgumentParser()
 args.add_argument(
     "--chain_dir",
     type=str,
-    default="/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/enrique/",
+    default="/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/emulator_paper/",
+)
+args.add_argument(
+    '--loss',
+    type=str,
+    default='learned_gaussian',
 )
 args = args.parse_args()
 
 chain_dir = Path(args.chain_dir)
 
 chain_handles = [
-    "abacus_cosmo0_hod26_tpcf_learned_gaussian_vol64_smin0.70_smax150.00_m02_q0134",
-    "abacus_cosmo0_hod26_density_split_cross_mae_vol64_smin0.70_smax150.00_m02_q0134",
-    "abacus_cosmo0_hod26_density_split_cross_tpcf_mae_vol64_smin0.70_smax150.00_m02_q0134",
-    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0134_nosimerr",
-    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0134_noemuerr",
-    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q04",
-    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0",
-    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q4",
-    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin30.00_smax150.00_m02_q0134",
-    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax30.00_m02_q0134",
-    "abacus_cosmo0_hod26_density_split_cross_density_split_auto_mae_vol64_smin0.70_smax150.00_m02_q0134",
-]
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=30.0-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=30.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=4-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=04-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=0-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=0-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=0',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=0-se=0',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=density_split_cross-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf-ab=1-vb=1-ete=1-se=1',
+][::-1]
 
 chain_labels = [
     "Galaxy 2PCF only",
+    "DS CCF + ACF only",
+    "DS ACF only",
     "DS CCF only",
-    "DS CCF + Galaxy 2PCF",
+    "No simulation + No emulator error",
     "No simulation error",
     "No emulator error",
+    "Monopole only",
     r"${\rm Q_0 + Q_4}$" " only",
     r"${\rm Q_0}$" " only",
     r"${\rm Q_4}$" " only",
@@ -49,8 +60,8 @@ chain_labels = [
 redshift = 0.5
 
 yvals = np.linspace(0, 10, len(chain_handles))
-params_toplot = ["omega_cdm", "sigma8_m", "n_s", "fsigma8"]
-labels_toplot = [r"$\omega_{\rm cdm}$", r"$\sigma_8$", r"$n_s$", r"$f\sigma_8$"]
+params_toplot = ["omega_cdm", "sigma8_m", "n_s","fsigma8", ] 
+labels_toplot =  [r"$\omega_{\rm cdm}$", r"$\sigma_8$", r"$n_s$",r"$f\sigma_8$",]
 
 true_params = get_true_params(
     cosmology=0, hod_idx=26, add_fsigma8=True, redshift=redshift
@@ -76,13 +87,13 @@ for iparam, param in enumerate(params_toplot):
                 color="gray",
                 edgecolor=None,
             )
-            ax[iparam].plot(
-                [true_params[param]] * len(yvals),
-                yvals,
-                color="gray",
-                linestyle="dashed",
-                alpha=0.3,
-            )
+            #ax[iparam].plot(
+            #    [true_params[param]] * len(yvals),
+            #    yvals,
+            #    color="gray",
+            #    linestyle="dashed",
+            #    alpha=0.3,
+            #)
         ax[iparam].errorbar(
             samples.mean(param),
             yvals[ichain],
@@ -103,5 +114,5 @@ for iparam, param in enumerate(params_toplot):
 
 plt.tight_layout()
 plt.subplots_adjust(wspace=0.125)
-plt.savefig("figures/pdf/whisker.pdf", bbox_inches="tight")
-plt.savefig(f"figures/png/whisker.png", bbox_inches="tight", dpi=300)
+plt.savefig("figures/pdf/F6_whisker.pdf", bbox_inches="tight")
+plt.savefig(f"figures/png/F6_whisker.png", bbox_inches="tight", dpi=300)
