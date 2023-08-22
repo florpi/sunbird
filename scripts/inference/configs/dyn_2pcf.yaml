@@ -3,10 +3,9 @@ slice_filters:
     s: [0.7,150.]
 
 select_filters:
-    quintiles: [0,1,3,4,]
     multipoles: [0,2]
 
-statistics: ['density_split_cross', 'density_split_auto', 'tpcf']
+statistics: ['tpcf']
 data:
     observation: 
         class: 'Abacus'
@@ -30,10 +29,11 @@ theory_model:
     class: 'Bundle'
     args:
         dataset: 'bossprior'
-        loss: 'learned_gaussian'
+        flax: False 
+        loss: 'mae'
 
 inference:
-    output_dir: '/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/sunbird/chains/emulator_paper/abacus_cosmo0_hod26_density_split_cross_density_split_auto_tpcf_learned_gaussian_vol64_smin0.70_smax150.00_m02_q0134/'
+    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/2pcf_dyn_mae'
 
 priors:
     stats_module: 'scipy.stats'
