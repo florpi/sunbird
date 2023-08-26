@@ -585,7 +585,7 @@ class Uchuu(DataReader):
     def get_file_path(
         self,
         statistic: str,
-        ranking: str,
+        ranking: str = 'random',
     ) -> Path:
         """get file path where data is stored for a given statistic, cosmology, and phase
 
@@ -604,7 +604,7 @@ class Uchuu(DataReader):
 
     def get_observation(
         self,
-        ranking: str,
+        ranking: str = 'random',
     ) -> np.array:
         """get array of a given observation at a cosmology and ranking
 

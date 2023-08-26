@@ -1,0 +1,115 @@
+
+slice_filters:
+    s: [0.7,150.]
+
+select_filters:
+    multipoles: [0,2]
+
+statistics: ['tpcf']
+data:
+    observation: 
+        class: 'Abacus'
+        args:
+            dataset: 'bossprior'
+        get_obs_args:
+            cosmology: 0  
+            hod_idx: 26 
+    covariance:
+        class: 'AbacusSmall'
+        dataset: 'bossprior'
+        add_emulator_error_test_set: true 
+        add_simulation_error: true
+        add_predicted_uncertainty: false 
+        volume_scaling: 64.0
+
+fixed_parameters: [] #'w0_fld', 'wa_fld', 'nrun', 'N_ur'] 
+
+theory_model:
+    module: 'sunbird.summaries'
+    class: 'Bundle'
+    args:
+        dataset: 'bossprior'
+        flax: False 
+        loss: 'mae'
+
+inference:
+    output_dir: '/n/home11/ccuestalazaro/sunbird/scripts/inference/chains/2pcf_dyn_mae'
+
+priors:
+    stats_module: 'scipy.stats'
+    omega_b:
+        distribution: 'uniform'
+        min: 0.0207
+        max: 0.0243
+    
+    omega_cdm:
+        distribution: 'uniform'
+        min: 0.1032
+        max: 0.140
+
+    sigma8_m:
+        distribution: 'uniform'
+        min: 0.678
+        max: 0.938
+    n_s:
+        distribution: 'uniform'
+        min: 0.9012
+        max: 1.025
+    nrun:
+        distribution: 'uniform'
+        min: -0.038
+        max: 0.038
+
+    N_ur:
+        distribution: 'uniform'
+        min: 1.188
+        max: 2.889
+
+    w0_fld:
+        distribution: 'uniform'
+        min: -1.22
+        max: -0.726
+
+    wa_fld:
+        distribution: 'uniform'
+        min: -0.628
+        max: 0.621
+
+    logM1:
+        distribution: 'uniform'
+        min: 13.2
+        max: 14.4
+
+    logM_cut:
+        distribution: 'uniform'
+        min: 12.4
+        max: 13.3
+    alpha:
+        distribution: 'uniform'
+        min: 0.7
+        max: 1.5
+    alpha_s:
+        distribution: 'uniform'
+        min: 0.7
+        max: 1.3
+    alpha_c:
+        distribution: 'uniform'
+        min: 0.
+        max: 0.5
+    logsigma:
+        distribution: 'uniform'
+        min: -3.
+        max: 0
+    kappa:
+        distribution: 'uniform'
+        min: 0.
+        max: 1.5
+    B_cen:
+        distribution: 'uniform'
+        min: -0.5
+        max: 0.5
+
+    B_sat:
+        distribution: 'uniform'
+        min: -1.
+        max: 1.

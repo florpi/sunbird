@@ -299,7 +299,11 @@ class Standarize(BaseTransform):
     ) -> xr.DataArray:
         if type(summary) is xr.DataArray:
             inv_summary = summary * self.training_std + self.training_mean
-            inv_errors = errors * self.training_std
+            if errors.shape == summary.shape:
+                inv_errors = errors * self.training_std
+            else:
+                scaling_matrix = np.diag(self.training_std)
+                inv_errors = scaling_matrix.matmul(inv_errors).matmul(scaling_matrix)
         else:
             training_mean = self.training_mean.values
             training_std = self.training_std.values
@@ -315,7 +319,14 @@ class Standarize(BaseTransform):
                 training_mean = training_mean[np.newaxis, ...]
                 training_std = training_std[np.newaxis, ...]
             inv_summary = summary * training_std + training_mean
-            inv_errors = errors * training_std
+            if errors.shape == summary.shape:
+                inv_errors = errors * training_std
+            else:
+                if training_std.shape[-1] == 1:
+                    new_shape = list(training_std.shape[:-1]) + [summary.shape[-1]]
+                    training_std = torch.tensor(training_std,dtype=torch.float32).expand(*new_shape)
+                scaling_matrix = torch.diag(training_std.reshape(-1))
+                inv_errors = scaling_matrix.matmul(errors.squeeze()).matmul(scaling_matrix)
         return inv_summary, inv_errors
 
 

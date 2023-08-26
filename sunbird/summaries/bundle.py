@@ -63,6 +63,14 @@ class Bundle(BaseSummary):
         }
 
     @property
+    def coordinates(self,):
+        # combine the coordinates of all the summaries
+        coords = {}
+        for summary in self.summaries:
+            coords.update(self.all_summaries[summary].coordinates)
+        return coords
+
+    @property
     def input_names(
         self,
     ):
