@@ -20,6 +20,7 @@ class CovarianceMatrix:
         dataset: str = 'bossprior',
         output_transforms: Optional[Callable] = None,
         emulators=None,
+        obs_config: Dict = {},
         path_to_models: Path = MODEL_PATH,
     ):
         """Compute a covariance matrix for a list of statistics and filters in any
@@ -37,6 +38,7 @@ class CovarianceMatrix:
             select_filters=select_filters,
             transforms=output_transforms,
             dataset=dataset,
+            **obs_config.get("args", {}),
         )
         self.covariance_simulations_reader = getattr(data_readers, "AbacusSmall")(
             statistics=statistics,

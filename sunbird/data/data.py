@@ -6,7 +6,7 @@ import json
 import xarray as xr
 import pytorch_lightning as pl
 from torch.utils.data import TensorDataset, DataLoader
-from sunbird.data.data_readers import Abacus
+from sunbird.data import data_readers
 from sunbird.data.data_utils import convert_selection_to_filters
 from sunbird.data import transforms
 
@@ -21,7 +21,8 @@ class AbacusDataModule(pl.LightningDataModule):
         select_filters: Optional[Dict] = None,
         slice_filters: Optional[Dict] = {"s": [0.7, 150.0]},
         batch_size: int = 256,
-        abacus_dataset: Optional[str] = "wideprior_AB",
+        data_reader: str = "Abacus",
+        abacus_dataset: Optional[str] = "bossprior",
         input_parameters: Optional[List[str]] = None,
         input_transforms: Optional[transforms.Transforms] = transforms.Transforms(
             [transforms.Normalize(dimensions=(0,))]
@@ -55,6 +56,7 @@ class AbacusDataModule(pl.LightningDataModule):
             use all cosmology + HOD parameters. Defaults to None.
             output_transforms (str, optional): transforms to apply to data. Defaults to None.
         """
+        print(data_reader)
         super().__init__()
         self.train_test_split_dict = train_test_split_dict
         self.statistic = statistic
@@ -64,7 +66,7 @@ class AbacusDataModule(pl.LightningDataModule):
         self.input_transforms = input_transforms
         self.output_transforms = output_transforms
         self.fixed_cosmology = fixed_cosmology
-        self.data = Abacus(
+        self.data = getattr(data_readers, data_reader)(
             dataset=abacus_dataset,
             statistics=[self.statistic],
             select_filters=self.select_filters,

@@ -101,13 +101,6 @@ class Inference(ABC):
         for k in config["fixed_parameters"]:
             fixed_parameters[k] = parameters[k]
         covariance_config = config["data"]["covariance"]
-        if "volume_scaling" not in covariance_config:
-            if covariance_config["class"] == "AbacusSmall":
-                raise ValueError(
-                    "Volume scaling must be specified when using AbacusSmall covariance class."
-                )
-            else:
-                covariance_config["volume_scaling"] = 1.0
         theory_model = cls.get_theory_model(
             config["theory_model"], statistics=config["statistics"]
         )
@@ -116,7 +109,8 @@ class Inference(ABC):
             covariance_dataset=covariance_config["dataset"],
             add_emulator_error=covariance_config["add_emulator_error_test_set"],
             add_simulation_error=covariance_config["add_simulation_error"],
-            volume_scaling=covariance_config["volume_scaling"],
+            emulator_data_class=covariance_config.get("emulator_data_class", 'Abacus'),
+            volume_scaling=covariance_config.get("volume_scaling", 1),
             statistics=config["statistics"],
             select_filters=select_filters,
             slice_filters=slice_filters,
@@ -175,6 +169,7 @@ class Inference(ABC):
     def get_covariance_matrix(
         cls,
         covariance_data_class: str,
+        emulator_data_class: str,
         covariance_dataset: str,
         statistics: List[str],
         select_filters: Dict,
@@ -209,6 +204,7 @@ class Inference(ABC):
             }
         covariance = CovarianceMatrix(
             covariance_data_class=covariance_data_class,
+            emulator_data_class=emulator_data_class,
             dataset=covariance_dataset,
             statistics=statistics,
             select_filters=select_filters,
