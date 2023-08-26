@@ -69,6 +69,7 @@ if __name__ == "__main__":
     parser = AbacusDataModule.add_argparse_args(parser)
     parser.add_argument("--model_dir", type=str, default="../../trained_models/")
     parser.add_argument("--run_name", type=str, default=None)
+    parser.add_argument("--data_reader", type=str, default="Abacus")
     parser.add_argument(
         "--train_test_split_path", type=str, default="../../data/train_test_split.json"
     )

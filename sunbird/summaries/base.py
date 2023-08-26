@@ -459,10 +459,13 @@ class BaseSummaryFolder(BaseSummary):
             config = yaml.safe_load(f)
         coordinates = self.load_coordinates(config=config, path_to_data=path_to_data)
         fixed_cosmology = config["fixed_cosmology"]
-        if fixed_cosmology is not None:
-            input_names = DEFAULT_GAL_PARAMS
+        if 'input_names' not in kwargs:
+            if fixed_cosmology is not None:
+                input_names = DEFAULT_GAL_PARAMS
+            else:
+                input_names = DEFAULT_COSMO_PARAMS + DEFAULT_GAL_PARAMS
         else:
-            input_names = DEFAULT_COSMO_PARAMS + DEFAULT_GAL_PARAMS
+            input_names = kwargs['input_names']
         super().__init__(
             model=model,
             coordinates=coordinates,
