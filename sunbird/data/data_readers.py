@@ -82,10 +82,10 @@ class DataReader(ABC):
                 self.data_path
                 / f"clustering/{dataset}/tpcf/tpcf_multipoles_{suffix}.npy"
             )
-        elif statistic == "voids":
+        elif statistic == "voxel_voids":
             return (
                 self.data_path
-                / f"clustering/{dataset}/voids/voids_multipoles_{suffix}.npy"
+                / f"clustering/{dataset}/voxel_voids/voxel_voids_Rs10_multipoles_{suffix}.npy"
             )
         elif statistic == "density_pdf":
             return (
@@ -803,8 +803,8 @@ class Patchy(DataReader):
         return super().get_file_path(
             dataset=self.dataset,
             statistic=statistic,
-            # suffix=f"{self.region}_default_FKP_landyszalay",
-            suffix=f"{self.region}_landyszalay",
+            suffix=f"{self.region}_default_FKP_landyszalay",
+            # suffix=f"{self.region}_landyszalay",
         )
 
     def get_observation(
