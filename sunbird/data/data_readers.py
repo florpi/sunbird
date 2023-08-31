@@ -85,7 +85,7 @@ class DataReader(ABC):
         elif statistic == "voxel_voids":
             return (
                 self.data_path
-                / f"clustering/{dataset}/voxel_voids/voxel_voids_Rs10_multipoles_{suffix}.npy"
+                / f"clustering/{dataset}/voxel_voids/voxel_voids_multipoles_Rs10_{suffix}.npy"
             )
         elif statistic == "density_pdf":
             return (
@@ -481,7 +481,7 @@ class AbacusSmall(DataReader):
             slice_filters=slice_filters,
             transforms=transforms,
             avg_los=True
-            if dataset in ("bossprior", "wideprior_AB", "fixed_cosmo_bossprior")
+            if dataset in ("bossprior", "wideprior_AB", "fixed_cosmo_bossprior", "voidprior")
             else False,
         )
         self.dataset = f"abacus_small/{dataset}"
@@ -1042,6 +1042,15 @@ class NseriesCutsky(DataReader):
             "N_ur": 2.046,
             "w0_fld": -1.0,
             "wa_fld": 0.0,
+            "logM_cut": 13.7299,
+            "logM1": 13.0644,
+            "alpha": 1.3446,
+            "logsigma": -0.37,
+            "kappa": 1.0446,
+            "alpha_c": 0.0,
+            "alpha_s": 1.0,
+            "B_cen": 0.0,
+            "B_sat": 0.0,
         }
 
 
