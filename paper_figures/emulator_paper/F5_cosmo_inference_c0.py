@@ -86,3 +86,14 @@ ax = inference_plots.plot_corner(
 )
 plt.savefig("figures/pdf/F5_hod_c0_hod26.pdf", bbox_inches="tight")
 plt.savefig("figures/png/F5_hod_c0_hod26.png", bbox_inches="tight")
+
+ax = inference_plots.plot_corner(
+    samples_list,
+    cosmo_params + hod_params,
+    chain_labels,
+    true_params=None,
+    markers=[true_params],
+)
+plt.savefig("figures/pdf/F5_full_c0_hod26.pdf", bbox_inches="tight")
+plt.savefig("figures/png/F5_full_c0_hod26.png", bbox_inches="tight")
+
