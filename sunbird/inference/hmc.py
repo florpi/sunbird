@@ -81,6 +81,7 @@ class HMC(Inference):
         mcmc.run(
             rng_key,
             y=self.observation,
+            extra_fields=['potential_energy'],
         )
         mcmc.print_summary()
         results = mcmc.get_samples()
