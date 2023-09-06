@@ -29,5 +29,6 @@ def get_names_labels(param_space):
         "alpha": r'\alpha', "alpha_s": r'\alpha_{\rm vel, s}',
         "alpha_c": r'\alpha_{\rm vel, c}', "logsigma": r'\log \sigma',
         "kappa": r'\kappa', "B_cen": r'B_{\rm cen}', "B_sat": r'B_{\rm sat}',
+        "fsigma8": r'f \sigma_8',
     }
     return [labels_dict[name] for name in param_space]

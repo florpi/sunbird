@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import argparse
 from inference_plot_utils import *
+from utils import get_names_labels
 
 plt.style.use(["science.mplstyle"])
 
@@ -24,21 +25,22 @@ args = args.parse_args()
 chain_dir = Path(args.chain_dir)
 
 chain_handles = [
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=30.0-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=30.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=4-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=04-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=0-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=0-se=1',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=0',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=0-se=0',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=density_split_cross-ab=1-vb=1-ete=1-se=1',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=density_split_auto-ab=1-vb=1-ete=1-se=1',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
     f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf-ab=1-vb=1-ete=1-se=1',
-][::-1]
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=density_split_cross-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=0-se=0',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=0',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=0-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=0-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=04-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=4-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=50.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=50.0-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=80.0-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+]
 
 chain_labels = [
     "Galaxy 2PCF only",
@@ -52,16 +54,17 @@ chain_labels = [
     r"${\rm Q_0 + Q_4}$" " only",
     r"${\rm Q_0}$" " only",
     r"${\rm Q_4}$" " only",
-    r"$s_{\rm max}=30\,h^{-1}{\rm Mpc}$",
-    r"$s_{\rm min}=30\,h^{-1}{\rm Mpc}$",
+    r"$s_{\rm max}=50\,h^{-1}{\rm Mpc}$",
+    r"$s_{\rm min}=50\,h^{-1}{\rm Mpc}$",
+    r"$s_{\rm min}=80\,h^{-1}{\rm Mpc}$",
     "Baseline",
 ]
 
 redshift = 0.5
 
 yvals = np.linspace(0, 10, len(chain_handles))
-params_toplot = ["omega_cdm", "sigma8_m", "n_s","fsigma8", ] 
-labels_toplot =  [r"$\omega_{\rm cdm}$", r"$\sigma_8$", r"$n_s$",r"$f\sigma_8$",]
+params_toplot = ["omega_cdm", "sigma8_m", "n_s","fsigma8", "N_ur", "B_sat",] 
+labels_toplot =  ['$' + label + '$' for label in get_names_labels(params_toplot)]
 
 true_params = get_true_params(
     cosmology=0, hod_idx=26, add_fsigma8=True, redshift=redshift
@@ -71,7 +74,6 @@ fig, ax = plt.subplots(1, len(params_toplot), figsize=(2.5 * len(params_toplot),
 for iparam, param in enumerate(params_toplot):
     for ichain, chain_handle in enumerate(chain_handles):
         chain_fn = chain_dir / chain_handle / "results.csv"
-        # names, chain, weights = read_dynesty_chain(chain_fn, add_fsigma8=True if param == 'fsigma8' else False)
         samples = get_MCSamples(
             chain_fn,
             add_fsigma8=True,
