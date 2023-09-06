@@ -121,6 +121,7 @@ class Inference(ABC):
             slice_filters=slice_filters,
             theory_model=theory_model,
             parameters_to_fit=parameters_to_fit,
+            correction_method=covariance_config['correction_method'],
         )
         return cls(
             theory_model=theory_model,

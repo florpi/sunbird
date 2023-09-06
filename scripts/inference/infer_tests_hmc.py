@@ -82,7 +82,7 @@ if __name__ == "__main__":
         config['data']['covariance']['add_emulator_error_test_set'] = False 
     if args.predicted_uncertainty: 
         config['data']['covariance']['add_predicted_uncertainty'] = True 
-        dir_name += f'-predun={int(args.predicted_uncertainty) or 0)}'
+        dir_name += f'-predun={int(args.predicted_uncertainty or 0)}'
     else:
         config['data']['covariance']['add_predicted_uncertainty'] = False 
     if args.simulation_error:
