@@ -116,6 +116,7 @@ class Inference(ABC):
             add_simulation_error=covariance_config["add_simulation_error"],
             emulator_data_class=covariance_config.get("emulator_data_class", 'Abacus'),
             volume_scaling=covariance_config.get("volume_scaling", 1),
+            correction_method=covariance_config.get("correction_method", "percival"),
             statistics=config["statistics"],
             select_filters=select_filters,
             slice_filters=slice_filters,
