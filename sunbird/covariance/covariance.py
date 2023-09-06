@@ -20,7 +20,6 @@ class CovarianceMatrix:
         dataset: str = 'bossprior',
         output_transforms: Optional[Callable] = None,
         emulators=None,
-        obs_config: Dict = {},
         path_to_models: Path = MODEL_PATH,
     ):
         """Compute a covariance matrix for a list of statistics and filters in any
@@ -38,7 +37,6 @@ class CovarianceMatrix:
             select_filters=select_filters,
             transforms=output_transforms,
             dataset=dataset,
-            **obs_config.get("args", {}),
         )
         self.covariance_simulations_reader = getattr(data_readers, "AbacusSmall")(
             statistics=statistics,
@@ -63,8 +61,8 @@ class CovarianceMatrix:
     def get_covariance_data(
         self,
         volume_scaling: float = None,
+        apply_hartlap_correction: bool = True,
         fractional: bool = False,
-        return_nmocks=False,
     ) -> np.array:
         """Get the covariance matrix of the data for the specified summary statistics
 
@@ -80,9 +78,9 @@ class CovarianceMatrix:
             volume_scaling = 1.0
         return self.estimate_covariance_from_data_reader(
             data_reader=self.data_reader,
+            apply_hartlap_correction=apply_hartlap_correction,
             fractional=fractional,
             volume_scaling=volume_scaling,
-            return_nmocks=return_nmocks,
         )
 
     def get_true_test(
@@ -169,9 +167,9 @@ class CovarianceMatrix:
     def estimate_covariance_from_data_reader(
         self,
         data_reader: data_readers.DataReader,
+        apply_hartlap_correction: bool = True,
         fractional: bool = False,
         volume_scaling: float = 1.0,
-        return_nmocks: bool = False,
     ):
         """estimate covariance matrix from a set of simulations read by data_reader
 
@@ -187,19 +185,22 @@ class CovarianceMatrix:
             np.array: covariance matrix
         """
         summaries = data_reader.gather_summaries_for_covariance()
-        n_mocks = len(summaries)
+        if apply_hartlap_correction:
+            n_mocks = len(summaries)
+            n_bins = summaries.shape[-1]
+            hartlap_factor = (n_mocks - 1) / (n_mocks - n_bins - 2)
+        else:
+            hartlap_factor = 1.0
         if fractional:
             cov = np.cov(summaries / np.mean(summaries, axis=0), rowvar=False)
         else:
             cov = np.cov(summaries, rowvar=False)
-        if return_nmocks:
-            return cov / volume_scaling, n_mocks
-        return cov / volume_scaling
+        return hartlap_factor * cov / volume_scaling
 
     def get_covariance_simulation(
         self,
+        apply_hartlap_correction: bool = True,
         fractional: bool = False,
-        return_nmocks: bool = False,
     ) -> np.array:
         """Get the covariance matrix associated with the finite volume
         of the simulations used to train the emulator.
@@ -213,9 +214,9 @@ class CovarianceMatrix:
         """
         return self.estimate_covariance_from_data_reader(
             data_reader=self.covariance_simulations_reader,
+            apply_hartlap_correction=apply_hartlap_correction,
             fractional=fractional,
             volume_scaling=64,
-            return_nmocks=return_nmocks,
         )
 
     def get_covariance_emulator(
