@@ -7,6 +7,7 @@ from typing import Dict, List, Tuple, Optional
 from sunbird.covariance import CovarianceMatrix
 from sunbird.data import data_readers
 from sunbird.summaries import Bundle
+import sys
 
 
 class Inference(ABC):
@@ -91,42 +92,36 @@ class Inference(ABC):
         select_filters = config["select_filters"]
         slice_filters = config["slice_filters"]
         statistics = config["statistics"]
-        print(f'Fitting statistics = {statistics}')
         observation, parameters = cls.get_observation_and_parameters(
             config["data"]["observation"],
             statistics=statistics,
             select_filters=select_filters,
             slice_filters=slice_filters,
         )
-        fixed_parameters = {}
-        for k in config["fixed_parameters"]:
-            fixed_parameters[k] = parameters[k]
-        covariance_config = config["data"]["covariance"]
-        if "volume_scaling" not in covariance_config:
-            if covariance_config["class"] == "AbacusSmall":
-                raise ValueError(
-                    "Volume scaling must be specified when using AbacusSmall covariance class."
-                )
-            else:
-                covariance_config["volume_scaling"] = 1.0
         theory_model = cls.get_theory_model(
             config["theory_model"], statistics=config["statistics"]
         )
+        fixed_parameters = {}
+        for k in config["fixed_parameters"]:
+            fixed_parameters[k] = parameters[k]
+        parameters_to_fit = [
+            p for p in theory_model.input_names if p not in fixed_parameters.keys()
+        ]
+        priors = cls.get_priors(config["priors"], parameters_to_fit)
+        covariance_config = config["data"]["covariance"]
         covariance_matrix = cls.get_covariance_matrix(
             covariance_data_class=covariance_config["class"],
             covariance_dataset=covariance_config["dataset"],
             add_emulator_error=covariance_config["add_emulator_error_test_set"],
             add_simulation_error=covariance_config["add_simulation_error"],
-            volume_scaling=covariance_config["volume_scaling"],
+            emulator_data_class=covariance_config.get("emulator_data_class", 'Abacus'),
+            volume_scaling=covariance_config.get("volume_scaling", 1),
             statistics=config["statistics"],
             select_filters=select_filters,
             slice_filters=slice_filters,
             theory_model=theory_model,
+            parameters_to_fit=parameters_to_fit,
         )
-        parameters_to_fit = [
-            p for p in theory_model.input_names if p not in fixed_parameters.keys()
-        ]
-        priors = cls.get_priors(config["priors"], parameters_to_fit)
         return cls(
             theory_model=theory_model,
             observation=observation,
@@ -176,15 +171,17 @@ class Inference(ABC):
     def get_covariance_matrix(
         cls,
         covariance_data_class: str,
+        emulator_data_class: str,
         covariance_dataset: str,
         statistics: List[str],
         select_filters: Dict,
         slice_filters: Dict,
         add_emulator_error: bool = True,
         add_simulation_error: bool = True,
-        apply_hartlap_correction: bool = True,
         volume_scaling: float = 1.0,
         theory_model=None,
+        correction_method='percival',
+        parameters_to_fit=None,
     ) -> np.array:
         """Compute covariance matrix for a list of statistics
 
@@ -210,22 +207,38 @@ class Inference(ABC):
             }
         covariance = CovarianceMatrix(
             covariance_data_class=covariance_data_class,
+            emulator_data_class=emulator_data_class,
             dataset=covariance_dataset,
             statistics=statistics,
             select_filters=select_filters,
             slice_filters=slice_filters,
             emulators=emulators,
         )
-        cov_data = covariance.get_covariance_data(
-            apply_hartlap_correction=apply_hartlap_correction,
+        cov_data, n_s = covariance.get_covariance_data(
             volume_scaling=volume_scaling,
+            return_nmocks=True,
         )
+        n_d = len(cov_data)
+        n_theta = len(parameters_to_fit)
+        correction_factor = cls.get_covariance_correction(
+            n_s, n_d, n_theta=n_theta, correction_method=correction_method
+        )
+        cov_data *= correction_factor
+        print(f'Using {correction_method} correction for cov_data')
+        print(f'n_s: {n_s}, n_d: {n_d}, n_theta: {n_theta}, factor: {correction_factor:.2f}')
+        if add_simulation_error:
+            cov_sim, n_s = covariance.get_covariance_simulation(
+                return_nmocks=True,
+            )
+            correction_factor = cls.get_covariance_correction(
+                n_s, n_d, n_theta=n_theta, correction_method=correction_method
+            )
+            cov_sim *= correction_factor
+            print(f'Using {correction_method} correction for cov_sim')
+            print(f'n_s: {n_s}, n_d: {n_d}, n_theta: {n_theta}, factor: {correction_factor:.2f}')
+            cov_data += cov_sim
         if add_emulator_error:
             cov_data += covariance.get_covariance_emulator(
-            )
-        if add_simulation_error:
-            cov_data += covariance.get_covariance_simulation(
-                apply_hartlap_correction=apply_hartlap_correction,
             )
         return cov_data
 
@@ -322,6 +335,18 @@ class Inference(ABC):
             np.array: inverse covariance
         """
         return np.linalg.inv(covariance_matrix)
+
+    def get_covariance_correction(
+        n_s, n_d, n_theta=None, correction_method='percival',
+    ):
+        if correction_method == 'percival':
+            B = (n_s - n_d - 2) / ((n_s - n_d - 1)*(n_s - n_d - 4))
+            factor = (n_s - 1)*(1 + B*(n_d - n_theta))/(n_s - n_d + n_theta - 1)
+        elif correction_method == 'hartlap':
+            factor = (n_s - 1)/(n_s - n_d - 2)
+        else:
+            factor = 1.0
+        return factor
 
     def get_loglikelihood_for_prediction(
         self,
