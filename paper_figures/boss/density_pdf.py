@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from pathlib import Path
-plt.style.use(['stylelibs/enrique-science.mplstyle', 'stylelibs/bright.mplstyle'])
+plt.style.use(['stylelib/science.mplstyle', 'stylelib/bright.mplstyle'])
 
 data_dir = Path('/pscratch/sd/e/epaillas/ds_boss/ds_density/CMASS/')
 data_fn = data_dir / f'density_CMASS_NGC_zmin0.45_zmax0.6_zsplit_gaussian_NQ5_Rs10.npy'
