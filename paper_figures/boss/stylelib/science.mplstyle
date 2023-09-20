@@ -1,0 +1,54 @@
+# Matplotlib style for scientific plotting
+# This is the base style for "SciencePlots"
+# see: https://github.com/garrettj403/SciencePlots
+
+# Set color cycle: blue, green, yellow, red, violet, gray
+axes.prop_cycle : cycler('color', ['0C5DA5', '00B945', 'FF9500', 'FF2C00', '845B97', '474747', '9e9e9e'])
+
+# Set default figure size
+figure.figsize : 5, 5
+
+axes.titlesize : 15   # fontsize of the axes title
+axes.labelsize : 15  # fontsize of the x any y labels
+
+# Set x axis
+xtick.direction : in
+xtick.major.size : 4
+xtick.major.width : 0.75
+xtick.minor.size : 2
+xtick.minor.width : 0.75
+xtick.minor.visible : True
+xtick.top : True
+xtick.labelsize: 15    
+
+# Set y axis
+ytick.direction : in
+ytick.major.size : 4
+ytick.major.width : 0.75
+ytick.minor.size : 2
+ytick.minor.width : 0.75
+ytick.minor.visible : True
+ytick.right : True
+ytick.labelsize: 15    
+
+# Set line widths
+axes.linewidth : 0.75
+grid.linewidth : 0.75
+lines.linewidth : 2.0
+
+# Remove legend frame
+legend.frameon : False
+legend.fontsize: 15
+
+# Always save as 'tight'
+savefig.bbox : tight
+savefig.pad_inches : 0.05
+
+# Use serif fonts
+# font.serif : Times
+font.family : serif
+mathtext.fontset : dejavuserif
+
+# Use LaTeX for math formatting
+text.usetex : True
+text.latex.preamble : \usepackage{amsmath} \usepackage{amssymb}
