@@ -70,7 +70,12 @@ if __name__ == '__main__':
         sharex=True,
     )
     quintiles = [0,1,2,3]
-    q_labels = ['DS1', 'DS2', 'DS4', 'DS5']
+    q_labels = [
+        r'$\mathrm{Q}_0$', 
+        r'$\mathrm{Q}_1$', 
+        r'$\mathrm{Q}_3$', 
+        r'$\mathrm{Q}_4$', 
+    ]
     for i, param in enumerate(params_to_plot):
         param_idx = emulator.input_names.index(param)
         for q in quintiles:

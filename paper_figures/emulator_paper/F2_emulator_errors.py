@@ -26,7 +26,6 @@ def get_data_errors(
         dataset=dataset,
     )
     covariance_data = covariance.get_covariance_data(
-        apply_hartlap_correction=True,
         volume_scaling=volume_scaling,
     )
     return np.sqrt(np.diag(covariance_data))
@@ -125,7 +124,7 @@ if __name__ == "__main__":
 
     dataset = "bossprior"
     loss = args.loss
-    plot_predicted_errors = True 
+    plot_predicted_errors = False 
     suffix = None
     volume_scaling = 64.0  # 8. for BOSS volume, 64 for AbacusSummit/Beyond2pt volume
     select_filters = {
@@ -209,7 +208,7 @@ if __name__ == "__main__":
             x_range[q * len(s) : (q + 1) * len(s)],
             median_frac_error[0, q, 0, :],
             color=ds_colors[quintiles[q]-1],
-            label=rf"$\mathrm{{DS}}{quintiles[q]}$",
+            label=rf"$\mathrm{{Q}}{quintiles[q]-1}$",
             linewidth=lw,
         )
         ax[1].plot(
@@ -261,18 +260,25 @@ if __name__ == "__main__":
     ax[2].set_ylabel(r"$|\Delta \xi^\mathrm{QG}_0| / \xi^\mathrm{QG}_0$")
     ax[3].set_ylabel(r"$|\Delta \xi^\mathrm{QG}_2| / \xi^\mathrm{QG}_2$")
     ax[0].legend(loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.5))
-    current_labels = [13, 13, 11] * 4
-    current_labels = np.cumsum(current_labels)
-    current_labels = [0] + list(current_labels)
     all_s = np.array(list(s) * 4)
+    current_labels, s_values = [], []
+    for i in range(4):
+        start = i*len(s)
+        current_labels += [start, start + len(s)//4, start + len(s)//2, start + 3*len(s)//4]
+        s_values += [s[0], s[len(s)//4], s[len(s)//2], s[3*len(s)//4]]
+
     _ = ax[-1].set_xticks(
-        current_labels[:-1], [all_s[int(c)] - 0.5 for c in current_labels[:-1]]
+        current_labels, s_values, #[all_s[int(c)] for c in current_labels]
     )
 
     ax[-1].set_xlabel(r"s $[\mathrm{Mpc}/h]$")
 
     for i in range(4):
-        ax[i].set_ylim(0.0, 0.2)
+        ax[i].set_xlim(0,4*len(s)-1)
+        ax[i].set_ylim(0.0, 0.15)
+        ax[i].axvline(x=len(s), alpha=0.3, color='gray', linestyle='dotted')
+        ax[i].axvline(x=2*len(s), alpha=0.3, color='gray', linestyle='dotted')
+        ax[i].axvline(x=3*len(s), alpha=0.3, color='gray', linestyle='dotted')
     plt.subplots_adjust(wspace=0, hspace=0)
 
     plt.tight_layout()
@@ -307,7 +313,7 @@ if __name__ == "__main__":
             x_range[q * len(s) : (q + 1) * len(s)],
             median_std_error[0, q, 0, :],
             color=ds_colors[quintiles[q]-1],
-            label=rf"$\mathrm{{DS}}{quintiles[q]}$",
+            label=rf"$\mathrm{{Q}}_{quintiles[q]-1}$",
             linewidth=lw,
         )
         ax[1].plot(
@@ -320,7 +326,7 @@ if __name__ == "__main__":
             x_range[q * len(s) : (q + 1) * len(s)],
             median_std_error[1, q, 0, :],
             color=ds_colors[quintiles[q]-1],
-            label=rf"$\mathrm{{DS}}{quintiles[q]}$",
+            label=rf"$\mathrm{{Q}}_{quintiles[q]-1}$",
             linewidth=lw,
         )
         ax[3].plot(
@@ -362,18 +368,19 @@ if __name__ == "__main__":
 
     ax[0].legend(loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.5))
     fig.canvas.draw()
-    current_labels = [13, 13, 11] * 4
-    current_labels = np.cumsum(current_labels)
-    current_labels = [0] + list(current_labels)
-    all_s = np.array(list(s) * 4)
     _ = ax[-1].set_xticks(
-        current_labels[:-1], [all_s[int(c)] - 0.5 for c in current_labels[:-1]]
+        #current_labels, [all_s[int(c)] for c in current_labels]
+        current_labels, s_values, #[all_s[int(c)] for c in current_labels]
     )
 
     ax[-1].set_xlabel(r"s $[\mathrm{Mpc}/h]$")
 
     for i in range(4):
+        ax[i].set_xlim(0,4*len(s)-1)
         ax[i].set_ylim(0, 3.2)
+        ax[i].axvline(x=len(s), alpha=0.3, color='gray', linestyle='dotted')
+        ax[i].axvline(x=2*len(s), alpha=0.3, color='gray', linestyle='dotted')
+        ax[i].axvline(x=3*len(s), alpha=0.3, color='gray', linestyle='dotted')
 
     plt.subplots_adjust(wspace=0, hspace=0)
     plt.tight_layout()
