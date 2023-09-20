@@ -41,7 +41,7 @@ cosmo_params = [
     "sigma8_m",
     "n_s",
     "nrun",
-    "N_ur",
+    "N_eff",
     "w0_fld",
     "wa_fld",
 ]

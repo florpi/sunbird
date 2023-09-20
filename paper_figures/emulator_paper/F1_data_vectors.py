@@ -72,10 +72,14 @@ if __name__ == '__main__':
                 error_tot = np.sqrt(error_data**2 + error_emu**2 + error_sim**2)
 
                 color = colors[ds] if 'density_split' in statistic else '#404040'
-
+                if statistic == 'density_split_cross' and ell==0:
+                    label=rf'$\mathrm{{Q}}_{ds}$'
+                else:
+                    label=None 
                 ax[0].errorbar(s, s**spow*datavector, s**spow*error_data, marker='o',
                             ms=3.0, ls='', color=color, elinewidth=1.0,
                             capsize=0.0, markeredgewidth=1.0,
+                            label=label,
                             markerfacecolor=lighten_color(color, 0.5),
                             markeredgecolor=color,)
 
@@ -85,6 +89,8 @@ if __name__ == '__main__':
 
                 ax[1].plot(s, (datavector - model)/error_data, ls='-', color=color)
 
+            if statistic == 'density_split_cross' and ell==0: 
+                ax[0].legend()
             ax[0].axes.get_xaxis().set_visible(False)
             ax[1].fill_between([-1, 160], -1, 1, color='grey', alpha=0.2)
             ax[1].fill_between([-1, 160], -2, 2, color='grey', alpha=0.15)

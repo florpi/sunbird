@@ -63,7 +63,7 @@ chain_labels = [
 redshift = 0.5
 
 yvals = np.linspace(0, 10, len(chain_handles))
-params_toplot = ["omega_cdm", "sigma8_m", "n_s","fsigma8", "N_ur", "B_sat",] 
+params_toplot = ["omega_cdm", "sigma8_m", "n_s","N_eff", "B_sat",] 
 labels_toplot =  ['$' + label + '$' for label in get_names_labels(params_toplot)]
 
 true_params = get_true_params(
@@ -118,3 +118,59 @@ plt.tight_layout()
 plt.subplots_adjust(wspace=0.125)
 plt.savefig("figures/pdf/F6_whisker.pdf", bbox_inches="tight")
 plt.savefig(f"figures/png/F6_whisker.png", bbox_inches="tight", dpi=300)
+
+params_toplot = ["nrun", "N_eff", "w0_fld"]
+labels_toplot =  ['$' + label + '$' for label in get_names_labels(params_toplot)]
+
+true_params = get_true_params(
+    cosmology=0, hod_idx=26, add_fsigma8=True, redshift=redshift
+)
+
+fig, ax = plt.subplots(1, len(params_toplot), figsize=(2.5 * len(params_toplot), 4.5))
+for iparam, param in enumerate(params_toplot):
+    for ichain, chain_handle in enumerate(chain_handles):
+        chain_fn = chain_dir / chain_handle / "results.csv"
+        samples = get_MCSamples(
+            chain_fn,
+            add_fsigma8=True,
+            redshift=redshift,
+        )
+
+        if ichain == len(chain_handles) - 1:
+            ax[iparam].fill_betweenx(
+                yvals,
+                samples.mean(param) - samples.std(param),
+                samples.mean(param) + samples.std(param),
+                alpha=0.2,
+                color="gray",
+                edgecolor=None,
+            )
+            #ax[iparam].plot(
+            #    [true_params[param]] * len(yvals),
+            #    yvals,
+            #    color="gray",
+            #    linestyle="dashed",
+            #    alpha=0.3,
+            #)
+        ax[iparam].errorbar(
+            samples.mean(param),
+            yvals[ichain],
+            xerr=samples.std(param),
+            marker="o",
+            ms=5.0,
+            color="indigo",
+            capsize=3,
+        )
+
+    ax[iparam].set_xlabel(labels_toplot[iparam], fontsize=20)
+    ax[iparam].tick_params(axis="x", labelsize=13, rotation=45)
+    if iparam > 0:
+        ax[iparam].axes.get_yaxis().set_visible(False)
+    else:
+        ax[iparam].set_yticks(yvals)
+        ax[iparam].set_yticklabels(chain_labels, minor=False, rotation=0, fontsize=13)
+
+plt.tight_layout()
+plt.subplots_adjust(wspace=0.125)
+plt.savefig("figures/pdf/F6_whisker_beyondlambda.pdf", bbox_inches="tight")
+plt.savefig(f"figures/png/F6_whisker_beyondlambda.png", bbox_inches="tight", dpi=300)

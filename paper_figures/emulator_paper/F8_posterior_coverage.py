@@ -15,6 +15,7 @@ labels_dict = {
     "omega_b": r'\omega_{\rm b}', "omega_cdm": r'\omega_{\rm cdm}',
     "sigma8_m": r'\sigma_8', "n_s": r'n_s', "nrun": r'\alpha_s',
     "N_ur": r'N_{\rm ur}', "w0_fld": r'w_0', "wa_fld": r'w_a',
+    "N_eff": r'N_{\rm eff}',
     "logM1": r'\log M_1', "logM_cut": r'\log M_{\rm cut}',
     "alpha": r'\alpha', "alpha_s": r'\alpha_{\rm vel, s}',
     "alpha_c": r'\alpha_{\rm vel, c}', "logsigma": r'\log \sigma',
@@ -42,6 +43,8 @@ def read_hmc_chain(filename, add_fsigma8=True, redshift=0.5,):
     if add_fsigma8:
         data['fsigma8'] = get_fsigma8(data, redshift=redshift)
         param_names.append("fsigma8")
+    data['N_eff'] = data['N_ur'] + 1.0132
+    param_names.append('N_eff')
     data = data.to_numpy()
     return param_names, data 
 
@@ -68,6 +71,7 @@ def plot_coverage(ranks, labels, plotscatter=True):
     unicov = [np.sort(np.random.uniform(0, 1, ncounts)) for j in range(30)]
 
     fig, ax = plt.subplots(figsize=(3.5,2.6),)
+    ax.axvline(x=0.68, color='lightgray', alpha=0.3)
     cmap = matplotlib.cm.get_cmap('coolwarm')
     colors = cmap(np.linspace(0.01, 0.99, len(labels)))
 
@@ -110,7 +114,7 @@ if __name__ == '__main__':
     test_cosmologies = train_test_split['test']
     hod_range = range(100)
 
-    params_to_plot = ['omega_cdm', 'sigma8_m', 'n_s', 'fsigma8', 'logM_cut', 'B_cen']
+    params_to_plot = ['omega_cdm', 'sigma8_m', 'n_s', 'N_eff', 'logM_cut', 'B_cen']
 
     posterior_samples, theta = [], []
     for cosmology in test_cosmologies:
@@ -118,6 +122,7 @@ if __name__ == '__main__':
             cosmology=cosmology,
         )
         true_parameters['fsigma8'] = get_fsigma8(true_parameters)
+        true_parameters['N_eff'] = true_parameters['N_ur'] + 1.0132
         true_parameters = true_parameters[params_to_plot]
         theta.append(true_parameters)
         for hod_idx in hod_range:

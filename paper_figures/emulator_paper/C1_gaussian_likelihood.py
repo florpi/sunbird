@@ -62,6 +62,7 @@ def plot_gaussianity(summaries, ax, colors=["#4165c0", "#e770a2"]):
 
 
 if __name__ == "__main__":
+    slice_filters = {'s': [0.7,150.]}
     abacus = AbacusSmall(
         statistics=[
             "density_split_auto",
@@ -70,6 +71,7 @@ if __name__ == "__main__":
             "multipoles": [0, 2],
             "quintiles": [0, 1, 3, 4],
         },
+        slice_filters=slice_filters,
         dataset="bossprior",
     )
     auto_ds = abacus.gather_summaries_for_covariance()
@@ -81,6 +83,7 @@ if __name__ == "__main__":
             "multipoles": [0, 2],
             "quintiles": [0, 1, 3, 4],
         },
+        slice_filters=slice_filters,
         dataset="bossprior",
     )
     cross_ds = abacus.gather_summaries_for_covariance()
@@ -90,6 +93,7 @@ if __name__ == "__main__":
         select_filters={
             "multipoles": [0, 2],
         },
+        slice_filters=slice_filters,
         dataset="bossprior",
     )
     tpcf = abacus.gather_summaries_for_covariance()
@@ -106,32 +110,41 @@ if __name__ == "__main__":
     ax[0].legend()
     ax[0].set_xlabel(
         r"$\chi^2$",
+        fontsize=16,
     )
     ax[1].set_xlabel(
         r"$\chi^2$",
+        fontsize=16,
     )
     ax[2].set_xlabel(
         r"$\chi^2$",
+        fontsize=16,
     )
 
     ax[0].set_ylabel(
         r"$\mathrm{PDF}$",
+        fontsize=16,
     )
     ax[1].set_ylabel(
         r"$\mathrm{PDF}$",
+        fontsize=16,
     )
     ax[2].set_ylabel(
         r"$\mathrm{PDF}$",
+        fontsize=16,
     )
     ax[0].set_title(
         r"$\mathrm{2PCF}$",
+        fontsize=20,
     )
 
     ax[1].set_title(
         r"$\mathrm{DS}^\mathrm{QG}$",
+        fontsize=20,
     )
     ax[2].set_title(
         r"$\mathrm{DS}^\mathrm{QQ}$",
+        fontsize=20,
     )
 
     ax[0].tick_params(
@@ -142,7 +155,10 @@ if __name__ == "__main__":
         axis="both",
         which="major",
     )
-
+    for a in ax:
+        a.xaxis.set_tick_params(labelsize=16)
+        a.yaxis.set_tick_params(labelsize=16)
+        a.legend(fontsize=16)
     plt.tight_layout()
     plt.savefig("figures/png/C1_gaussianity_likelihood.png", dpi=300)
     plt.savefig("figures/pdf/C1_gaussianity_likelihood.pdf")
