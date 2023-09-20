@@ -12,8 +12,8 @@ labels = {
     "omega_cdm": r"\omega_{\rm cdm}",
     "sigma8_m": r"\sigma_8",
     "n_s": r"n_s",
-    "nrun": r'{\rm d}n_s/{\rm d}\ln k',
-    'N_eff': r'N_{\rm eff}',
+    "nrun": r"{\rm d}n_s/{\rm d}\ln k",
+    "N_eff": r"N_{\rm eff}",
     "N_ur": r"N_{\rm ur}",
     "w0_fld": r"w_0",
     "wa_fld": r"w_a",
@@ -48,12 +48,13 @@ def read_dynesty_chain(filename, add_fsigma8=False, redshift=0.5):
             z=redshift,
         )
         param_names.append("fsigma8")
-    data['N_eff'] = data['N_ur'] + 1.0132
-    param_names.append('N_eff')
+    data["N_eff"] = data["N_ur"] + 1.0132
+    param_names.append("N_eff")
     data = data.to_numpy()
     chain = data[:, 4:]
     weights = np.exp(data[:, 1] - data[-1, 2])
     return param_names, chain, weights
+
 
 def read_hmc_chain(filename, add_fsigma8=False, redshift=0.5):
     data = pd.read_csv(filename)
@@ -73,13 +74,18 @@ def read_hmc_chain(filename, add_fsigma8=False, redshift=0.5):
             z=redshift,
         )
         param_names.append("fsigma8")
-    data['N_eff'] = data['N_ur'] + 1.0132
-    param_names.append('N_eff')
+    data["N_eff"] = data["N_ur"] + 1.0132
+    param_names.append("N_eff")
     data = data.to_numpy()
-    return param_names, data, None 
+    return param_names, data, None
 
 
-def get_MCSamples(filename, add_fsigma8=False, redshift=0.5, hmc=True,):
+def get_MCSamples(
+    filename,
+    add_fsigma8=False,
+    redshift=0.5,
+    hmc=True,
+):
     priors = {
         "omega_b": [0.0207, 0.0243],
         "omega_cdm": [0.1032, 0.140],
@@ -98,7 +104,7 @@ def get_MCSamples(filename, add_fsigma8=False, redshift=0.5, hmc=True,):
         "kappa": [0.0, 1.5],
         "B_cen": [-0.5, 0.5],
         "B_sat": [-1.0, 1.0],
-        "N_eff": [2.1902,3.9022],
+        "N_eff": [2.1902, 3.9022],
     }
     if hmc:
         names, chain, weights = read_hmc_chain(
@@ -138,7 +144,7 @@ def get_true_params(
     if add_fsigma8:
         cosmo = AbacusSummit(cosmology)
         param_dict["fsigma8"] = cosmo.sigma8_z(redshift) * cosmo.growth_rate(redshift)
-    param_dict['N_eff'] = param_dict['N_ur'] + 1.0132
+    param_dict["N_eff"] = param_dict["N_ur"] + 1.0132
     return param_dict
 
 

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from sunbird.data.data_readers import AbacusSmall
 
-plt.style.use(['science', 'vibrant'])
+plt.style.use(["science", "vibrant"])
 
 
 def compute_mean_cov(summaries, volume_factor=1.0):
@@ -47,7 +47,7 @@ def plot_gaussianity(summaries, ax, colors=["#4165c0", "#e770a2"]):
         label="Data",
         alpha=0.5,
         edgecolor=None,
-        #color=colors[0],
+        # color=colors[0],
     )
     ax.hist(
         xi2_random,
@@ -56,13 +56,13 @@ def plot_gaussianity(summaries, ax, colors=["#4165c0", "#e770a2"]):
         alpha=0.3,
         label="Gaussian",
         edgecolor=None,
-        #color=colors[1],
+        # color=colors[1],
     )
     ax.plot(x, stats.chi2.pdf(x, dof), label=r"$\chi^2$", color="gray", linewidth=2)
 
 
 if __name__ == "__main__":
-    slice_filters = {'s': [0.7,150.]}
+    slice_filters = {"s": [0.7, 150.0]}
     abacus = AbacusSmall(
         statistics=[
             "density_split_auto",
