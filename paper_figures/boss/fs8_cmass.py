@@ -98,10 +98,6 @@ labels = [
     r'\omega_{\rm cdm}',
     r'\sigma_8',
     r'n_s',
-    # r'\alpha_s',
-    # r'N_{\rm ur}',
-    # r'w_0',
-    # r'w_a',
     r'\log M_1', r'\log M_{\rm cut}', r'\alpha', r'\alpha_{\rm vel, s}',
     r'\alpha_{\rm vel, c}', r'\log \sigma', r'\kappa', r'B_{\rm cen}', r'B_{\rm sat}',
     r'f\sigma_8',
@@ -193,8 +189,6 @@ plt.errorbar(0.55, fs8_mean, yerr=fs8_std, label='This work', marker='s', color=
 plt.errorbar([0.52], [0.444], yerr=[0.016], label='Yuan+22', marker='o', color='C1',
             markersize=4.0, markerfacecolor=lighten_color('w', lf), markeredgecolor='C1', **kwargs)
 
-# plt.errorbar([0.57], [0.45], yerr=[0.01], label='Reid+14', marker='s', color='C2',
-#             markersize=4.0, markerfacecolor=lighten_color('C2', 0.5), markeredgecolor='C2', **kwargs)
 plt.errorbar([0.59], [0.455], yerr=[0.026], label='Yu+22', marker='>', color='C2',
             markersize=4.0, markerfacecolor=lighten_color('w', lf), markeredgecolor='C2', **kwargs)
 
@@ -242,9 +236,6 @@ plt.errorbar([0.737], [0.408], yerr=[0.04], label='Chapman+21', marker='D', colo
 
 plt.errorbar([0.067], [0.423], yerr=[0.055], label='Beutler+12', marker='x', color='C8',
             markersize=4.0, markerfacecolor=lighten_color('w', lf), markeredgecolor='C8', **kwargs)
-
-
-    # \item \cite{d'Amico2020:1909.05271}, $\Omega_m = 0.309 \pm 0.010$, $H_0 = 68.5 ± 2.2$, $f\sigma_8(z=0.55) = 0.399 \pm 0.031$
 
 plt.xlabel('$z$', fontsize = 16)
 plt.ylabel('$f(z)\sigma_8(z)$', fontsize = 16)
