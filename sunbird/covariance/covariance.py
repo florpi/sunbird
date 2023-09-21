@@ -18,6 +18,7 @@ class CovarianceMatrix:
         covariance_data_class: str = 'AbacusSmall',
         emulator_data_class: str = 'Abacus',
         dataset: str = 'bossprior',
+        loss: str = 'learned_gaussian',
         output_transforms: Optional[Callable] = None,
         emulators=None,
         obs_config: Dict = {},
@@ -32,6 +33,7 @@ class CovarianceMatrix:
             select_filters (Dict): dictionary with select filters on given coordinates
         """
         self.dataset = dataset
+        self.loss = loss
         self.data_reader = getattr(data_readers, covariance_data_class)(
             statistics=statistics,
             slice_filters=slice_filters,
@@ -150,10 +152,10 @@ class CovarianceMatrix:
             from sunbird.summaries import DensitySplitAuto, DensitySplitCross, TPCF, DensityPDF
 
             self.emulators = {
-                "density_split_cross": DensitySplitCross(dataset=self.dataset, path_to_models=self.path_to_models),
-                "density_split_auto": DensitySplitAuto(dataset=self.dataset, path_to_models=self.path_to_models),
-                "tpcf": TPCF(dataset=self.dataset, path_to_models=self.path_to_models),
-                "density_pdf": DensityPDF(dataset=self.dataset, path_to_models=self.path_to_models),
+                "density_split_cross": DensitySplitCross(dataset=self.dataset, path_to_models=self.path_to_models, loss=self.loss),
+                "density_split_auto": DensitySplitAuto(dataset=self.dataset, path_to_models=self.path_to_models, loss=self.loss),
+                "tpcf": TPCF(dataset=self.dataset, path_to_models=self.path_to_models, loss=self.loss),
+                "density_pdf": DensityPDF(dataset=self.dataset, path_to_models=self.path_to_models, loss=self.loss),
             }
         xi_model = []
         for statistic in self.statistics:

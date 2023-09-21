@@ -14,7 +14,7 @@ args.add_argument(
 args.add_argument(
     "--loss",
     type=str,
-    default = 'learned_gaussian',
+    default="learned_gaussian",
 )
 args = args.parse_args()
 
@@ -26,9 +26,9 @@ cosmo = 0
 hod = best_hod[cosmo]
 
 chain_handles = [
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf-ab=1-vb=1-ete=1-se=1',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
-    f'cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f"cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf-ab=1-vb=1-ete=1-se=1",
+    f"cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1",
+    f"cos=0-h=26-o=Abacus-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1",
 ]
 chain_labels = [
     "AbacusSummit 2PCF",
@@ -41,7 +41,7 @@ cosmo_params = [
     "sigma8_m",
     "n_s",
     "nrun",
-    "N_ur",
+    "N_eff",
     "w0_fld",
     "wa_fld",
 ]
@@ -86,3 +86,13 @@ ax = inference_plots.plot_corner(
 )
 plt.savefig("figures/pdf/F5_hod_c0_hod26.pdf", bbox_inches="tight")
 plt.savefig("figures/png/F5_hod_c0_hod26.png", bbox_inches="tight")
+
+ax = inference_plots.plot_corner(
+    samples_list,
+    cosmo_params + hod_params,
+    chain_labels,
+    true_params=None,
+    markers=[true_params],
+)
+plt.savefig("figures/pdf/F5_full_c0_hod26.pdf", bbox_inches="tight")
+plt.savefig("figures/png/F5_full_c0_hod26.png", bbox_inches="tight")

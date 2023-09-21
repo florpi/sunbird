@@ -15,7 +15,7 @@ args.add_argument(
 args.add_argument(
     "--loss",
     type=str,
-    default='learned_gaussian',
+    default="learned_gaussian",
 )
 
 args = args.parse_args()
@@ -23,8 +23,8 @@ args = args.parse_args()
 chain_dir = Path(args.chain_dir)
 
 chain_handles = [
-    f'cos=0-h=26-o=Uchuu-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf-ab=1-vb=1-ete=1-se=1',
-    f'cos=0-h=26-o=Uchuu-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1',
+    f"cos=0-h=26-o=Uchuu-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf-ab=1-vb=1-ete=1-se=1",
+    f"cos=0-h=26-o=Uchuu-l={args.loss}-smin=0.7-smax=150.0-m=02-q=0134-st=tpcf;density_split_cross;density_split_auto-ab=1-vb=1-ete=1-se=1",
 ]
 
 chain_labels = [

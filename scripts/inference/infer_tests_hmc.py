@@ -45,6 +45,7 @@ if __name__ == "__main__":
     parser.add_argument('--assembly_bias', action=argparse.BooleanOptionalAction, default=True,)
     parser.add_argument('--velocity_bias', action=argparse.BooleanOptionalAction, default=True,)
     parser.add_argument('--emulator_error', action=argparse.BooleanOptionalAction, default=True,)
+    parser.add_argument('--predicted_uncertainty', action=argparse.BooleanOptionalAction, default=False,)
     parser.add_argument('--simulation_error', action=argparse.BooleanOptionalAction, default=True,)
     args = parser.parse_args()
     dir_name = (
@@ -56,10 +57,6 @@ if __name__ == "__main__":
     )
     with open(args.config_path, "r") as f:
         config = yaml.safe_load(f)
-    # Store all args in folder name
-    config["inference"]["output_dir"] = output_path / dir_name 
-    print("output dir")
-    print(config["inference"]["output_dir"])
 
     # Apply changes in config
     if args.observation == 'Uchuu':
@@ -83,10 +80,20 @@ if __name__ == "__main__":
         config['data']['covariance']['add_emulator_error_test_set'] = True 
     else:
         config['data']['covariance']['add_emulator_error_test_set'] = False 
+    if args.predicted_uncertainty: 
+        config['data']['covariance']['add_predicted_uncertainty'] = True 
+        dir_name += f'-predun={int(args.predicted_uncertainty or 0)}'
+    else:
+        config['data']['covariance']['add_predicted_uncertainty'] = False 
     if args.simulation_error:
         config['data']['covariance']['add_simulation_error'] = True 
     else:
         config['data']['covariance']['add_simulation_error'] = False 
+
+    # Store all args in folder name
+    config["inference"]["output_dir"] = output_path / dir_name 
+    print("output dir")
+    print(config["inference"]["output_dir"])
 
     hmc = HMC.from_config_dict(
         config=config,

@@ -4,8 +4,9 @@ loss_value="mae"
 
 commands=(
     "python infer_tests_hmc.py --statistics tpcf density_split_cross density_split_auto --loss $loss_value"
-    "python infer_tests_hmc.py --statistics tpcf density_split_cross density_split_auto --s_max 30. --loss $loss_value"
-    "python infer_tests_hmc.py --statistics tpcf density_split_cross density_split_auto --s_min 30. --loss $loss_value"
+    "python infer_tests_hmc.py --statistics tpcf density_split_cross density_split_auto --s_max 80. --loss $loss_value"
+    "python infer_tests_hmc.py --statistics tpcf density_split_cross density_split_auto --s_max 50. --loss $loss_value"
+    "python infer_tests_hmc.py --statistics tpcf density_split_cross density_split_auto --s_min 50. --loss $loss_value"
     "python infer_tests_hmc.py --statistics tpcf density_split_cross density_split_auto --quintiles 0  --loss $loss_value"
     "python infer_tests_hmc.py --statistics tpcf density_split_cross density_split_auto --quintiles 4  --loss $loss_value"
     "python infer_tests_hmc.py --statistics tpcf density_split_cross density_split_auto --quintiles 0 4 --loss $loss_value"
