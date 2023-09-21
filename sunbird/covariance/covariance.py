@@ -149,13 +149,14 @@ class CovarianceMatrix:
             np.array: emulator prediction
         """
         if self.emulators is None:
-            from sunbird.summaries import DensitySplitAuto, DensitySplitCross, TPCF, DensityPDF
+            from sunbird.summaries import DensitySplitAuto, DensitySplitCross, TPCF, DensityPDF, VoxelVoids
 
             self.emulators = {
                 "density_split_cross": DensitySplitCross(dataset=self.dataset, path_to_models=self.path_to_models, loss=self.loss),
                 "density_split_auto": DensitySplitAuto(dataset=self.dataset, path_to_models=self.path_to_models, loss=self.loss),
                 "tpcf": TPCF(dataset=self.dataset, path_to_models=self.path_to_models, loss=self.loss),
                 "density_pdf": DensityPDF(dataset=self.dataset, path_to_models=self.path_to_models, loss=self.loss),
+                "voxel_voids": VoxelVoids(dataset=self.dataset, path_to_models=self.path_to_models, loss=self.loss),
             }
         xi_model = []
         for statistic in self.statistics:
