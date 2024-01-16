@@ -36,8 +36,8 @@ parameters. For example, to get the TPCF prediction for the BOSS DR12 CMASS samp
 
     parameters = {**cosmo_params, **hod_params}
 
-    prediction = emulator(
+    prediction, error = emulator(
         param_dict=parameters,
         select_filters=select_filters,
         slice_filters=slice_filters,
-    ).numpy()   
+    )
