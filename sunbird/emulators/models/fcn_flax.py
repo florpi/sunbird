@@ -2,26 +2,10 @@ from typing import Tuple, Sequence, Dict
 from pathlib import Path
 import numpy as np
 import yaml
-import jax
 import torch
-from flax.traverse_util import unflatten_dict
 import jax.numpy as jnp
 import flax.linen as nn
 
-
-def convert_state_dict_from_pt(
-    model,
-    state,
-):
-    """
-    Converts a PyTorch parameter state dict to an equivalent Flax parameter state dict
-    """
-    state = {k: v.numpy() for k, v in state.items()}
-    state = model.convert_from_pytorch(
-        state,
-    )
-    state = unflatten_dict({tuple(k.split(".")): v for k, v in state.items()})
-    return state
 
 
 class FlaxFCN(nn.Module):

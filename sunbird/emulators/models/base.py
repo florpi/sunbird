@@ -3,8 +3,26 @@ import numpy as np
 from typing import Dict
 from pathlib import Path
 import yaml
-import pytorch_lightning as pl
+import lightning as pl
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from flax.traverse_util import unflatten_dict
+
+import sunbird.emulators.models as models
+
+
+def convert_state_dict_from_pt(
+    model,
+    state,
+):
+    """
+    Converts a PyTorch parameter state dict to an equivalent Flax parameter state dict
+    """
+    state = {k: v.numpy() for k, v in state.items()}
+    state = model.convert_from_pytorch(
+        state,
+    )
+    state = unflatten_dict({tuple(k.split(".")): v for k, v in state.items()})
+    return state
 
 
 class BaseModel(pl.LightningModule):
@@ -58,6 +76,10 @@ class BaseModel(pl.LightningModule):
         self.log(
             "train_loss",
             loss,
+            on_step=True,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
         )
         return loss
 
@@ -131,3 +153,18 @@ class BaseModel(pl.LightningModule):
                 "frequency": 1,
             },
         }
+    
+    @property
+    def flax_attributes(self,):
+        return
+
+    def to_jax(self,):
+        nn_model = getattr(models, f'Flax{self.__class__.__name__}')(
+            **self.flax_attributes,
+
+        ) 
+        flax_params = {'params': convert_state_dict_from_pt(
+            model=nn_model,
+            state=self.state_dict(),
+        )}
+        return nn_model, flax_params
