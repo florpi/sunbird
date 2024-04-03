@@ -222,13 +222,13 @@ class BaseSummary:
             else:
                 errors = variance
         else:
-            inputs = torch.tensor(inputs, dtype=torch.float32)
+            inputs = torch.tensor(inputs, dtype=torch.float32, device=self.model.device)
             prediction, variance = self.model(inputs)
             prediction = prediction.detach()
             if prediction.shape == variance.shape:
                 errors = torch.sqrt(variance).detach()
             else:
-                errors = variance.detach()
+                errors = variance#.detach()
         if self.output_transforms is not None:
             prediction, errors = self.apply_output_transforms(
                 prediction, errors, batch=batch

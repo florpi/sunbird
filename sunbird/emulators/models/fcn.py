@@ -21,24 +21,25 @@ class FCN(BaseModel):
     def __init__(self, *args, **kwargs):
         """Fully connected neural network with variable architecture"""
         super().__init__()
-        n_input = kwargs["n_input"]
-        n_output = kwargs["n_output"]
-        n_hidden = kwargs["n_hidden"]
+        self.n_input = kwargs["n_input"]
+        self.n_output = kwargs["n_output"]
+        self.n_hidden = kwargs["n_hidden"]
         dropout_rate = kwargs["dropout_rate"]
         self.learning_rate = kwargs["learning_rate"]
         self.weight_decay = kwargs["weight_decay"]
-        act_fn = getattr(nn, kwargs["act_fn"])()
+        self.act_fn_str = kwargs["act_fn"]
+        act_fn = getattr(nn, self.act_fn_str)()
         self.loss = kwargs["loss"]
-        self.data_dim = n_output
+        self.data_dim = self.n_output
         if self.loss == "learned_gaussian":
-            n_output *= 2
+            self.n_output *= 2
         elif self.loss == "multivariate_learned_gaussian":
-            n_output += (n_output*(n_output+1))//2
+            self.n_output += (self.n_output*(self.n_output+1))//2
         self.mlp = self.get_model(
-            n_input=n_input,
-            n_hidden=n_hidden,
+            n_input=self.n_input,
+            n_hidden=self.n_hidden,
             act_fn=act_fn,
-            n_output=n_output,
+            n_output=self.n_output,
             dropout_rate=dropout_rate,
         )
         if kwargs["load_loss"]:
@@ -108,6 +109,15 @@ class FCN(BaseModel):
             slice_filters=slice_filters,
             **vargs,
         )
+    
+    @property
+    def flax_attributes(self,):
+        return {'n_input': self.n_input,
+                'n_hidden': self.n_hidden,
+                'act_fn': self.act_fn_str,
+                'n_output': self.n_output,
+                'predict_errors': True if self.loss == "learned_gaussian" else False,
+        }
 
     def get_model(
         self,
@@ -216,3 +226,4 @@ class FCN(BaseModel):
         elif self.loss == "multivariate_learned_gaussian":
             return self.loss_fct(y_pred, y, y_var)
         return self.loss_fct(y, y_pred)
+

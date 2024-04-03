@@ -15,12 +15,13 @@ class Inference(ABC):
         self,
         theory_model: "Summary",
         observation: np.array,
-        covariance_matrix: np.array,
         priors: Dict,
-        fixed_parameters: Dict[str, float],
-        select_filters: Dict,
-        slice_filters: Dict,
-        output_dir: Path,
+        covariance_matrix: Optional[np.array]=None,
+        inverse_covariance_matrix: Optional[np.array] = None,
+        fixed_parameters: Dict[str, float]=None,
+        select_filters: Dict=None,
+        slice_filters: Dict=None,
+        output_dir: Path=Path('.'),
         add_predicted_uncertainty: bool = False,
         device: str = "cpu",
     ):
@@ -40,12 +41,17 @@ class Inference(ABC):
         """
         self.theory_model = theory_model
         self.observation = observation
-        self.covariance_matrix = covariance_matrix
-        self.add_predicted_uncertainty = add_predicted_uncertainty
-        if not self.add_predicted_uncertainty:
-            self.inverse_covariance_matrix = self.invert_covariance(
-                covariance_matrix=self.covariance_matrix,
-            )
+        if covariance_matrix is not None:
+            self.covariance_matrix = covariance_matrix
+            self.add_predicted_uncertainty = add_predicted_uncertainty
+            if not self.add_predicted_uncertainty:
+                self.inverse_covariance_matrix = self.invert_covariance(
+                    covariance_matrix=self.covariance_matrix,
+                )
+        elif inverse_covariance_matrix is not None:
+            self.inverse_covariance_matrix = inverse_covariance_matrix
+        else:
+            raise ValueError("Either covariance_matrix or inverse_covariance_matrix must be provided")
         self.priors = priors
         self.n_dim = len(self.priors)
         self.fixed_parameters = fixed_parameters
