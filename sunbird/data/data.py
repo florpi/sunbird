@@ -12,6 +12,51 @@ from sunbird.data import transforms
 
 DEFAULT_DATA_DIR = Path(__file__).parent.parent.parent / "data/"
 
+class ArrayDataModule(pl.LightningDataModule):
+    def __init__(
+        self,
+        x: np.array,
+        y: np.array,
+        val_idx: Optional[List[int]] = None,
+        val_fraction: Optional[float] = None,
+        batch_size: int = 256,
+        num_workers: Optional[int] = 1,
+    ):
+        super().__init__()
+        x, y = torch.Tensor(x), torch.Tensor(y)
+        if val_idx is not None:
+            train_idx = list(set(range(len(x))) - set(val_idx))
+        elif val_fraction is not None:
+            # sample val_idx randomly
+            val_idx = np.random.choice(
+                len(x), int(val_fraction * len(x)
+            ), replace=False)
+            train_idx = list(set(range(len(x))) - set(val_idx))
+        self.num_workers = num_workers
+        self.ds_train = TensorDataset(x[train_idx], y[train_idx])
+        self.ds_val = TensorDataset(x[val_idx], y[val_idx])
+        self.batch_size = batch_size
+        self.n_input = x.shape[-1]
+        self.n_output = y.shape[-1]
+
+    def train_dataloader(self,):
+        return DataLoader(
+            self.ds_train,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers = self.num_workers,
+        )
+
+    def val_dataloader(self,):
+        return DataLoader(
+            self.ds_val,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers = self.num_workers,
+        )
+
+    def setup(self, stage=None):
+        return 
 
 class AbacusDataModule(pl.LightningDataModule):
     def __init__(

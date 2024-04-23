@@ -1,1 +1,1 @@
-from .data import AbacusDataModule
+from .data import ArrayDataModule, AbacusDataModule
