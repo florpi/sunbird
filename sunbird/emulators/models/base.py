@@ -76,8 +76,6 @@ class BaseModel(pl.LightningModule):
         self.log(
             "train_loss",
             loss,
-            on_step=True,
-            on_epoch=True,
             prog_bar=True,
             logger=True,
         )
@@ -97,6 +95,8 @@ class BaseModel(pl.LightningModule):
         self.log(
             "val_loss",
             loss,
+            prog_bar=True,
+            logger=True,
         )
         return loss
 
@@ -139,8 +139,10 @@ class BaseModel(pl.LightningModule):
         scheduler = ReduceLROnPlateau(
             optimizer,
             mode="min",
-            patience=5,
-            factor=0.1,
+            patience=self.scheduler_patience, #50,
+            factor=self.scheduler_factor, #0.5,
+            threshold=self.scheduler_threshold,
+            threshold_mode='abs',
             min_lr=1.0e-6,
             verbose=True,
         )

@@ -6,6 +6,7 @@ import torch
 from sunbird.emulators.models import BaseModel
 from sunbird.covariance import CovarianceMatrix
 from sunbird.emulators.loss import MultivariateGaussianNLLLoss, get_cholesky_decomposition_covariance, WeightedL1Loss, WeightedMSELoss
+from sunbird.emulators.models.activation import LearnedSigmoid
 
 
 class ResNet(torch.nn.Module):
@@ -26,9 +27,17 @@ class FCN(BaseModel):
         self.n_hidden = kwargs["n_hidden"]
         dropout_rate = kwargs["dropout_rate"]
         self.learning_rate = kwargs["learning_rate"]
+        self.scheduler_patience = kwargs["scheduler_patience"]
+        self.scheduler_factor = kwargs["scheduler_factor"]
+        self.scheduler_threshold = kwargs["scheduler_threshold"]
         self.weight_decay = kwargs["weight_decay"]
         self.act_fn_str = kwargs["act_fn"]
-        act_fn = getattr(nn, self.act_fn_str)()
+        self.mean_output = torch.tensor(kwargs["mean_output"], dtype=torch.float32)
+        self.std_output = torch.tensor(kwargs["std_output"], dtype=torch.float32)
+        if self.act_fn_str == 'learned_sigmoid':
+            act_fn = LearnedSigmoid()
+        else:
+            act_fn = getattr(nn, self.act_fn_str)()
         self.loss = kwargs["loss"]
         self.data_dim = self.n_output
         if self.loss == "learned_gaussian":
@@ -180,6 +189,9 @@ class FCN(BaseModel):
             self.loss_fct = MultivariateGaussianNLLLoss()
         elif loss == "mse":
             self.loss_fct = nn.MSELoss()
+        elif loss == "rmse":
+            self.loss_fct = lambda y, y_pred: torch.sqrt(nn.MSELoss()(y, y_pred))
+
         elif loss == "mae":
             self.loss_fct = nn.L1Loss()
         else:
@@ -220,7 +232,11 @@ class FCN(BaseModel):
             float: loss
         """
         x, y = batch
+        std_output = self.std_output.to(x.device)
+        mean_output = self.mean_output.to(x.device)
         y_pred, y_var = self.forward(x)
+        y =  y * std_output + mean_output
+        y_pred = y_pred * std_output + mean_output
         if self.loss == "learned_gaussian":
             return self.loss_fct(y_pred, y, y_var)
         elif self.loss == "multivariate_learned_gaussian":
