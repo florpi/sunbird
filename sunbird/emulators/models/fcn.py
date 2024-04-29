@@ -34,10 +34,6 @@ class FCN(BaseModel):
         self.act_fn_str = kwargs["act_fn"]
         self.mean_output = torch.tensor(kwargs["mean_output"], dtype=torch.float32)
         self.std_output = torch.tensor(kwargs["std_output"], dtype=torch.float32)
-        if self.act_fn_str == 'learned_sigmoid':
-            act_fn = LearnedSigmoid()
-        else:
-            act_fn = getattr(nn, self.act_fn_str)()
         self.loss = kwargs["loss"]
         self.data_dim = self.n_output
         if self.loss == "learned_gaussian":
@@ -47,7 +43,6 @@ class FCN(BaseModel):
         self.mlp = self.get_model(
             n_input=self.n_input,
             n_hidden=self.n_hidden,
-            act_fn=act_fn,
             n_output=self.n_output,
             dropout_rate=dropout_rate,
         )
@@ -132,7 +127,6 @@ class FCN(BaseModel):
         self,
         n_input: int,
         n_hidden: List[int],
-        act_fn: str,
         n_output: int,
         dropout_rate: float,
     ) -> nn.Sequential:
@@ -153,6 +147,10 @@ class FCN(BaseModel):
         for layer in range(len(n_hidden)):
             n_left = n_input if layer == 0 else n_hidden[layer - 1]
             model.append((f"mlp{layer}", nn.Linear(n_left, n_hidden[layer])))
+            if self.act_fn_str == 'learned_sigmoid':
+                act_fn = LearnedSigmoid(self.n_hidden[layer])
+            else:
+                act_fn = getattr(nn, self.act_fn_str)()
             model.append((f"act{layer}", act_fn))
             model.append((f"dropout{layer}", dropout))
         model.append((f"mlp{layer+1}", nn.Linear(n_hidden[layer], n_output)))
