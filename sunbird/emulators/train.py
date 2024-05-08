@@ -1,80 +1,50 @@
-from argparse import ArgumentParser, Namespace
-from pathlib import Path
-import json
-from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning import loggers as pl_loggers
-
-from sunbird.data import AbacusDataModule
-from sunbird.emulators import FCN
+from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
+from lightning.pytorch.loggers import WandbLogger 
+from lightning import Trainer, seed_everything
+import torch
 
 
-def fit(args):
-    # Setup data
-    with open(args.train_test_split_path) as f:
-        train_test_split = json.load(f)
-    dm = AbacusDataModule.from_argparse_args(args, train_test_split)
-    dm.setup()
-    # Setup model
-    model_dict_args = vars(args)
-    filtered_model_dict_args = {
-        k: v for k, v in model_dict_args.items() if k != "output_transforms"
-    }
-    model = FCN(
-        n_input=dm.n_input,
-        n_output=dm.n_output,
-        output_transforms=dm.output_transforms,
-        slice_filters=dm.slice_filters,
-        select_filters=dm.select_filters,
-        **filtered_model_dict_args,
+def fit(data, model, **kwargs):
+    early_stop_callback = EarlyStopping(
+        monitor="val_loss", 
+        patience=kwargs['early_stop_patience'], 
+        min_delta=kwargs['early_stop_threshold'],
+        mode="min", 
+        verbose=True, 
+        check_on_train_epoch_end=True,
     )
-    # Setup trainer
-    early_stop_callback = EarlyStopping(monitor="val_loss", patience=16, mode="min")
-
-    logger = pl_loggers.TensorBoardLogger(save_dir=args.model_dir, name=args.run_name)
-    checkpoint_dir = Path(logger.experiment.log_dir) / "checkpoints"
     checkpoint_callback = ModelCheckpoint(
-        dirpath=checkpoint_dir,
-        every_n_epochs=1,
+        monitor='val_loss',
+        dirpath=kwargs['model_dir'],
+        filename='best-model-{epoch:02d}-{val_loss:.2f}',
         save_top_k=1,
-        monitor="val_loss",
-        mode="min",
-        filename="{epoch}-{val_loss:.5f}",
+        mode='min',
     )
-    trainer = Trainer.from_argparse_args(
-        args,
-        logger=logger,
+    lr_monitor = LearningRateMonitor(logging_interval='step')
+
+    seed_everything(42, workers=True)
+
+    logger = WandbLogger(log_model="all", project="sunbird")
+
+    trainer = Trainer(
         accelerator="auto",
-        callbacks=[checkpoint_callback, early_stop_callback],
+        callbacks=[early_stop_callback, checkpoint_callback, lr_monitor],
         gradient_clip_val=0.5,
+        deterministic=True,
+        max_epochs=1_000,
+        logger=logger,
+        check_val_every_n_epoch=1,
     )
-    dm.store_transforms(path=Path(trainer.log_dir) / "transforms")
-    # Train
     trainer.fit(
-        model,
-        dm,
+        model=model,
+        train_dataloaders=data.train_dataloader(),
+        val_dataloaders=data.val_dataloader(),
     )
-    # Test
-    # trainer.test(datamodule=dm, ckpt_path="best")
-    return trainer.callback_metrics["val_loss"].item()
-
-
-if __name__ == "__main__":
-    # ensure reproducibility.
-    # https://pytorch.org/docs/stable/notes/randomness.html
-    seed_everything(0)
-
-    parser = ArgumentParser()
-    parser = AbacusDataModule.add_argparse_args(parser)
-    parser.add_argument("--model_dir", type=str, default="../../trained_models/")
-    parser.add_argument("--run_name", type=str, default=None)
-    parser.add_argument("--data_reader", type=str, default="Abacus")
-    parser.add_argument(
-        "--train_test_split_path", type=str, default="../../data/train_test_split.json"
+    best_val_epoch = early_stop_callback.best_score.item()
+    weights_dict = torch.load(
+        checkpoint_callback.best_model_path,
+        map_location=torch.device('cpu'),
     )
-    parser = Trainer.add_argparse_args(parser)
-    parser = FCN.add_model_specific_args(parser)
-    args = parser.parse_args()
-    val_loss = fit(args)
-    print("val loss = ", val_loss)
+    state_dict = weights_dict["state_dict"]
+    model.load_state_dict(state_dict, strict=True)
+    return best_val_epoch, model, early_stop_callback
