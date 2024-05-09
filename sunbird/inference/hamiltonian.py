@@ -42,7 +42,7 @@ class HMC:
         predictions = []
         for i in range(n_samples):
             x = self.sample_prior()
-            prediction, _  = self.theory_model.apply(
+            prediction, _  = self.nn_theory_model.apply(
                 self.nn_parameters,
                 x,
             )
@@ -59,7 +59,7 @@ class HMC:
             y (np.array): array with observation
         """
         x = self.sample_prior()
-        prediction, _  = self.theory_model.apply(
+        prediction, _  = self.nn_theory_model.apply(
             self.nn_parameters,
             x,
         )
