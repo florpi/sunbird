@@ -1,1 +1,1 @@
-from .models import FCN
+from .models import FCN, FlaxFCN
