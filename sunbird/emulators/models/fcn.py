@@ -37,6 +37,8 @@ class FCN(BaseModel):
             std_input: Optional[torch.Tensor] = None,
             mean_output: Optional[torch.Tensor] = None,
             std_output: Optional[torch.Tensor] = None,
+            standarize_input: bool = True,
+            standarize_output: bool = True,
             *args, 
             **kwargs,
     ):
@@ -52,6 +54,8 @@ class FCN(BaseModel):
         self.scheduler_threshold = scheduler_threshold
         self.weight_decay = weight_decay
         self.act_fn_str = act_fn
+        self.standarize_input = standarize_input
+        self.standarize_output= standarize_output
         self.register_parameter('mean_input', mean_input, n_input)
         self.register_parameter('std_input', std_input, n_input)
         self.register_parameter('mean_output', mean_output, n_output)
@@ -135,6 +139,7 @@ class FCN(BaseModel):
             slice_filters=slice_filters,
             **vargs,
         )
+
     
     @property
     def flax_attributes(self,):
@@ -144,16 +149,6 @@ class FCN(BaseModel):
                 'n_output': self.n_output,
                 'predict_errors': True if self.loss == "learned_gaussian" else False,
         }
-
-    #def on_load_checkpoint(self, checkpoint):
-    #    self.mean_input = checkpoint['state_dict'].get('mean_input', None)
-    #    self.std_input = checkpoint['state_dict'].get('std_input', None)
-    #    self.mean_output = checkpoint['state_dict'].get('mean_output', None)
-    #    self.std_output = checkpoint['state_dict'].get('std_output', None)
-        #del checkpoint['state_dict']['mean_input']
-        #del checkpoint['state_dict']['std_input']
-        #del checkpoint['state_dict']['mean_output']
-        #del checkpoint['state_dict']['std_output']
 
     def register_parameter(self, parameter_name, parameter, dim):
         if parameter is not None:
@@ -253,7 +248,7 @@ class FCN(BaseModel):
         Returns:
             Tensor: output
         """
-        if self.mean_input is not None and self.std_input is not None:
+        if self.standarize_input:
             std_input = self.std_input.to(x.device)
             mean_input = self.mean_input.to(x.device)
             x = (x - mean_input) / std_input
@@ -274,7 +269,7 @@ class FCN(BaseModel):
 
     def get_prediction(self, x: Tensor):
         y, _ = self.forward(x) 
-        if self.std_output is not None and self.mean_output is not None:
+        if self.standarize_output:
             std_output = self.std_output.to(x.device)
             mean_output = self.mean_output.to(x.device)
             y =  y * std_output + mean_output
@@ -292,7 +287,7 @@ class FCN(BaseModel):
         """
         x, y = batch
         y_pred, y_var = self.forward(x)
-        if self.std_output is not None and self.mean_output is not None:
+        if self.standarize_output:
             std_output = self.std_output.to(x.device)
             mean_output = self.mean_output.to(x.device)
             y_pred = y_pred * std_output + mean_output
