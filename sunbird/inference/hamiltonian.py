@@ -1,4 +1,5 @@
 from typing import Dict
+import jax
 import jax.numpy as jnp
 import numpyro
 from numpyro import infer
@@ -20,6 +21,7 @@ class HMC:
         self.priors = priors
         self.precision_matrix = precision_matrix 
 
+
     def sample_prior(
         self,
     ) -> Dict[str, float]:
@@ -28,6 +30,7 @@ class HMC:
         Returns:
             Dict: dictionary of parameters
         """
+
         x = jnp.ones(len(self.priors.keys()))
         for i, param in enumerate(self.priors.keys()):
             x = x.at[i].set(
@@ -38,10 +41,34 @@ class HMC:
             )
         return x
 
-    def sanity_check_prior(self, n_samples=10,):
+    def test_sample_prior(
+        self,
+        key,
+    ) -> Dict[str, float]:
+        """Sample a set of parameters from the prior
+
+        Returns:
+            Dict: dictionary of parameters
+        """
+
+        x = jnp.ones(len(self.priors.keys()))
+        for i, param in enumerate(self.priors.keys()):
+            key, subkey = jax.random.split(key)
+            x = x.at[i].set(
+                numpyro.sample(
+                    param,
+                    self.priors[param],
+                    rng_key=subkey
+                )
+            )
+        return x
+
+    def sanity_check_prior(self, n_samples=10, seed=0):
+        key = random.PRNGKey(seed)
         predictions = []
         for i in range(n_samples):
-            x = self.sample_prior()
+            key, subkey = jax.random.split(key)
+            x = self.test_sample_prior(key=subkey)
             prediction, _  = self.nn_theory_model.apply(
                 self.nn_parameters,
                 x,
@@ -63,8 +90,6 @@ class HMC:
             self.nn_parameters,
             x,
         )
-        # destandarize it
-        prediction = prediction 
         numpyro.sample(
             "y", dist.MultivariateNormal(prediction, precision_matrix=self.precision_matrix), obs=y
         )

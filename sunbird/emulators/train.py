@@ -1,6 +1,7 @@
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor, RichProgressBar
 from lightning.pytorch.loggers import WandbLogger 
 from lightning import Trainer, seed_everything
+import wandb
 import torch
 
 
@@ -25,7 +26,8 @@ def fit(data, model, early_stop_patience=50, early_stop_threshold=1.e-7, max_epo
 
     seed_everything(42, workers=True)
 
-    logger = WandbLogger(log_model="all", project="sunbird")
+    wandb.init(reinit=True)
+    logger = WandbLogger(log_model="all", project="sunbird",)
 
     trainer = Trainer(
         accelerator="auto",
@@ -35,6 +37,7 @@ def fit(data, model, early_stop_patience=50, early_stop_threshold=1.e-7, max_epo
         max_epochs=max_epochs,
         logger=logger,
         check_val_every_n_epoch=1,
+        log_every_n_steps=1,
         **kwargs
     )
     trainer.fit(
