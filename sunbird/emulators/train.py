@@ -1,26 +1,27 @@
-from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor
+from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor, RichProgressBar
 from lightning.pytorch.loggers import WandbLogger 
 from lightning import Trainer, seed_everything
 import torch
 
 
-def fit(data, model, **kwargs):
+def fit(data, model, early_stop_patience=50, early_stop_threshold=1.e-7, max_epochs=1_000, model_dir=None, **kwargs):
     early_stop_callback = EarlyStopping(
         monitor="val_loss", 
-        patience=kwargs['early_stop_patience'], 
-        min_delta=kwargs['early_stop_threshold'],
+        patience=early_stop_patience, 
+        min_delta=early_stop_threshold,
         mode="min", 
         verbose=True, 
         check_on_train_epoch_end=True,
     )
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
-        dirpath=kwargs['model_dir'],
+        dirpath=model_dir,
         filename='best-model-{epoch:02d}-{val_loss:.2f}',
         save_top_k=1,
         mode='min',
     )
     lr_monitor = LearningRateMonitor(logging_interval='step')
+    progress_bar = RichProgressBar()
 
     seed_everything(42, workers=True)
 
@@ -28,12 +29,13 @@ def fit(data, model, **kwargs):
 
     trainer = Trainer(
         accelerator="auto",
-        callbacks=[early_stop_callback, checkpoint_callback, lr_monitor],
+        callbacks=[early_stop_callback, checkpoint_callback, lr_monitor, progress_bar],
         gradient_clip_val=0.5,
         deterministic=True,
-        max_epochs=1_000,
+        max_epochs=max_epochs,
         logger=logger,
         check_val_every_n_epoch=1,
+        **kwargs
     )
     trainer.fit(
         model=model,

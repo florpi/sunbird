@@ -1,4 +1,4 @@
-from typing import OrderedDict, Dict, List
+from typing import OrderedDict, Dict, List, Optional
 import numpy as np
 from torch import nn, Tensor
 import torch
@@ -19,22 +19,44 @@ class ResNet(torch.nn.Module):
 
 
 class FCN(BaseModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(
+            self, 
+            n_input: int,
+            n_output: int,
+            n_hidden: List[int] =[512, 512, 512, 512],
+            dropout_rate: float = 0.,
+            learning_rate: float = 1.e-3,
+            scheduler_patience: int = 30,
+            scheduler_factor: int = 0.5,
+            scheduler_threshold: int = 1.e-6,
+            weight_decay: float = 0.,
+            act_fn: str = 'learned_sigmoid',
+            loss: str = 'rmse',
+            training: bool = True,
+            mean_input: Optional[torch.Tensor] = None,
+            std_input: Optional[torch.Tensor] = None,
+            mean_output: Optional[torch.Tensor] = None,
+            std_output: Optional[torch.Tensor] = None,
+            *args, 
+            **kwargs,
+    ):
         """Fully connected neural network with variable architecture"""
         super().__init__()
-        self.n_input = kwargs["n_input"]
-        self.n_output = kwargs["n_output"]
-        self.n_hidden = kwargs["n_hidden"]
-        dropout_rate = kwargs["dropout_rate"]
-        self.learning_rate = kwargs["learning_rate"]
-        self.scheduler_patience = kwargs["scheduler_patience"]
-        self.scheduler_factor = kwargs["scheduler_factor"]
-        self.scheduler_threshold = kwargs["scheduler_threshold"]
-        self.weight_decay = kwargs["weight_decay"]
-        self.act_fn_str = kwargs["act_fn"]
-        self.mean_output = torch.tensor(kwargs["mean_output"], dtype=torch.float32)
-        self.std_output = torch.tensor(kwargs["std_output"], dtype=torch.float32)
-        self.loss = kwargs["loss"]
+        self.n_input = n_input
+        self.n_output = n_output
+        self.n_hidden = n_hidden
+        dropout_rate = dropout_rate
+        self.learning_rate = learning_rate
+        self.scheduler_patience = scheduler_patience
+        self.scheduler_factor = scheduler_factor
+        self.scheduler_threshold = scheduler_threshold
+        self.weight_decay = weight_decay
+        self.act_fn_str = act_fn
+        self.register_parameter('mean_input', mean_input, n_input)
+        self.register_parameter('std_input', std_input, n_input)
+        self.register_parameter('mean_output', mean_output, n_output)
+        self.register_parameter('std_output', std_output, n_output)
+        self.loss = loss
         self.data_dim = self.n_output
         if self.loss == "learned_gaussian":
             self.n_output *= 2
@@ -46,14 +68,14 @@ class FCN(BaseModel):
             n_output=self.n_output,
             dropout_rate=dropout_rate,
         )
-        if kwargs["load_loss"]:
-            self.load_loss(**kwargs)
+        if training:
+            self.load_loss(loss=loss, **kwargs)
             self.save_hyperparameters(
                 ignore=[
-                    "output_transforms",
-                    "input_transforms",
-                    "select_filters",
-                    "slice_filters",
+                    "mean_input",
+                    "std_input",
+                    "mean_output",
+                    "std_output",
                 ],
             )
 
@@ -123,38 +145,65 @@ class FCN(BaseModel):
                 'predict_errors': True if self.loss == "learned_gaussian" else False,
         }
 
-    def get_model(
-        self,
-        n_input: int,
-        n_hidden: List[int],
-        n_output: int,
-        dropout_rate: float,
-    ) -> nn.Sequential:
-        """Get mlp model
+    #def on_load_checkpoint(self, checkpoint):
+    #    self.mean_input = checkpoint['state_dict'].get('mean_input', None)
+    #    self.std_input = checkpoint['state_dict'].get('std_input', None)
+    #    self.mean_output = checkpoint['state_dict'].get('mean_output', None)
+    #    self.std_output = checkpoint['state_dict'].get('std_output', None)
+        #del checkpoint['state_dict']['mean_input']
+        #del checkpoint['state_dict']['std_input']
+        #del checkpoint['state_dict']['mean_output']
+        #del checkpoint['state_dict']['std_output']
+
+    def register_parameter(self, parameter_name, parameter, dim):
+        if parameter is not None:
+            self.register_buffer(parameter_name, torch.tensor(parameter, dtype=torch.float32))
+        else:
+            self.register_buffer(parameter_name, torch.ones((dim,), dtype=torch.float32))
+
+    def get_activation_function(self, layer_index: int) -> nn.Module:
+        """ Returns the activation function for the given layer index. """
+        if self.act_fn_str == 'learned_sigmoid':
+            return LearnedSigmoid(self.n_hidden[layer_index])
+        return getattr(nn, self.act_fn_str)()
+
+    def add_layer(self, model, input_dim: int, output_dim: int, layer_index: int, dropout_rate,) -> None:
+        """ Creates a single layer for the network. """
+        layer_name = f"mlp{layer_index}"
+        act_name = f"act{layer_index}"
+        dropout_name = f"dropout{layer_index}"
+
+        linear_layer = nn.Linear(input_dim, output_dim)
+        activation = self.get_activation_function(layer_index)
+
+        model.add_module(layer_name, linear_layer)
+        model.add_module(act_name, activation)
+        model.add_module(dropout_name, nn.Dropout(dropout_rate))
+        return model
+
+    def get_model(self, n_input: int, n_hidden: List[int], n_output: int, dropout_rate: float) -> nn.Sequential:
+        """
+        Constructs a multi-layer perceptron model.
 
         Args:
-            n_input (int): dimensionality input
-            n_hidden (List[int]): number of hidden units per layer
-            act_fn (str): activation function
-            n_output (int): number of outputs
-            dropout_rate (float): dropout rate
+            n_input (int): Number of input features.
+            n_hidden (List[int]): Number of neurons in each hidden layer.
+            n_output (int): Number of output features.
 
         Returns:
-            nn.Sequential: model
+            nn.Sequential: The constructed MLP model.
         """
-        dropout = nn.Dropout(dropout_rate)
-        model = []
-        for layer in range(len(n_hidden)):
-            n_left = n_input if layer == 0 else n_hidden[layer - 1]
-            model.append((f"mlp{layer}", nn.Linear(n_left, n_hidden[layer])))
-            if self.act_fn_str == 'learned_sigmoid':
-                act_fn = LearnedSigmoid(self.n_hidden[layer])
-            else:
-                act_fn = getattr(nn, self.act_fn_str)()
-            model.append((f"act{layer}", act_fn))
-            model.append((f"dropout{layer}", dropout))
-        model.append((f"mlp{layer+1}", nn.Linear(n_hidden[layer], n_output)))
-        return nn.Sequential(OrderedDict(model))
+        model = nn.Sequential(OrderedDict())
+        last_dim = n_input
+
+        for i, hidden_dim in enumerate(n_hidden):
+            model = self.add_layer(model=model, input_dim=last_dim, output_dim=hidden_dim, layer_index=i, dropout_rate=dropout_rate)
+            last_dim = hidden_dim
+
+        # Add the final layer
+        final_layer_name = f"mlp{len(n_hidden)}"
+        model.add_module(final_layer_name, nn.Linear(last_dim, n_output))
+        return model
 
     def load_loss(self, loss: str, **kwargs):
         """Load loss function
@@ -204,6 +253,10 @@ class FCN(BaseModel):
         Returns:
             Tensor: output
         """
+        if self.mean_input is not None and self.std_input is not None:
+            std_input = self.std_input.to(x.device)
+            mean_input = self.mean_input.to(x.device)
+            x = (x - mean_input) / std_input
         if self.loss == "learned_gaussian":
             y_pred = self.mlp(x)
             y_pred, y_var = torch.chunk(y_pred, 2, dim=-1)
@@ -219,6 +272,14 @@ class FCN(BaseModel):
         y_var = torch.zeros_like(y_pred)
         return y_pred, y_var
 
+    def get_prediction(self, x: Tensor):
+        y, _ = self.forward(x) 
+        if self.std_output is not None and self.mean_output is not None:
+            std_output = self.std_output.to(x.device)
+            mean_output = self.mean_output.to(x.device)
+            y =  y * std_output + mean_output
+        return y
+
     def _compute_loss(self, batch, batch_idx) -> float:
         """Compute loss in batch
 
@@ -230,11 +291,11 @@ class FCN(BaseModel):
             float: loss
         """
         x, y = batch
-        std_output = self.std_output.to(x.device)
-        mean_output = self.mean_output.to(x.device)
         y_pred, y_var = self.forward(x)
-        y =  y * std_output + mean_output
-        y_pred = y_pred * std_output + mean_output
+        if self.std_output is not None and self.mean_output is not None:
+            std_output = self.std_output.to(x.device)
+            mean_output = self.mean_output.to(x.device)
+            y_pred = y_pred * std_output + mean_output
         if self.loss == "learned_gaussian":
             return self.loss_fct(y_pred, y, y_var)
         elif self.loss == "multivariate_learned_gaussian":

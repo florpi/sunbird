@@ -5,6 +5,8 @@ import yaml
 import torch
 import jax.numpy as jnp
 import flax.linen as nn
+from sunbird.emulators.models.base import convert_state_dict_from_pt
+from sunbird.emulators.models.activation import FlaxLearnedSigmoid
 
 
 
@@ -20,8 +22,7 @@ class FlaxFCN(nn.Module):
     def setup(
         self,
     ):
-        """Setup the activation function from strings"""
-        self.actvation_fn = getattr(nn, self.act_fn.lower())
+        pass
 
     @classmethod
     def from_folder(cls, path_to_model: Path) -> Tuple["FlaxFCN", Dict]:
@@ -61,6 +62,7 @@ class FlaxFCN(nn.Module):
         )
         return nn_model, flax_params
 
+
     @nn.compact
     def __call__(self, x: jnp.array) -> jnp.array:
         """forward pass
@@ -71,15 +73,25 @@ class FlaxFCN(nn.Module):
         Returns:
             jnp.array: outputs
         """
+        mean_input = self.param('mean_input', nn.initializers.zeros, (self.n_input,))
+        std_input = self.param('std_input', nn.initializers.ones, (self.n_input,))
+        mean_output = self.param('mean_output', nn.initializers.zeros, (self.n_output,))
+        std_output = self.param('std_output', nn.initializers.ones, (self.n_output,))
+        x = (x - mean_input) / std_input
         for i, dims in enumerate(self.n_hidden):
             x = nn.Dense(dims)(x)
-            x = self.actvation_fn(x)
+            if self.act_fn == 'learned_sigmoid':
+                activation_fn = FlaxLearnedSigmoid(n_dim=x.shape[-1])
+            else:
+                activation_fn = getattr(nn, self.act_fn.lower())
+            x = activation_fn(x)
         y_pred = nn.Dense(self.n_output)(x)
         if self.predict_errors:
             y_pred, y_var = np.split(y_pred, 2, axis=-1)
             y_var = nn.softplus(y_var)
         else:
             y_var = jnp.zeros_like(y_pred)
+        y_pred = y_pred * std_output + mean_output
         return y_pred, y_var
 
     def convert_from_pytorch(self, pt_state: Dict) -> Dict:
@@ -93,9 +105,13 @@ class FlaxFCN(nn.Module):
         """
         jax_state = dict(pt_state)
         for key, tensor in pt_state.items():
-            if "mlp" in key:
+            if 'mean' in key or 'std' in key:
+                # Convert PyTorch tensors directly to numpy arrays without transposition
+                jax_state[key] = np.array(tensor)
+            elif "mlp" in key:
                 del jax_state[key]
                 key = key.replace("weight", "kernel")
                 key = key.replace("mlp.mlp", f"Dense_")
+                key = key.replace("mlp.act", f"FlaxLearnedSigmoid_")
                 jax_state[key] = tensor.T
         return jax_state
