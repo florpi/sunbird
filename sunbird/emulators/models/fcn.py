@@ -248,10 +248,6 @@ class FCN(BaseModel):
         Returns:
             Tensor: output
         """
-        if self.standarize_input:
-            std_input = self.std_input.to(x.device)
-            mean_input = self.mean_input.to(x.device)
-            x = (x - mean_input) / std_input
         if self.loss == "learned_gaussian":
             y_pred = self.mlp(x)
             y_pred, y_var = torch.chunk(y_pred, 2, dim=-1)
@@ -268,6 +264,10 @@ class FCN(BaseModel):
         return y_pred, y_var
 
     def get_prediction(self, x: Tensor):
+        if self.standarize_input:
+            std_input = self.std_input.to(x.device)
+            mean_input = self.mean_input.to(x.device)
+            x = (x - mean_input) / std_input
         y, _ = self.forward(x) 
         if self.standarize_output:
             std_output = self.std_output.to(x.device)
@@ -287,10 +287,6 @@ class FCN(BaseModel):
         """
         x, y = batch
         y_pred, y_var = self.forward(x)
-        if self.standarize_output:
-            std_output = self.std_output.to(x.device)
-            mean_output = self.mean_output.to(x.device)
-            y_pred = y_pred * std_output + mean_output
         if self.loss == "learned_gaussian":
             return self.loss_fct(y_pred, y, y_var)
         elif self.loss == "multivariate_learned_gaussian":
