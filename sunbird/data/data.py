@@ -21,9 +21,15 @@ class ArrayDataModule(pl.LightningDataModule):
         val_fraction: Optional[float] = None,
         batch_size: int = 256,
         num_workers: Optional[int] = 1,
+        input_transforms: Optional[transforms.Transforms] = transforms.Transforms(
+            [transforms.Standarize(dimensions=(0,))]
+        ),
+        output_transforms: Optional[transforms.Transforms] = transforms.Transforms(
+            [transforms.Standarize(dimensions=(0,))]
+        ),
     ):
         super().__init__()
-        x, y = torch.Tensor(x), torch.Tensor(y)
+        # x, y = torch.Tensor(x), torch.Tensor(y)
         if val_idx is not None:
             train_idx = list(set(range(len(x))) - set(val_idx))
         elif val_fraction is not None:
@@ -32,12 +38,24 @@ class ArrayDataModule(pl.LightningDataModule):
                 len(x), int(val_fraction * len(x)
             ), replace=False)
             train_idx = list(set(range(len(x))) - set(val_idx))
-        self.num_workers = num_workers
-        self.ds_train = TensorDataset(x[train_idx], y[train_idx])
-        self.ds_val = TensorDataset(x[val_idx], y[val_idx])
-        self.batch_size = batch_size
-        self.n_input = x.shape[-1]
-        self.n_output = y.shape[-1]
+
+        self.train_params = x[train_idx]
+        self.train_data   = y[train_idx]
+        self.val_params   = x[val_idx]
+        self.val_data     = y[val_idx]
+        self.num_workers  = num_workers
+        self.batch_size   = batch_size
+        self.input_transforms = input_transforms
+        self.output_transforms = output_transforms
+        
+        if self.input_transforms is not None:
+            self.input_transforms.fit_transform(
+                x,
+            )
+        if self.output_transforms is not None:
+            self.output_transforms.fit_transform(
+                y,
+            )
 
     def train_dataloader(self,):
         return DataLoader(
@@ -55,8 +73,59 @@ class ArrayDataModule(pl.LightningDataModule):
             num_workers = self.num_workers,
         )
 
-    def setup(self, stage=None):
-        return 
+    def test_dataloader(self,):
+        return DataLoader(
+            self.ds_val,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers = self.num_workers,
+        )
+
+    def generate_dataset(
+        self, x: np.array, y: np.array, stage: str = "train"
+    ) -> TensorDataset:
+        """Convert numpy arrays to torch tensors and generate a normalized TensorDataset
+
+        Args:
+            x (np.array): array of inputs
+            y (np.array): array of outputs
+
+        Returns:
+            TensorDataset: dataset
+
+        """
+
+        if self.input_transforms is not None:
+            x = self.input_transforms.transform(x)
+        if self.output_transforms is not None:
+            y = self.output_transforms.transform(y)
+        return TensorDataset(
+            torch.tensor(x, dtype=torch.float32),
+            torch.tensor(y, dtype=torch.float32),
+        )
+
+    def setup(self, stage: Optional[str] = None):
+        """set up the train/test/val datasets
+
+        Args:
+            stage (Optional[str], optional): stage to set up. Defaults to None.
+        """
+        if not stage or stage == "train" or stage == "fit":
+            self.ds_train = self.generate_dataset(
+                self.train_params,
+                self.train_data,
+                stage="train",
+            )
+        if not stage or stage == "train" or stage == "fit":
+            self.ds_val = self.generate_dataset(
+                self.val_params,
+                self.val_data,
+                stage="val",
+            )
+
+
+        self.n_output = self.ds_train.tensors[1].shape[-1]
+        self.n_input = self.ds_train.tensors[0].shape[-1]
 
 class AbacusDataModule(pl.LightningDataModule):
     def __init__(
