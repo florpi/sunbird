@@ -13,10 +13,12 @@ class HMC:
         precision_matrix,
         nn_theory_model,
         nn_parameters,
+        fixed_parameters,
         priors,
     ):
         self.nn_theory_model = nn_theory_model
-        self.nn_parameters = nn_parameters 
+        self.nn_parameters = nn_parameters
+        self.fixed_parameters = fixed_parameters
         self.observation = observation
         self.priors = priors
         self.precision_matrix = precision_matrix 
@@ -33,12 +35,17 @@ class HMC:
 
         x = jnp.ones(len(self.priors.keys()))
         for i, param in enumerate(self.priors.keys()):
-            x = x.at[i].set(
-                numpyro.sample(
-                    param,
-                    self.priors[param],
+            if param not in self.fixed_parameters.keys():
+                x = x.at[i].set(
+                    numpyro.sample(
+                        param,
+                        self.priors[param],
+                    )
                 )
-            )
+            else:
+                x = x.at[i].set(
+                    numpyro.deterministic(param, self.fixed_parameters[param])
+                )
         return x
 
     def test_sample_prior(
