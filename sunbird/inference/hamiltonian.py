@@ -5,6 +5,7 @@ import numpyro
 from numpyro import infer
 from numpyro import distributions as dist
 from jax import random
+import matplotlib.pyplot as plt
 
 class HMC:
     def __init__(
@@ -13,8 +14,8 @@ class HMC:
         precision_matrix,
         nn_theory_model,
         nn_parameters,
-        fixed_parameters,
         priors,
+        fixed_parameters: Dict[str, float] = {},
     ):
         self.nn_theory_model = nn_theory_model
         self.nn_parameters = nn_parameters
@@ -93,10 +94,20 @@ class HMC:
             y (np.array): array with observation
         """
         x = self.sample_prior()
-        prediction, _  = self.nn_theory_model.apply(
-            self.nn_parameters,
-            x,
-        )
+        if hasattr(self.nn_theory_model, '__iter__'):
+            prediction = []
+            for model, params in zip(self.nn_theory_model, self.nn_parameters):
+                pred, _ = model.apply(
+                    params,
+                    x,
+                )
+                prediction.append(pred)
+            prediction = jnp.concatenate(prediction)
+        else:
+            prediction, _  = self.nn_theory_model.apply(
+                self.nn_parameters,
+                x,
+            )
         numpyro.sample(
             "y", dist.MultivariateNormal(prediction, precision_matrix=self.precision_matrix), obs=y
         )
