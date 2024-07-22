@@ -1,0 +1,62 @@
+stats_module: 'numpyro.distributions'
+
+priors:
+  logM_cut: 
+    distribution: Uniform
+    low: 12.5
+    high: 13.7
+
+  logM_1:
+    distribution: Uniform
+    low: 13.6
+    high: 15.1
+
+  sigma:
+    distribution: Uniform
+    low: -2.99
+    high: 0.96
+
+  alpha:
+    distribution: Uniform
+    low: 0.3
+    high: 1.48
+
+  kappa:
+    distribution: Uniform
+    low: 0.
+    high: 0.99
+
+  alpha_c:
+    distribution: Uniform
+    low: 0.
+    high: 0.61
+
+  alpha_s:
+    distribution: Uniform
+    low: 0.58
+    high: 1.49
+
+  s:
+    distribution: Uniform
+    low: -0.98
+    high: 1.
+
+  A_cen:
+    distribution: Uniform
+    low: -0.99
+    high: 0.93
+
+  A_sat:
+    distribution: Uniform
+    low: -1.
+    high: 1.
+
+  B_cen:
+    distribution: Uniform
+    low: -0.67
+    high: 0.2
+
+  B_sat:
+    distribution: Uniform
+    low: -0.97
+    high: 0.99

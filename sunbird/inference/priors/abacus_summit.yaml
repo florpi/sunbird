@@ -1,0 +1,40 @@
+stats_module: 'numpyro.distributions'
+
+priors:
+  omega_b:
+      distribution: 'Uniform'
+      low: 0.0207
+      high: 0.0243
+
+  omega_cdm:
+      distribution: 'Uniform'
+      low: 0.1032
+      high: 0.140
+
+  sigma8_m:
+      distribution: 'Uniform'
+      low: 0.678
+      high: 0.938
+  n_s:
+      distribution: 'Uniform'
+      low: 0.9012
+      high: 1.025
+  nrun:
+      distribution: 'Uniform'
+      low: -0.038
+      high: 0.038
+
+  N_ur:
+      distribution: 'Uniform'
+      low: 1.188
+      high: 2.889
+
+  w0_fld:
+      distribution: 'Uniform'
+      low: -1.22
+      high: -0.726
+
+  wa_fld:
+      distribution: 'Uniform'
+      low: -0.628
+      high: 0.621
