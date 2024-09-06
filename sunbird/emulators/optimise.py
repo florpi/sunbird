@@ -6,7 +6,7 @@ from pathlib import Path
 from argparse import ArgumentParser
 from sunbird.data import AbacusDataModule
 from sunbird.emulators import FCN
-from sunbird.emulators.train import fit
+from sunbird.emulators.train_abacus import fit
 
 
 def objective(

@@ -7,6 +7,7 @@ import jax.numpy as jnp
 import flax.linen as nn
 from sunbird.emulators.models.base import convert_state_dict_from_pt
 from sunbird.emulators.models.activation import FlaxLearnedSigmoid
+from sunbird.data.data_utils import convert_to_summary
 
 
 
@@ -18,6 +19,9 @@ class FlaxFCN(nn.Module):
     act_fn: str
     n_output: int
     predict_errors: False
+    transform_output: None
+    coordinates: None
+
 
     def setup(
         self,
@@ -64,7 +68,7 @@ class FlaxFCN(nn.Module):
 
 
     @nn.compact
-    def __call__(self, x: jnp.array) -> jnp.array:
+    def __call__(self, x: jnp.array, filters=None) -> jnp.array:
         """forward pass
 
         Args:
@@ -92,6 +96,10 @@ class FlaxFCN(nn.Module):
         else:
             y_var = jnp.zeros_like(y_pred)
         y_pred = y_pred * std_output + mean_output
+        if self.transform_output is not None:
+            y_pred = self.transform_output.inverse_transform(y_pred)
+        if filters is not None:
+            y_pred = y_pred[~filters.reshape(-1)]
         return y_pred, y_var
 
     def convert_from_pytorch(self, pt_state: Dict) -> Dict:

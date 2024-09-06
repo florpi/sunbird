@@ -1,11 +1,12 @@
-from typing import Dict
+from typing import Dict, Optional
+import numpy as np
 import jax
 import jax.numpy as jnp
 import numpyro
 from numpyro import infer
 from numpyro import distributions as dist
 from jax import random
-import matplotlib.pyplot as plt
+
 
 class HMC:
     def __init__(
@@ -15,14 +16,20 @@ class HMC:
         nn_theory_model,
         nn_parameters,
         priors,
+        ranges,
+        labels: Dict[str, str] = {},
         fixed_parameters: Dict[str, float] = {},
+        model_filters: Dict = {},
     ):
         self.nn_theory_model = nn_theory_model
         self.nn_parameters = nn_parameters
         self.fixed_parameters = fixed_parameters
         self.observation = observation
         self.priors = priors
-        self.precision_matrix = precision_matrix 
+        self.ranges = ranges
+        self.labels = labels
+        self.precision_matrix = precision_matrix
+        self.model_filters = model_filters
 
 
     def sample_prior(
@@ -96,10 +103,11 @@ class HMC:
         x = self.sample_prior()
         if hasattr(self.nn_theory_model, '__iter__'):
             prediction = []
-            for model, params in zip(self.nn_theory_model, self.nn_parameters):
+            for model, params, filters in zip(self.nn_theory_model, self.nn_parameters, self.model_filters):
                 pred, _ = model.apply(
                     params,
                     x,
+                    filters=filters,
                 )
                 prediction.append(pred)
             prediction = jnp.concatenate(prediction)
@@ -107,6 +115,7 @@ class HMC:
             prediction, _  = self.nn_theory_model.apply(
                 self.nn_parameters,
                 x,
+                filters=self.model_filters,
             )
         numpyro.sample(
             "y", dist.MultivariateNormal(prediction, precision_matrix=self.precision_matrix), obs=y
@@ -118,6 +127,9 @@ class HMC:
         kernel: str = "NUTS",
         num_warmup: int = 100,
         num_samples: int = 1000,
+        num_chains: int = 1,
+        save_fn: Optional[str] = None,
+        **kwargs,
     ):
         """Run the HMC inference
 
@@ -126,11 +138,12 @@ class HMC:
             num_warmup (int, optional): number of warmup steps. Defaults to 500.
             num_samples (int, optional): numper of samples. Defaults to 1000.
         """
-        kernel = getattr(infer, kernel)(self.model)
+        kernel = getattr(infer, kernel)(self.model, init_strategy=infer.init_to_mean, **kwargs)
         mcmc = infer.MCMC(
             kernel,
             num_warmup=num_warmup,
             num_samples=num_samples,
+            num_chains=num_chains,
         )
         rng_key = random.PRNGKey(0)
         mcmc.run(
@@ -140,4 +153,22 @@ class HMC:
         )
         mcmc.print_summary()
         results = mcmc.get_samples()
+        if save_fn is not None:
+            self.save_results(results, save_fn)
         return results
+    
+    def save_results(self, results, save_fn):
+        samples = np.stack(list(results.values()), axis=0)
+        # remove fixed parameters from the posterior
+        idx = [list(results.keys()).index(param) for param in self.fixed_parameters]
+        samples = np.delete(samples, idx, axis=0)
+        names = np.delete(list(results.keys()), idx)
+        cout = { 'samples': samples.T,
+            'weights': np.ones(samples.shape[-1]),
+            'names': names,
+            'ranges': self.ranges,
+            'labels': self.labels,
+        }
+        print(f'Saving results to {save_fn}')
+        np.save(save_fn, cout)
+        return
