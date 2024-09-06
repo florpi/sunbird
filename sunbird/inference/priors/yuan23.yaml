@@ -1,62 +1,83 @@
-stats_module: 'numpyro.distributions'
+logM_cut: 
+  prior:
+    distribution: uniform
+    min: 12.5
+    max: 13.7
+  latex: \log M_{\rm cut}
 
-priors:
-  logM_cut: 
-    distribution: Uniform
-    low: 12.5
-    high: 13.7
+logM_1:
+  prior:
+    distribution: uniform
+    min: 13.6
+    max: 15.1
+  latex: \log M_1
 
-  logM_1:
-    distribution: Uniform
-    low: 13.6
-    high: 15.1
+sigma:
+  prior:
+    distribution: uniform
+    min: -2.99
+    max: 0.96
+  latex: \log \sigma
 
-  sigma:
-    distribution: Uniform
-    low: -2.99
-    high: 0.96
+alpha:
+  prior:
+    distribution: uniform
+    min: 0.3
+    max: 1.48
+  latex: \alpha
 
-  alpha:
-    distribution: Uniform
-    low: 0.3
-    high: 1.48
+kappa:
+  prior:
+    distribution: uniform
+    min: 0.
+    max: 0.99
+  latex: \kappa
 
-  kappa:
-    distribution: Uniform
-    low: 0.
-    high: 0.99
+alpha_c:
+  prior:
+    distribution: uniform
+    min: 0.
+    max: 0.61
+  latex: \alpha_{\rm cen}
 
-  alpha_c:
-    distribution: Uniform
-    low: 0.
-    high: 0.61
+alpha_s:
+  prior:
+    distribution: uniform
+    min: 0.58
+    max: 1.49
+  latex: \alpha_{\rm sat}
 
-  alpha_s:
-    distribution: Uniform
-    low: 0.58
-    high: 1.49
+s:
+  prior:
+    distribution: uniform
+    min: -0.98
+    max: 1.
+  latex: s
 
-  s:
-    distribution: Uniform
-    low: -0.98
-    high: 1.
+A_cen:
+  prior:
+    distribution: uniform
+    min: -0.99
+    max: 0.93
+  latex: A_{\rm cen}
 
-  A_cen:
-    distribution: Uniform
-    low: -0.99
-    high: 0.93
+A_sat:
+  prior:
+    distribution: uniform
+    min: -1.
+    max: 1.
+  latex: A_{\rm sat}
 
-  A_sat:
-    distribution: Uniform
-    low: -1.
-    high: 1.
+B_cen:
+  prior:
+    distribution: uniform
+    min: -0.67
+    max: 0.2
+  latex: B_{\rm cen}
 
-  B_cen:
-    distribution: Uniform
-    low: -0.67
-    high: 0.2
-
-  B_sat:
-    distribution: Uniform
-    low: -0.97
-    high: 0.99
+B_sat:
+  prior:
+    distribution: uniform
+    min: -0.97
+    max: 0.99
+  latex: B_{\rm sat}
