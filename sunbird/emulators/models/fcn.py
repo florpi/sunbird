@@ -7,6 +7,7 @@ from sunbird.emulators.models import BaseModel
 from sunbird.covariance import CovarianceMatrix
 from sunbird.emulators.loss import MultivariateGaussianNLLLoss, get_cholesky_decomposition_covariance, WeightedL1Loss, WeightedMSELoss
 from sunbird.emulators.models.activation import LearnedSigmoid
+from sunbird.data.data_utils import convert_to_summary
 
 
 class ResNet(torch.nn.Module):
@@ -39,6 +40,8 @@ class FCN(BaseModel):
             std_output: Optional[torch.Tensor] = None,
             standarize_input: bool = True,
             standarize_output: bool = True,
+            transform_output: Optional[callable] = None,
+            coordinates: Optional[dict] = None,
             *args, 
             **kwargs,
     ):
@@ -54,12 +57,14 @@ class FCN(BaseModel):
         self.scheduler_threshold = scheduler_threshold
         self.weight_decay = weight_decay
         self.act_fn_str = act_fn
+        self.coordinates = coordinates
         self.standarize_input = standarize_input
         self.standarize_output= standarize_output
         self.register_parameter('mean_input', mean_input, n_input)
         self.register_parameter('std_input', std_input, n_input)
         self.register_parameter('mean_output', mean_output, n_output)
         self.register_parameter('std_output', std_output, n_output)
+        self.transform_output = transform_output
         self.loss = loss
         self.data_dim = self.n_output
         if self.loss == "learned_gaussian":
@@ -148,6 +153,8 @@ class FCN(BaseModel):
                 'act_fn': self.act_fn_str,
                 'n_output': self.n_output,
                 'predict_errors': True if self.loss == "learned_gaussian" else False,
+                'transform_output': self.transform_output,
+                'coordinates': self.coordinates,
         }
 
     def register_parameter(self, parameter_name, parameter, dim):
@@ -267,12 +274,16 @@ class FCN(BaseModel):
         y_var = torch.zeros_like(y_pred)
         return y_pred, y_var
 
-    def get_prediction(self, x: Tensor):
+    def get_prediction(self, x: Tensor, filters: Optional[dict] = None) -> Tensor:
         y, _ = self.forward(x) 
         if self.standarize_output:
             std_output = self.std_output.to(x.device)
             mean_output = self.mean_output.to(x.device)
             y =  y * std_output + mean_output
+        if self.transform_output is not None:
+            y = self.transform_output.inverse_transform(y)
+        if filters is not None:
+            y = y[~filters.reshape(-1)]
         return y
 
     def _compute_loss(self, batch, batch_idx) -> float:

@@ -17,8 +17,10 @@ def fit(data, model, early_stop_patience=50, early_stop_threshold=1.e-7, max_epo
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
         dirpath=model_dir,
-        filename='best-model-{epoch:02d}-{val_loss:.2f}',
+        # filename='best-model-{epoch:02d}-{val_loss:.5f}',
         save_top_k=1,
+        auto_insert_metric_name=True,
+        save_last='link',
         mode='min',
     )
     lr_monitor = LearningRateMonitor(logging_interval='step')
@@ -38,6 +40,7 @@ def fit(data, model, early_stop_patience=50, early_stop_threshold=1.e-7, max_epo
         logger=logger,
         check_val_every_n_epoch=1,
         log_every_n_steps=1,
+        # devices=1,
         **kwargs
     )
     trainer.fit(
