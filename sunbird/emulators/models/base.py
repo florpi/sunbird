@@ -73,14 +73,19 @@ class BaseModel(pl.LightningModule):
             float: loss
         """
         loss = self._compute_loss(batch=batch, batch_idx=batch_idx)
-        #print(f'Epoch = {self.current_epoch}, step = {self.trainer.global_step}, wandb step = {self.logger.experiment.step}')
-        self.logger.experiment.log({'train_loss': loss.item(), 'global_step': self.trainer.global_step+1}, step=self.trainer.global_step+1)
         self.log(
             "train_loss",
-            loss.item(),
-            prog_bar=True,
+            loss,
             logger=False,
         )
+        #print(f'Epoch = {self.current_epoch}, step = {self.trainer.global_step}, wandb step = {self.logger.experiment.step}')
+        # self.logger.experiment.log({'train_loss': loss.item(), 'global_step': self.trainer.global_step+1}, step=self.trainer.global_step+1)
+        # self.log(
+        #     "train_loss",
+        #     loss.item(),
+        #     prog_bar=True,
+        #     logger=False,
+        # )
         return loss
 
     def validation_step(self, batch, batch_idx) -> float:
@@ -94,13 +99,18 @@ class BaseModel(pl.LightningModule):
             float: loss
         """
         loss = self._compute_loss(batch=batch, batch_idx=batch_idx)
-        self.logger.experiment.log({'val_loss': loss.item(), 'global_step': self.trainer.global_step}, step=self.trainer.global_step)
         self.log(
             "val_loss",
             loss,
-            prog_bar=True,
             logger=False,
         )
+        # self.logger.experiment.log({'val_loss': loss.item(), 'global_step': self.trainer.global_step}, step=self.trainer.global_step)
+        # self.log(
+        #     "val_loss",
+        #     loss,
+        #     prog_bar=True,
+        #     logger=False,
+        # )
         return loss
 
     def test_step(self, batch, batch_idx):
