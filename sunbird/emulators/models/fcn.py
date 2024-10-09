@@ -5,7 +5,7 @@ import torch
 
 from sunbird.emulators.models import BaseModel
 from sunbird.covariance import CovarianceMatrix
-from sunbird.emulators.loss import MultivariateGaussianNLLLoss, get_cholesky_decomposition_covariance, WeightedL1Loss, WeightedMSELoss
+from sunbird.emulators.loss import MultivariateGaussianNLLLoss, GaussianNLoglike, get_cholesky_decomposition_covariance, WeightedL1Loss, WeightedMSELoss
 from sunbird.emulators.models.activation import LearnedSigmoid
 from sunbird.data.data_utils import convert_to_summary
 
@@ -214,15 +214,7 @@ class FCN(BaseModel):
             loss (str): loss to load
         """
         if "weighted" in loss:
-            covariance = CovarianceMatrix(
-                statistics=[kwargs["statistic"]],
-                slice_filters=kwargs.get("slice_filters", None),
-                select_filters=kwargs.get("select_filters", None),
-                output_transforms={kwargs["statistic"]: kwargs["output_transforms"]},
-                dataset=kwargs["abacus_dataset"],
-            ).get_covariance_data(
-                volume_scaling=64.0,
-            )
+            covariance = kwargs["covariance_matrix"]
             covariance = Tensor(
                 covariance.astype(np.float32),
             )
@@ -232,6 +224,12 @@ class FCN(BaseModel):
                 )
             elif loss == "weighted_mse":
                 self.loss_fct = WeightedMSELoss(variance=torch.diagonal(covariance))
+        elif loss == 'GaussianNLoglike':
+            covariance = kwargs["covariance_matrix"]
+            covariance = Tensor(
+                covariance.astype(np.float32),
+            )
+            self.loss_fct = GaussianNLoglike(covariance=covariance)
         elif loss == "learned_gaussian":
             self.loss_fct = nn.GaussianNLLLoss()
         elif loss == "multivariate_learned_gaussian":
