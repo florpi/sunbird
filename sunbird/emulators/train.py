@@ -1,11 +1,11 @@
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor, RichProgressBar
-from lightning.pytorch.loggers import WandbLogger 
+from lightning.pytorch.loggers import TensorBoardLogger
 from lightning import Trainer, seed_everything
-import wandb
+# import wandb
 import torch
 
 
-def fit(data, model, early_stop_patience=50, early_stop_threshold=1.e-7, max_epochs=1_000, model_dir=None, **kwargs):
+def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epochs=1_000, model_dir=None, **kwargs):
     early_stop_callback = EarlyStopping(
         monitor="val_loss", 
         patience=early_stop_patience, 
@@ -18,7 +18,7 @@ def fit(data, model, early_stop_patience=50, early_stop_threshold=1.e-7, max_epo
         monitor='val_loss',
         dirpath=model_dir,
         # filename='best-model-{epoch:02d}-{val_loss:.5f}',
-        save_top_k=1,
+        # save_top_k=1,
         auto_insert_metric_name=True,
         save_last='link',
         mode='min',
@@ -28,8 +28,9 @@ def fit(data, model, early_stop_patience=50, early_stop_threshold=1.e-7, max_epo
 
     seed_everything(42, workers=True)
 
-    wandb.init(reinit=True)
-    logger = WandbLogger(log_model="all", project="sunbird",)
+    # wandb.init(reinit=True, dir='/pscratch/sd/e/epaillas/tmp/wandb/')
+    # logger = WandbLogger(log_model="all", project="sunbird",)
+    logger = TensorBoardLogger("/pscratch/sd/e/epaillas/tmp", name="optuna")
 
     trainer = Trainer(
         accelerator="auto",
