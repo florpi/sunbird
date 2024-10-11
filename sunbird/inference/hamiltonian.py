@@ -8,7 +8,7 @@ from numpyro import distributions as dist
 from jax import random
 
 
-class HMC:
+class HMCSampler:
     def __init__(
         self,
         observation,
@@ -125,10 +125,11 @@ class HMC:
     def __call__(
         self,
         kernel: str = "NUTS",
-        num_warmup: int = 100,
-        num_samples: int = 1000,
+        num_warmup: int = 500,
+        num_samples: int = 4000,
         num_chains: int = 1,
         save_fn: Optional[str] = None,
+        metadata: Optional[Dict] = None,
         **kwargs,
     ):
         """Run the HMC inference
@@ -136,7 +137,7 @@ class HMC:
         Args:
             kernel (str, optional): kernel used for HMC. Defaults to "NUTS".
             num_warmup (int, optional): number of warmup steps. Defaults to 500.
-            num_samples (int, optional): numper of samples. Defaults to 1000.
+            num_samples (int, optional): numper of samples. Defaults to 4000.
         """
         kernel = getattr(infer, kernel)(self.model, init_strategy=infer.init_to_mean, **kwargs)
         mcmc = infer.MCMC(
@@ -154,21 +155,24 @@ class HMC:
         mcmc.print_summary()
         results = mcmc.get_samples()
         if save_fn is not None:
-            self.save_results(results, save_fn)
+            self.save_results(results, save_fn, metadata)
         return results
     
-    def save_results(self, results, save_fn):
+    def save_results(self, results, save_fn, metadata=None):
         samples = np.stack(list(results.values()), axis=0)
         # remove fixed parameters from the posterior
         idx = [list(results.keys()).index(param) for param in self.fixed_parameters]
         samples = np.delete(samples, idx, axis=0)
+        # if metadata:
+        #     metadata['true_params'] = np.delete(metadata['true_params'], idx)
         names = np.delete(list(results.keys()), idx)
         cout = { 'samples': samples.T,
             'weights': np.ones(samples.shape[-1]),
-            'names': names,
-            'ranges': self.ranges,
-            'labels': self.labels,
+            'param_ranges': self.ranges,
+            'param_names': names,
+            'param_labels': self.labels,
         }
+        cout.update(metadata)
         print(f'Saving results to {save_fn}')
         np.save(save_fn, cout)
         return
