@@ -2,7 +2,6 @@ import numpy as np
 import torch
 from torch import nn, Tensor
 from typing import List, Dict, Optional
-from sunbird.covariance import CovarianceMatrix
 
 def get_cholesky_decomposition_covariance(values: Tensor, data_dim: int)->Tensor:
     """ Starting from a vector of values, return the lower triangular matrix L such that LL^T = covariance
@@ -55,3 +54,33 @@ class MultivariateGaussianNLLLoss(nn.Module):
                       + log_det_covariance 
                       + k * torch.log(torch.tensor(2.) * torch.pi))
         return loss.mean()
+
+
+class GaussianNLoglike(nn.Module):
+    def __init__(self, covariance: Tensor):
+        """Class to compute the negative Gaussian log-likelihood given a covariance matrix
+
+        Args:
+            covariance (Tensor): covariance matrix
+        """
+        super().__init__()
+        self.covariance = covariance
+        self.inverse_covariance = torch.linalg.inv(self.covariance).to(covariance.device)
+
+    def __call__(self, predictions: Tensor, targets: Tensor) -> float:
+        """Given a set of inputs and targets, estimate the negative log-likelihood of the predicted values
+
+        Args:
+            predictions (Tensor): model predictions
+            targets (Tensor): target values
+
+        Returns:
+            float: log-likelihood of the predicitons
+        """
+        diff = (predictions - targets).to(self.covariance.device)
+        right = torch.einsum("ij,kj->ki", self.inverse_covariance, diff)
+        return 0.5 * (
+            torch.einsum(
+                "...j,...j", diff, right
+            )
+        ).mean()
