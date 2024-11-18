@@ -281,7 +281,7 @@ class FCN(BaseModel):
         if self.transform_output is not None:
             y = self.transform_output.inverse_transform(y)
         if filters is not None:
-            y = y[~filters.reshape(-1)]
+            y = y[:, ~filters.reshape(-1)] if len(y.shape) > 1 else y[~filters.reshape(-1)]
         return y
 
     def _compute_loss(self, batch, batch_idx) -> float:
