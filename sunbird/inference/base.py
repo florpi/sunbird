@@ -39,10 +39,10 @@ class BaseSampler:
         """Save the chain to a file
         """
         import numpy as np
-        chain = self.sampler.get_chain(flat=True)
+        samples, weights = self.get_chain(flat=True)
         names = [param for param in self.priors.keys() if param not in self.fixed_parameters]
-        cout = { 'samples': chain,
-            'weights': np.ones(chain.shape[0]),
+        cout = { 'samples': samples,
+            'weights': np.ones(samples.shape[0]),
             'param_ranges': self.ranges,
             'param_names': names,
             'param_labels': self.labels,
