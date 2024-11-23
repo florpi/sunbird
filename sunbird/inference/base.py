@@ -11,8 +11,8 @@ class BaseSampler:
         import matplotlib.pyplot as plt
         names = [param for param in self.priors.keys() if param not in self.fixed_parameters]
         labels = [self.labels[param].strip('$') for param in names]
-        chain = self.sampler.get_chain(flat=True, thin=thin)
-        samples = MCSamples(samples=chain, names=names, labels=labels)
+        samples, weights = self.get_chain(flat=True, thin=thin)
+        samples = MCSamples(samples=samples, weights=weights, names=names, labels=labels)
         g = plots.get_subplot_plotter()
         g.triangle_plot(samples, **kwargs)
         if save_fn:
@@ -25,11 +25,10 @@ class BaseSampler:
         import matplotlib.pyplot as plt
         names = [param for param in self.priors.keys() if param not in self.fixed_parameters]
         labels = [self.labels[param] for param in names]
-        chain = self.sampler.get_chain(flat=True, thin=thin)
-        samples = MCSamples(samples=chain, names=names, labels=labels)
+        samples, weights = self.get_chain(flat=True, thin=thin)
         fig, ax = plt.subplots(len(names), 1, figsize=(10, 2*len(names)))
         for i, name in enumerate(names):
-            ax[i].plot(chain[:, i])
+            ax[i].plot(samples[:, i])
             ax[i].set_ylabel(labels[i])
         ax[i].set_xlabel('Iteration')
         plt.tight_layout()

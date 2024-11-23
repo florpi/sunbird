@@ -223,4 +223,6 @@ class EmceeSampler(BaseSampler):
         Returns:
             np.array: chain
         """
-        return self.sampler.get_chain(**kwargs)
+        samples = self.sampler.get_chain(**kwargs)
+        weights = None
+        return samples, weights
