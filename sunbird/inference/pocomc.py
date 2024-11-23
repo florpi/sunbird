@@ -104,17 +104,16 @@ class PocoMCSampler(BaseSampler):
         prediction = self.get_model_prediction(params)
         diff = self.observation - prediction
         if len(theta.shape) > 1:
-            print(np.shape([-0.5 * diff[i] @ self.precision_matrix @ diff[i].T for i in range(len(theta))]))
-            time.sleep(1)
-            return [-0.5 * diff[i] @ self.precision_matrix @ diff[i].T for i in range(len(theta))]
+            return np.asarray([-0.5 * diff[i] @ self.precision_matrix @ diff[i].T for i in range(len(theta))])
         return -0.5 * diff @ self.precision_matrix @ diff.T
 
-    def __call__(self, vectorize=False, random_state=0):
+    def __call__(self, vectorize=True, random_state=0, precondition=True):
         """Run the sampler
 
         Args:
             vectorize (bool, optional): Vectorize the log likelihood call. Defaults to False.
             random_state (int, optional): Random seed. Defaults to 0.
+            precondition (bool, optional): If False, use standard MCMC without normalizing flow. Defaults to True.
         """
         prior = pocomc.Prior([value for key, value in self.priors.items() if key not in self.fixed_parameters.keys()])
 
@@ -123,7 +122,7 @@ class PocoMCSampler(BaseSampler):
             prior=prior,
             vectorize=vectorize,
             random_state=random_state,
-            precondition=False,
+            precondition=precondition,
         )
 
         self.sampler.run()
@@ -134,7 +133,7 @@ class PocoMCSampler(BaseSampler):
         Returns:
             np.array: chain
         """
-        samples, weights, logl, logp = self.sampler.posterior(bins_trim=100) # Weighted posterior samples
+        samples, weights, logl, logp = self.sampler.posterior() # Weighted posterior samples
         return samples, weights
 
 
