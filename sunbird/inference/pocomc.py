@@ -107,13 +107,14 @@ class PocoMCSampler(BaseSampler):
             return np.asarray([-0.5 * diff[i] @ self.precision_matrix @ diff[i].T for i in range(len(theta))])
         return -0.5 * diff @ self.precision_matrix @ diff.T
 
-    def __call__(self, vectorize=True, random_state=0, precondition=True):
+    def __call__(self, vectorize=True, random_state=0, precondition=True, **kwargs):
         """Run the sampler
 
         Args:
             vectorize (bool, optional): Vectorize the log likelihood call. Defaults to False.
             random_state (int, optional): Random seed. Defaults to 0.
             precondition (bool, optional): If False, use standard MCMC without normalizing flow. Defaults to True.
+            kwargs: Additional arguments for the sampler
         """
         prior = pocomc.Prior([value for key, value in self.priors.items() if key not in self.fixed_parameters.keys()])
 
@@ -123,9 +124,10 @@ class PocoMCSampler(BaseSampler):
             vectorize=vectorize,
             random_state=random_state,
             precondition=precondition,
+            **kwargs,
         )
 
-        self.sampler.run()
+        self.sampler.run(n_total=10_000)
 
     def get_chain(self, **kwargs):
         """Get the chain from the sampler
@@ -133,8 +135,9 @@ class PocoMCSampler(BaseSampler):
         Returns:
             np.array: chain
         """
-        samples, weights, logl, logp = self.sampler.posterior() # Weighted posterior samples
-        return samples, weights
+        samples, weights, logl, logp = self.sampler.posterior()
+        return {'samples': samples, 'weights': weights,
+                'log_likelihood': logl, 'log_prior': logp}
 
 
 if __name__ == "__main__":
