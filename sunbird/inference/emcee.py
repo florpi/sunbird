@@ -176,7 +176,7 @@ class EmceeSampler(BaseSampler):
         return params
     
     def __call__(self, nwalkers=4, niter=1000, nthreads=1, burnin=500, check_every=100,
-        vectorize=False):
+        vectorize=False, moves=None):
         """Run the MCMC sampler
 
         Args:
@@ -191,7 +191,7 @@ class EmceeSampler(BaseSampler):
         log_prob_fn = self.log_probability_batch if vectorize else self.log_probability 
         self.sampler = emcee.EnsembleSampler(
             nwalkers, ndim, log_prob_fn,
-            vectorize=vectorize, moves=[emcee.moves.DEMove(), emcee.moves.KDEMove()],
+            vectorize=vectorize, moves=moves,
         )
         self.logger.info('Running burn-in.')
         state = self.sampler.run_mcmc(initial, burnin, progress=False)
@@ -224,5 +224,7 @@ class EmceeSampler(BaseSampler):
             np.array: chain
         """
         samples = self.sampler.get_chain(**kwargs)
-        weights = None
-        return samples, weights
+        weights = logl = logp = None
+        samples, weights, logl, logp = self.sampler.posterior()
+        return {'samples': samples, 'weights': weights,
+                'log_likelihood': logl, 'log_posterior': logp}
