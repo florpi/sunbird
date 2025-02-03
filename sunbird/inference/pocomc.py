@@ -26,10 +26,10 @@ class PocoMCSampler(BaseSampler):
         select_filters: Dict = {},
         coordinates: list = [],
     ):
-        self.theory_model = theory_model if isinstance(theory_model, Iterable) else [theory_model]
-        self.select_filters = select_filters if isinstance(select_filters, Iterable) else [select_filters]
-        self.slice_filters = slice_filters if isinstance(slice_filters, Iterable) else [slice_filters]
-        self.coordinates = coordinates
+        self.theory_model = theory_model if isinstance(theory_model, list) else [theory_model]
+        self.select_filters = select_filters if isinstance(select_filters, list) else [select_filters]
+        self.slice_filters = slice_filters if isinstance(slice_filters, list) else [slice_filters]
+        self.coordinates = coordinates if isinstance(coordinates, list) else [coordinates]
         self.fixed_parameters = fixed_parameters
         self.observation = observation
         self.priors = priors
