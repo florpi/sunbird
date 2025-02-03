@@ -5,7 +5,7 @@ class BaseSampler:
     def __init__(self):
         pass
 
-    def triangle_plot(self, save_fn=None, thin=1, add_bestfit=False, **kwargs):
+    def plot_triangle(self, save_fn=None, thin=1, add_bestfit=False, **kwargs):
         """Plot triangle plot
         """
         import matplotlib.pyplot as plt
@@ -33,8 +33,26 @@ class BaseSampler:
         if save_fn:
             plt.savefig(save_fn, bbox_inches='tight')
         plt.show()
+    
+    def plot_bestfit(self, save_fn=None, thin=1, model='mean'):
+        import matplotlib.pyplot as plt
+        chain = self.get_chain(flat=True, thin=thin)
+        maxl = chain['samples'][chain['log_likelihood'].argmax()]
+        mean = chain['samples'].mean(axis=0)
+        theta = self.fill_params(mean) if model == 'mean' else self.fill_params(maxl)
+        fig, ax = plt.subplots(figsize=(4, 3))
+        ax.plot(self.observation, marker='o', ms=3.0, ls='', label='data')
+        ax.plot(self.get_model_prediction(theta), label='model')
+        ax.set_xlabel('bin number', fontsize=15)
+        ax.set_ylabel(r'$X$', fontsize=15)
+        ax.legend()
+        plt.tight_layout()
+        if save_fn:
+            plt.savefig(save_fn, bbox_inches='tight')
+        plt.show()
 
-    def trace_plot(self, save_fn=None, thin=1):
+
+    def plot_trace(self, save_fn=None, thin=1):
         """Parameter trace plot
         """
         import matplotlib.pyplot as plt
@@ -65,3 +83,17 @@ class BaseSampler:
             for key, val in metadata.items():
                 cout[key] = val
         np.save(save_fn, cout)
+
+    def save_table(self, save_fn):
+        from tabulate import tabulate
+        chain = self.get_chain(flat=True)
+        maxl = chain['samples'][chain['log_likelihood'].argmax()]
+        mean = chain['samples'].mean(axis=0)
+        std = chain['samples'].std(axis=0)
+        names = [param for param in self.priors.keys() if param not in self.fixed_parameters]
+        headers = ['parameter', 'max-like', 'mean', 'std']
+        table = []
+        for i, name in enumerate(names):
+            table.append([name, f"{maxl[i]:.4f}", f"{mean[i]:4f}", f"{std[i]:.4f}"])
+        with open(save_fn, 'w') as f:
+            f.write(tabulate(table, tablefmt='pretty', headers=headers))

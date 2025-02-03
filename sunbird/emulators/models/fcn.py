@@ -40,6 +40,7 @@ class FCN(BaseModel):
             std_output: Optional[torch.Tensor] = None,
             standarize_input: bool = True,
             standarize_output: bool = True,
+            transform_input: Optional[callable] = None,
             transform_output: Optional[callable] = None,
             coordinates: Optional[dict] = None,
             *args, 
@@ -64,6 +65,7 @@ class FCN(BaseModel):
         self.register_parameter('std_input', std_input, n_input)
         self.register_parameter('mean_output', mean_output, n_output)
         self.register_parameter('std_output', std_output, n_output)
+        self.transform_input = transform_input
         self.transform_output = transform_output
         self.loss = loss
         self.data_dim = self.n_output
@@ -273,15 +275,17 @@ class FCN(BaseModel):
         return y_pred, y_var
 
     def get_prediction(self, x: Tensor, filters: Optional[dict] = None) -> Tensor:
+        if self.transform_input:
+            x = self.transform_input.transform(x)
         y, _ = self.forward(x) 
         if self.standarize_output:
             std_output = self.std_output.to(x.device)
             mean_output = self.mean_output.to(x.device)
             y =  y * std_output + mean_output
-        if self.transform_output is not None:
+        if self.transform_output:
             y = self.transform_output.inverse_transform(y)
-        if filters is not None:
-            y = y[:, ~filters.reshape(-1)] if len(y.shape) > 1 else y[~filters.reshape(-1)]
+        # if filters is not None:
+        #     y = y[:, ~filters.reshape(-1)] if len(y.shape) > 1 else y[~filters.reshape(-1)]
         return y
 
     def _compute_loss(self, batch, batch_idx) -> float:
