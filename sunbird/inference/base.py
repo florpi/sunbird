@@ -18,6 +18,8 @@ class BaseSampler:
         g.triangle_plot(samples, **kwargs)
         maxl = data['samples'][data['log_likelihood'].argmax()]
         if add_bestfit:
+            print('Adding bestfit')
+            print(maxl)
             params = kwargs['params'] if 'params' in kwargs else names
             ndim = len(params)
             finished = []
@@ -48,6 +50,7 @@ class BaseSampler:
         ax.legend()
         plt.tight_layout()
         if save_fn:
+            self.logger.info(f'Saving {save_fn}')
             plt.savefig(save_fn, bbox_inches='tight')
         plt.show()
 
@@ -65,7 +68,9 @@ class BaseSampler:
             ax[i].set_ylabel(labels[i])
         ax[i].set_xlabel('Iteration')
         plt.tight_layout()
-        plt.savefig(save_fn, bbox_inches='tight')
+        if save_fn:
+            self.logger.info(f'Saving {save_fn}')
+            plt.savefig(save_fn, bbox_inches='tight')
         plt.show()
 
     def save_chain(self, save_fn, metadata=None):
@@ -82,6 +87,7 @@ class BaseSampler:
         if metadata:
             for key, val in metadata.items():
                 cout[key] = val
+        self.logger.info(f'Saving {save_fn}')
         np.save(save_fn, cout)
 
     def save_table(self, save_fn):
@@ -96,4 +102,5 @@ class BaseSampler:
         for i, name in enumerate(names):
             table.append([name, f"{maxl[i]:.4f}", f"{mean[i]:4f}", f"{std[i]:.4f}"])
         with open(save_fn, 'w') as f:
+            self.logger.info(f'Saving {save_fn}')
             f.write(tabulate(table, tablefmt='pretty', headers=headers))
