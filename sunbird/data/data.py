@@ -5,12 +5,36 @@ import torch
 import json
 import xarray as xr
 import pytorch_lightning as pl
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import TensorDataset, DataLoader, Dataset
 from sunbird.data import data_readers
 from sunbird.data.data_utils import convert_selection_to_filters
 from sunbird.data import transforms
 
 DEFAULT_DATA_DIR = Path(__file__).parent.parent.parent / "data/"
+
+class NoisyTensorDataset(Dataset):
+    def __init__(self, x, y, covariance_matrix=None):
+        """Custom Dataset that adds noise to `y` dynamically."""
+        self.x = x
+        self.y = y
+        self.covariance_matrix = covariance_matrix
+        self.n_features = y.shape[-1]
+
+    def __len__(self):
+        return len(self.x)
+
+    def __getitem__(self, index):
+        x = self.x[index]
+        y = self.y[index]
+
+        if self.covariance_matrix is not None:
+            noise = np.random.multivariate_normal(
+                mean=np.zeros(self.n_features),
+                cov=self.covariance_matrix
+            )
+            y = y + noise
+
+        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
 
 class ArrayDataModule(pl.LightningDataModule):
     def __init__(
@@ -21,6 +45,7 @@ class ArrayDataModule(pl.LightningDataModule):
         val_fraction: Optional[float] = None,
         batch_size: int = 256,
         num_workers: Optional[int] = 1,
+        covariance_matrix: Optional[np.array] = None,
     ):
         super().__init__()
         x, y = torch.Tensor(x), torch.Tensor(y)
@@ -33,8 +58,21 @@ class ArrayDataModule(pl.LightningDataModule):
             ), replace=False)
             train_idx = list(set(range(len(x))) - set(val_idx))
         self.num_workers = num_workers
-        self.ds_train = TensorDataset(x[train_idx], y[train_idx])
-        self.ds_val = TensorDataset(x[val_idx], y[val_idx])
+        self.covariance_matrix = covariance_matrix
+        if self.covariance_matrix is not None:
+            self.ds_train = NoisyTensorDataset(
+                x[train_idx], 
+                y[train_idx],
+                covariance_matrix=self.covariance_matrix,
+            )
+            self.ds_val = NoisyTensorDataset(
+                x[val_idx],
+                y[val_idx],
+                covariance_matrix=self.covariance_matrix,
+            )
+        else:
+            self.ds_train = TensorDataset(x[train_idx], y[train_idx])
+            self.ds_val = TensorDataset(x[val_idx], y[val_idx])
         self.batch_size = batch_size
         self.n_input = x.shape[-1]
         self.n_output = y.shape[-1]
@@ -415,6 +453,7 @@ class AbacusDataModule(pl.LightningDataModule):
                 x = self.input_transforms.transform(x)
             if self.output_transforms is not None:
                 y = self.output_transforms.transform(y)
+
         return TensorDataset(
             torch.tensor(x, dtype=torch.float32),
             torch.tensor(y.values.reshape((len(x), -1)), dtype=torch.float32),

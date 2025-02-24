@@ -1,11 +1,11 @@
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor, RichProgressBar
-from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from lightning import Trainer, seed_everything
-# import wandb
 import torch
+import wandb
 
 
-def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epochs=1_000, model_dir=None, **kwargs):
+def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epochs=1_000, model_dir=None, log_dir=None, logger='wandb', **kwargs):
     early_stop_callback = EarlyStopping(
         monitor="val_loss", 
         patience=early_stop_patience, 
@@ -28,9 +28,13 @@ def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epo
 
     seed_everything(42, workers=True)
 
-    # wandb.init(reinit=True, dir='/pscratch/sd/e/epaillas/tmp/wandb/')
-    # logger = WandbLogger(log_model="all", project="sunbird",)
-    logger = TensorBoardLogger("/pscratch/sd/e/epaillas/tmp", name="optuna")
+    if logger == 'wandb':
+        wandb.init()
+        logger = WandbLogger(log_model="all", project="sunbird",)
+    elif logger == 'tensorboard':
+        logger = TensorBoardLogger(log_dir, name="optuna")
+    else:
+        logger=None
 
     trainer = Trainer(
         accelerator="auto",
