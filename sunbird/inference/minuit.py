@@ -4,6 +4,7 @@ import torch
 from typing import Dict, Optional
 from collections.abc import Iterable
 import logging
+import time
 
 
 class MinuitProfiler:
@@ -13,7 +14,6 @@ class MinuitProfiler:
         precision_matrix,
         theory_model,
         priors,
-        start: Dict[str, float],
         ranges: Optional[Dict[str, tuple]] = {},
         labels: Dict[str, str] = {},
         fixed_params: Dict[str, float] = {},
@@ -22,6 +22,7 @@ class MinuitProfiler:
         self.theory_model = theory_model if isinstance(theory_model, Iterable) else [theory_model]
         self.model_filters = model_filters if isinstance(model_filters, Iterable) else [model_filters]
         self.fixed_params = fixed_params
+        self.varied_params = [param for param in priors.keys() if param not in fixed_params.keys()]
         self.observation = observation
         self.priors = priors
         self.ranges = ranges
@@ -29,25 +30,70 @@ class MinuitProfiler:
         self.precision_matrix = precision_matrix
         self.logger = logging.getLogger('MinuitProfiler')
         self.logger.info('Initializing MinuitProfiler.')
-        self.logger.info(f'Free parameters: {[key for key in priors.keys() if key not in fixed_params.keys()]}')
+        self.logger.info(f'Free parameters: {self.varied_params}')
         self.logger.info(f'Fixed parameters: {[key for key in priors.keys() if key in fixed_params.keys()]}')
 
-        minuit_params = {}
-        minuit_params['name'] = [str(param) for param in start.keys()]
+        self.minuit_params = {}
+        self.minuit_params['name'] = self.varied_params
 
-        self.minuit = Minuit(self.log_likelihood_minuit, **start, **minuit_params)
+    def get_start(self, limits=None):
+        if limits is None:
+            limits = self.ranges
+        start = {key: np.random.uniform(limits[key][0], limits[key][1])
+                 for key in self.varied_params}
+        return start
 
+    def _minimize_one(self, start):
+        t0 = time.time()
+        profile = {}
+        minuit = Minuit(self.log_likelihood_minuit, **start, **self.minuit_params)
         for param in start.keys():
-            self.minuit.limits[param] = (ranges[param][0], ranges[param][1])
-
-        self.minuit.errordef = Minuit.LIKELIHOOD
+            minuit.limits[param] = (self.ranges[param][0], self.ranges[param][1])
+        minuit.errordef = Minuit.LIKELIHOOD
+        minuit.migrad(ncall=int(1e5))
+        minuit.hesse()
+        bestfit = {param: minuit.values[param] for param in self.varied_params}
+        errors = {param: minuit.errors[param] for param in self.varied_params}
+        chi2 = self.log_likelihood(list(bestfit.values()))
+        profile['bestfit'] = bestfit
+        profile['errors'] = errors
+        profile['chi2'] = chi2
+        # self.logger.info(f'Minimization took {time.time() - t0:.2f} s.')
+        return profile
         
+    def minimize(self, niter=1, nstart=1, sigma_iter=3):
+        # profiles = []
+        # for j in range(nstart):
+        #     profiles.append(self._minimize_one(start=self.get_start()))
+        profiles_glob = []
+        for i in range(niter):
+            profiles = []
+            for j in range(nstart):
+                limits = self.ranges if i == 0 else limits
+                profiles.append(self._minimize_one(self.get_start(limits=limits)))
+            profiles = sorted(profiles, key=lambda x: x['chi2'])[0]
+            limits = {key: (profiles['bestfit'][key] - sigma_iter * profiles['errors'][key],
+                            profiles['bestfit'][key] + sigma_iter * profiles['errors'][key])
+                      for key in self.varied_params}
+            profiles_glob.append(profiles)
+            self.logger.info(f'Iteration {i+1}/{niter}: best chi2 = {profiles["chi2"]}')
+        return profiles_glob
 
-    def minimize(self):
-        self.minuit.migrad(ncall=int(1e5))
-        self.minuit.hesse()
-        print(self.minuit.params)
-        print(self.minuit.valid)
+        # profiles = [self._minimize_one(start=self.get_start()) for i in range(nstart)]
+        # profiles = sorted(profiles, key=lambda x: x['chi2'])[0]
+        # # self.logger.info(f'Iteration {i+1}/{niter}: best chi2 = {profiles["chi2"]}')
+        # start = profiles['bestfit']
+        # profiles = self._minimize_one(start=start)
+        # return profiles
+
+        # if nstart == 1:
+        #     return self._minimize_one(start=self.get_start())
+        # else:
+        #     profiles = []
+        #     for i in range(nstart):
+        #         profiles.append(self._minimize_one(start=self.get_start()))
+        #     profiles = sorted(profiles, key=lambda x: x['chi2'])
+        #     return profiles
 
     def fill_params(self, theta):
         """Fill the parameter vector to include fixed parameters

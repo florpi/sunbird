@@ -7,6 +7,7 @@ from numpyro import infer
 from functools import partial
 from numpyro import distributions as dist
 from jax import random
+import time
 
 
 class HMCSampler:
@@ -41,7 +42,7 @@ class HMCSampler:
         Returns:
             Dict: dictionary of parameters
         """
-
+        t0 = time.time()
         x = jnp.ones(len(self.priors.keys()))
         for i, param in enumerate(self.priors.keys()):
             if self.fixed_parameters is None or param not in self.fixed_parameters.keys():
@@ -55,6 +56,7 @@ class HMCSampler:
                 x = x.at[i].set(
                     numpyro.deterministic(param, self.fixed_parameters[param])
                 )
+        print(f'Sampling prior took {time.time() - t0:.2f} s')
         return x
 
     def test_sample_prior(
@@ -101,6 +103,7 @@ class HMCSampler:
         Args:
             y (np.array): array with observation
         """
+        t0 = time.time()
         x = self.sample_prior()
         if hasattr(self.nn_theory_model, '__iter__'):
             prediction = []
@@ -121,6 +124,7 @@ class HMCSampler:
         numpyro.sample(
             "y", dist.MultivariateNormal(prediction, precision_matrix=self.precision_matrix), obs=y
         )
+        print(f'likelihood evaluation took {time.time() - t0:.2f} s')
 
     def __call__(
         self,
@@ -145,6 +149,7 @@ class HMCSampler:
             num_warmup=num_warmup,
             num_samples=num_samples,
             num_chains=num_chains,
+            progress_bar=True,
         )
         rng_key = random.PRNGKey(0)
         mcmc.run(
@@ -160,11 +165,8 @@ class HMCSampler:
     
     def save_results(self, results, save_fn, metadata=None):
         samples = np.stack(list(results.values()), axis=0)
-        # remove fixed parameters from the posterior
         idx = [list(results.keys()).index(param) for param in self.fixed_parameters]
         samples = np.delete(samples, idx, axis=0)
-        # if metadata:
-        #     metadata['true_params'] = np.delete(metadata['true_params'], idx)
         names = np.delete(list(results.keys()), idx)
         cout = { 'samples': samples.T,
             'weights': np.ones(samples.shape[-1]),
@@ -172,7 +174,8 @@ class HMCSampler:
             'param_names': names,
             'param_labels': self.labels,
         }
-        cout.update(metadata)
+        if metadata:
+            cout.update(metadata)
         print(f'Saving results to {save_fn}')
         np.save(save_fn, cout)
         return
