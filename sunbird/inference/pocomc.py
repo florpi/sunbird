@@ -181,7 +181,6 @@ class PocoMCSampler(BaseSampler):
             **kwargs,
         )
 
-        # self.sampler.run(progress=True, n_total=10_000)
         self.sampler.run(progress=True, n_total=n_total)
 
     def get_chain(self, **kwargs):
