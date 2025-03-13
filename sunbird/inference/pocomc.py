@@ -123,14 +123,14 @@ class PocoMCSampler(BaseSampler):
                 pred = model.get_prediction(
                     x=torch.Tensor(theta),
                 )
-                if self.select_filters or self.slice_filters:
-                    pred = self.apply_model_filters(
-                        prediction=pred,
-                        coordinates=self.coordinates[i],
-                        select_filters=self.select_filters[i],
-                        slice_filters=self.slice_filters[i],
-                        batch=batch
-                    )
+                # if self.select_filters or self.slice_filters:
+                #     pred = self.apply_model_filters(
+                #         prediction=pred,
+                #         coordinates=self.coordinates[i],
+                #         select_filters=self.select_filters[i],
+                #         slice_filters=self.slice_filters[i],
+                #         batch=batch
+                #     )
                 prediction.append(pred)
             prediction = np.concatenate(prediction, axis=-1)
             return prediction
@@ -144,14 +144,22 @@ class PocoMCSampler(BaseSampler):
         Returns:
             float: log likelihood
         """
+        t0 = time.time()
         batch = len(theta.shape) > 1
         params = self.fill_params_batch(theta) if batch else self.fill_params(theta)
+        self.logger.debug(f'Filled parameters in {time.time() - t0:.2f} seconds.')
+        t0 = time.time()
         prediction = self.get_model_prediction(params, batch=batch)
         diff = self.observation - prediction
+        self.logger.debug(f'Got model prediction in {time.time() - t0:.2f} seconds.')
+        t0 = time.time()
         # print(np.min(prediction), np.max(prediction))
         if len(theta.shape) > 1:
-            return np.asarray([-0.5 * diff[i] @ self.precision_matrix @ diff[i].T for i in range(len(theta))])
-        return -0.5 * diff @ self.precision_matrix @ diff.T
+            to_return = np.asarray([-0.5 * diff[i] @ self.precision_matrix @ diff[i].T for i in range(len(theta))])
+        else:
+            to_return = -0.5 * diff @ self.precision_matrix @ diff.T
+        self.logger.debug(f'Computed log likelihood in {time.time() - t0:.2f} seconds.')
+        return to_return
 
     def __call__(self, vectorize=True, random_state=0, precondition=True, n_total=4096, **kwargs):
         """Run the sampler
