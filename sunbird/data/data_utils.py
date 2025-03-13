@@ -30,7 +30,7 @@ def convert_to_summary(
     """Convert numpy array to DataArray summary to filter and select from
 
     Example:
-        slice_filters = {'s': (0, 0.5),}, select_filters = {'multipoles': (0, 2),}
+        slice_filters = {'s': (0, 0.5),}, select_filters = {'multipoles': [0, 2],}
         will return the summary statistics for 0 < s < 0.5 and multipoles 0 and 2
 
     Args:
