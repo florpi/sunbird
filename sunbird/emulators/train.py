@@ -5,7 +5,15 @@ from lightning import Trainer, seed_everything
 import torch
 
 
-def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epochs=1_000, model_dir=None, **kwargs):
+def fit(data, 
+        model, 
+        early_stop_patience=30, 
+        early_stop_threshold=1.e-7, 
+        max_epochs=1_000, model_dir=None, 
+        logger_dir=None, 
+        **kwargs
+        ) -> tuple:
+    
     early_stop_callback = EarlyStopping(
         monitor="val_loss", 
         patience=early_stop_patience, 
@@ -28,10 +36,16 @@ def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epo
 
     seed_everything(42, workers=True)
 
-    # wandb.init(reinit=True, dir='/pscratch/sd/e/epaillas/tmp/wandb/')
-    # logger = WandbLogger(log_model="all", project="sunbird",)
-    logger = TensorBoardLogger("/pscratch/sd/e/epaillas/tmp", name="optuna")
-
+    if logger_dir is not None:
+        logger_dir = logger_dir / 'tensorboard'
+        logger_dir.mkdir(parents=True, exist_ok=True)
+        logger = TensorBoardLogger(logger_dir, name="optuna")
+        # wandb.init(reinit=True, dir='logger_dir')
+        # logger = WandbLogger(log_model="all", project="sunbird",)
+    else:
+        # NOTE : Setting it to False will break if logger is not provided because LearningRateMonitor requires a logger :/ --> Can we fix this to not have any logging here ?
+        logger = None # Disable logging if no path is provided
+    
     trainer = Trainer(
         accelerator="auto",
         callbacks=[early_stop_callback, checkpoint_callback, lr_monitor, progress_bar],
