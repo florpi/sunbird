@@ -10,6 +10,7 @@ import time
 import logging
 from sunbird.inference.base import BaseSampler
 from sunbird.data.data_utils import convert_to_summary
+from sunbird.inference.priors import AbacusSummitEllipsoid
 
 
 class PocoMCSampler(BaseSampler):
@@ -25,6 +26,7 @@ class PocoMCSampler(BaseSampler):
         slice_filters: Dict = {},
         select_filters: Dict = {},
         coordinates: list = [],
+        ellipsoid: bool = False,
     ):
         self.theory_model = theory_model if isinstance(theory_model, list) else [theory_model]
         self.select_filters = select_filters if isinstance(select_filters, list) else [select_filters]
@@ -36,6 +38,9 @@ class PocoMCSampler(BaseSampler):
         self.ranges = ranges
         self.labels = labels
         self.precision_matrix = precision_matrix
+        self.ellipsoid = ellipsoid
+        if self.ellipsoid:
+            self.abacus_ellipsoid = AbacusSummitEllipsoid()
         self.ndim = len(self.priors.keys()) - len(self.fixed_parameters.keys())
         self.logger = logging.getLogger('PocoMCSampler')
         self.logger.info('Initializing PocoMCSampler.')
@@ -148,12 +153,17 @@ class PocoMCSampler(BaseSampler):
         params = self.fill_params_batch(theta) if batch else self.fill_params(theta)
         prediction = self.get_model_prediction(params, batch=batch)
         diff = self.observation - prediction
-        # print(np.min(prediction), np.max(prediction))
-        if len(theta.shape) > 1:
-            return np.asarray([-0.5 * diff[i] @ self.precision_matrix @ diff[i].T for i in range(len(theta))])
-        return -0.5 * diff @ self.precision_matrix @ diff.T
+        if batch:
+            logl = np.asarray([-0.5 * diff[i] @ self.precision_matrix @ diff[i].T for i in range(len(theta))])
+            if self.ellipsoid:
+                logl += np.asarray([self.abacus_ellipsoid.log_likelihood(params[i, :8]) for i in range(len(theta))])
+        else:
+            logl = -0.5 * diff @ self.precision_matrix @ diff.T
+            if self.ellipsoid:
+                logl += self.abacus_ellipsoid.log_likelihood(params[:8])
+        return logl
 
-    def __call__(self, vectorize=True, random_state=0, precondition=True, n_total=4096, **kwargs):
+    def __call__(self, vectorize=True, random_state=0, precondition=True, n_total=4096, progress=True, **kwargs):
         """Run the sampler
 
         Args:
@@ -173,7 +183,7 @@ class PocoMCSampler(BaseSampler):
             **kwargs,
         )
 
-        self.sampler.run(progress=True, n_total=n_total)
+        self.sampler.run(progress=progress, n_total=n_total)
 
     def get_chain(self, **kwargs):
         """Get the chain from the sampler
