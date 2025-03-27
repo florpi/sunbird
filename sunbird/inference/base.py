@@ -38,20 +38,30 @@ class BaseSampler:
     
     def plot_bestfit(self, save_fn=None, thin=1, model='mean'):
         import matplotlib.pyplot as plt
+        import numpy as np
         chain = self.get_chain(flat=True, thin=thin)
         maxl = chain['samples'][chain['log_likelihood'].argmax()]
         mean = chain['samples'].mean(axis=0)
+        cov = np.linalg.inv(self.precision_matrix)
+        error = np.sqrt(np.diag(cov))
         theta = self.fill_params(mean) if model == 'mean' else self.fill_params(maxl)
-        fig, ax = plt.subplots(figsize=(4, 3))
-        ax.plot(self.observation, marker='o', ms=3.0, ls='', label='data')
-        ax.plot(self.get_model_prediction(theta), label='model')
-        ax.set_xlabel('bin number', fontsize=15)
-        ax.set_ylabel(r'$X$', fontsize=15)
-        ax.legend()
+        fig, ax = plt.subplots(2, 1, figsize=(4, 3), sharex=True, height_ratios=[3, 1])
+        ax[0].errorbar(np.arange(len(self.observation)), self.observation, error,
+                       marker='o', ms=2.0, elinewidth=1.0, ls='', label='data')
+        ax[0].plot(self.get_model_prediction(theta), label='model')
+        ax[1].plot((self.observation - self.get_model_prediction(theta))/error, ls='-')
+        ax[0].set_ylabel(r'$X$', fontsize=15)
+        ax[1].set_ylabel(r'$\Delta X/\sigma$', fontsize=15)
+        ax[1].set_xlabel('bin number', fontsize=15)
+        ax[0].legend()
+        ax[1].axhline(0, color='k', ls='-', lw=0.5)
+        ax[1].axhline(-1, color='k', ls='--', lw=0.5)
+        ax[1].axhline(1, color='k', ls='--', lw=0.5)
         plt.tight_layout()
+        plt.subplots_adjust(hspace=0.1)
         if save_fn:
             self.logger.info(f'Saving {save_fn}')
-            plt.savefig(save_fn, bbox_inches='tight')
+            plt.savefig(save_fn, bbox_inches='tight', dpi=300)
         plt.show()
 
 
