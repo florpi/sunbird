@@ -59,3 +59,23 @@ class AbacusSummit:
                           stats_module=stats_module)
         self.ranges = load_ranges(os.path.join(dirname, 'abacus_summit.yaml'))
         self.labels = load_labels(os.path.join(dirname, 'abacus_summit.yaml'))
+
+# class PocoMCAbacusSummitPrior:
+#     def __init__(self, stats_module='scipy.stats'):
+#         from .abacus_summit import AbacusSummitEllipsoid
+#         dirname = os.path.dirname(__file__)
+#         self.priors =  load_prior(os.path.join(dirname, 'abacus_summit.yaml'),
+#                           stats_module=stats_module)
+#         self.ranges = load_ranges(os.path.join(dirname, 'abacus_summit.yaml'))
+#         self.labels = load_labels(os.path.join(dirname, 'abacus_summit.yaml'))
+
+#         self.ellipsoid = AbacusSummitEllipsoid(params=self.priors.keys())
+
+#     def logpdf(self, x):
+#         if self.ellipsoid.is_within(x):
+#             return 0.0
+#         return -np.inf
+
+#     def rvs(self, size=1)
+#         return np.array([self.priors[param].rvs(size=size) for param in self.priors.keys()]).T
+
