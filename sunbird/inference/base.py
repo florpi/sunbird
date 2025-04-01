@@ -108,9 +108,18 @@ class BaseSampler:
         std = chain['samples'].std(axis=0)
         names = [param for param in self.priors.keys() if param not in self.fixed_parameters]
         headers = ['parameter', 'max-like', 'mean', 'std']
+        has_evidence = hasattr(self, 'evidence')
+        if has_evidence:
+            logz, logz_err = self.evidence()
         table = []
         for i, name in enumerate(names):
-            table.append([name, f"{maxl[i]:.4f}", f"{mean[i]:4f}", f"{std[i]:.4f}"])
+            row = [name, f"{maxl[i]:.4f}", f"{mean[i]:.4f}", f"{std[i]:.4f}"]
+            table.append(row)
         with open(save_fn, 'w') as f:
             self.logger.info(f'Saving {save_fn}')
             f.write(tabulate(table, tablefmt='pretty', headers=headers))
+            if hasattr(self, 'evidence'):
+                logz, logz_err = self.evidence()
+                f.write("\n\nEvidence calculation:\n")
+                f.write(f"log(Z) = {logz:.4f} ± {logz_err:.4f}\n")
+
