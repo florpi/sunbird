@@ -144,6 +144,15 @@ class PocoMCSampler(BaseSampler):
         return {'samples': samples, 'weights': weights,
                 'log_likelihood': logl, 'log_prior': logp}
 
+    def evidence(self,):
+        """Get the evidence from the sampler
+
+        Returns:
+            tuple: logz, logz_err
+        """
+        return self.sampler.evidence()
+
+
 
 if __name__ == "__main__":
     PocoMCSampler()
