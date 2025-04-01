@@ -28,10 +28,7 @@ class PocoMCSampler(BaseSampler):
         coordinates: list = [],
         ellipsoid: bool = False,
     ):
-        self.theory_model = theory_model if isinstance(theory_model, list) else [theory_model]
-        self.select_filters = select_filters if isinstance(select_filters, list) else [select_filters]
-        self.slice_filters = slice_filters if isinstance(slice_filters, list) else [slice_filters]
-        self.coordinates = coordinates if isinstance(coordinates, list) else [coordinates]
+        self.theory_model = theory_model
         self.fixed_parameters = fixed_parameters
         self.observation = observation
         self.priors = priors
@@ -81,39 +78,7 @@ class PocoMCSampler(BaseSampler):
             params[i] = self.fill_params(theta)
         return params
 
-    def apply_model_filters(self, prediction, coordinates,
-        select_filters, slice_filters, batch=False):
-        """Apply filters to the model prediction.
-        
-        Args:
-            prediction (np.array): model prediction
-            coordinates (dict): coordinates of the model prediction
-            select_filters (dict): select filters
-            slice_filters (dict): slice filters
-            
-            Returns:
-                np.array: filtered prediction
-        """
-        coords = coordinates.copy()
-        if batch:
-            coords_shape = tuple(len(v) for k, v in coords.copy().items())
-            dimensions = ["batch"] + list(coords.keys())
-            coords["batch"] = range(len(prediction))
-            prediction = prediction.reshape((len(prediction), *coords_shape))
-            return convert_to_summary(
-                data=prediction, dimensions=dimensions, coords=coords,
-                select_filters=select_filters, slice_filters=slice_filters
-            ).values.reshape(len(prediction), -1)
-        else:
-            coords_shape = tuple(len(v) for k, v in coords.items())
-            prediction = prediction.reshape(coords_shape)
-            dimensions = list(coords.keys())
-            return convert_to_summary(
-                data=prediction, dimensions=dimensions, coords=coords,
-                select_filters=select_filters, slice_filters=slice_filters
-            ).values.reshape(-1)
-
-    def get_model_prediction(self, theta, batch=False):
+    def get_model_prediction(self, theta):
         """Get model prediction
 
         Args:
@@ -122,23 +87,7 @@ class PocoMCSampler(BaseSampler):
         Returns:
             np.array: model prediction
         """
-        with torch.no_grad():
-            prediction = []
-            for i, model in enumerate(self.theory_model):
-                pred = model.get_prediction(
-                    x=torch.Tensor(theta),
-                )
-                if self.select_filters or self.slice_filters:
-                    pred = self.apply_model_filters(
-                        prediction=pred,
-                        coordinates=self.coordinates[i],
-                        select_filters=self.select_filters[i],
-                        slice_filters=self.slice_filters[i],
-                        batch=batch
-                    )
-                prediction.append(pred)
-            prediction = np.concatenate(prediction, axis=-1)
-            return prediction
+        return self.theory_model.get_prediction(x=theta)
 
     def log_likelihood(self, theta):
         """Log likelihood function
@@ -151,7 +100,7 @@ class PocoMCSampler(BaseSampler):
         """
         batch = len(theta.shape) > 1
         params = self.fill_params_batch(theta) if batch else self.fill_params(theta)
-        prediction = self.get_model_prediction(params, batch=batch)
+        prediction = self.get_model_prediction(params)
         diff = self.observation - prediction
         if batch:
             logl = np.asarray([-0.5 * diff[i] @ self.precision_matrix @ diff[i].T for i in range(len(theta))])
