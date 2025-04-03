@@ -29,6 +29,8 @@ class PocoMCSampler(BaseSampler):
         ellipsoid: bool = False,
     ):
         self.theory_model = theory_model
+        if fixed_parameters is None:
+            fixed_parameters = {}
         self.fixed_parameters = fixed_parameters
         self.observation = observation
         self.priors = priors
