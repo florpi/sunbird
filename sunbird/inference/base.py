@@ -97,6 +97,10 @@ class BaseSampler:
         if metadata:
             for key, val in metadata.items():
                 cout[key] = val
+        if hasattr(self, 'evidence'):
+            logz, logz_error = self.evidence()
+            cout['logz'] = logz
+            cout['log_zerror'] = logz_error
         self.logger.info(f'Saving {save_fn}')
         np.save(save_fn, cout)
 
