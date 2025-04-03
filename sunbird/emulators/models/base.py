@@ -17,7 +17,7 @@ def convert_state_dict_from_pt(
     """
     Converts a PyTorch parameter state dict to an equivalent Flax parameter state dict
     """
-    state = {k: v.numpy() for k, v in state.items()}
+    state = {k: v.cpu().numpy() for k, v in state.items()}
     state = model.convert_from_pytorch(
         state,
     )

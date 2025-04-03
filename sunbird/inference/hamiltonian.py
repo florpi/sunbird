@@ -4,6 +4,7 @@ import jax
 import jax.numpy as jnp
 import numpyro
 from numpyro import infer
+from functools import partial
 from numpyro import distributions as dist
 from jax import random
 import time
@@ -44,7 +45,7 @@ class HMCSampler:
         t0 = time.time()
         x = jnp.ones(len(self.priors.keys()))
         for i, param in enumerate(self.priors.keys()):
-            if param not in self.fixed_parameters.keys():
+            if self.fixed_parameters is None or param not in self.fixed_parameters.keys():
                 x = x.at[i].set(
                     numpyro.sample(
                         param,
@@ -124,7 +125,6 @@ class HMCSampler:
             "y", dist.MultivariateNormal(prediction, precision_matrix=self.precision_matrix), obs=y
         )
         print(f'likelihood evaluation took {time.time() - t0:.2f} s')
-
 
     def __call__(
         self,

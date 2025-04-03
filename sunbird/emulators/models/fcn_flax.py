@@ -21,6 +21,7 @@ class FlaxFCN(nn.Module):
     predict_errors: False
     transform_output: None
     coordinates: None
+    compression_matrix: None
 
 
     def setup(
@@ -100,6 +101,8 @@ class FlaxFCN(nn.Module):
             y_pred = self.transform_output.inverse_transform(y_pred)
         if filters is not None:
             y_pred = y_pred[~filters.reshape(-1)]
+        if self.compression_matrix is not None:
+            y_pred = y_pred @ self.compression_matrix
         return y_pred, y_var
 
     def convert_from_pytorch(self, pt_state: Dict) -> Dict:

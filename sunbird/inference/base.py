@@ -109,37 +109,17 @@ class BaseSampler:
         std = chain['samples'].std(axis=0)
         names = [param for param in self.priors.keys() if param not in self.fixed_parameters]
         headers = ['parameter', 'max-like', 'mean', 'std']
+        has_evidence = hasattr(self, 'evidence')
+        if has_evidence:
+            logz, logz_err = self.evidence()
         table = []
         for i, name in enumerate(names):
-            table.append([name, f"{maxl[i]:.4f}", f"{mean[i]:4f}", f"{std[i]:.4f}"])
+            row = [name, f"{maxl[i]:.4f}", f"{mean[i]:.4f}", f"{std[i]:.4f}"]
+            table.append(row)
         with open(save_fn, 'w') as f:
             self.logger.info(f'Saving {save_fn}')
             f.write(tabulate(table, tablefmt='pretty', headers=headers))
-
-    # def add_derived_params(self):
-    #     from sunbird.cosmology.growth_rate import Growth
-    #     growth = Growth(emulate=True,)
-    #     chain = self.get_chain(flat=True) 
-
-    #     params_labels = ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s', 'N_ur', 'w0_fld', 'wa_fld']
-    #     cosmo_params = {}
-    #     for label in params_labels:
-    #         if label in self.priors.keys():
-    #             cosmo_params[label] = chain[label]
-    #         else:
-    #             cosmo_params[label] = np.ones_like(chain['omega_b']) * self.fixed_parameters[label]
-
-    #     chain['h'] = growth.get_emulated_h(**cosmo_params)
-
-        # cosmo_params = {label: chain[label] for label in cosmo_param_labels if label in self.priors.keys()}
-        # cosmo_params.update({label: np.ones_like(chain['omega_b'].to_numpy()) * self.fixe
-
-        # chain['h'] = growth.get_emulated_h(
-        #     omega_b = data['omega_b'].to_numpy(),
-        #     omega_cdm = data['omega_cdm'].to_numpy(),
-        #     sigma8 = data['sigma8_m'].to_numpy(),
-        #     n_s = data['n_s'].to_numpy(),
-        #     N_ur = np.ones_like(data['omega_b'].to_numpy()) * 2.0328,
-        #     w0_fld = np.ones_like(data['omega_b'].to_numpy()) * -1.0,
-        #     wa_fld = np.ones_like(data['omega_b'].to_numpy()) * 0.0,
-        # )
+            if hasattr(self, 'evidence'):
+                logz, logz_err = self.evidence()
+                f.write("\n\nEvidence calculation:\n")
+                f.write(f"log(Z) = {logz:.4f} ± {logz_err:.4f}\n")
