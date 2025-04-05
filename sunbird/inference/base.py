@@ -93,6 +93,7 @@ class BaseSampler:
             'ranges': self.ranges,
             'names': names,
             'labels': self.labels,
+            'fixed_parameters': self.fixed_parameters,
         }
         if metadata:
             for key, val in metadata.items():
@@ -126,4 +127,3 @@ class BaseSampler:
                 logz, logz_err = self.evidence()
                 f.write("\n\nEvidence calculation:\n")
                 f.write(f"log(Z) = {logz:.4f} ± {logz_err:.4f}\n")
-
