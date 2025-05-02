@@ -47,7 +47,8 @@ class WeiLiuOutputTransForm(BaseTransform):
     trained with Wei Liu's scripts with those from the ACM repository.
     """
     def __init__(self,):
-        self.data_dict = np.load('/pscratch/sd/e/epaillas/emc/v1.1/abacus/training_sets/cosmo+hod/raw/minkowski_dummy.npy', allow_pickle=True).item()
+        # self.data_dict = np.load('/pscratch/sd/e/epaillas/emc/v1.1/abacus/training_sets/cosmo+hod/raw/minkowski_dummy.npy', allow_pickle=True).item()
+        self.data_dict = np.load('/pscratch/sd/e/epaillas/emc/v1.1/abacus/training_sets/cosmo+hod/raw/Minkowski_Combine_4Rgs_85cos_lhc.npy', allow_pickle=True).item()
         self.mean = torch.tensor(self.data_dict['train_y_mean'],dtype=torch.float32)
         self.std = torch.tensor(self.data_dict['train_y_std'],dtype=torch.float32)
 
@@ -62,7 +63,8 @@ class WeiLiuInputTransform(BaseTransform):
     trained with Wei Liu's scripts with those from the ACM repository.
     """
     def __init__(self,):
-        self.data_dict = np.load('/pscratch/sd/e/epaillas/emc/v1.1/abacus/training_sets/cosmo+hod/raw/minkowski_dummy.npy', allow_pickle=True).item()
+        # self.data_dict = np.load('/pscratch/sd/e/epaillas/emc/v1.1/abacus/training_sets/cosmo+hod/raw/minkowski_dummy.npy', allow_pickle=True).item()
+        self.data_dict = np.load('/pscratch/sd/e/epaillas/emc/v1.1/abacus/training_sets/cosmo+hod/raw/Minkowski_Combine_4Rgs_85cos_lhc.npy', allow_pickle=True).item()
         self.mean = torch.tensor(self.data_dict['train_x_mean'],dtype=torch.float32)
         self.std = torch.tensor(self.data_dict['train_x_std'],dtype=torch.float32)
 
