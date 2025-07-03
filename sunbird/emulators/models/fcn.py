@@ -43,6 +43,7 @@ class FCN(BaseModel):
             transform_input: Optional[callable] = None,
             transform_output: Optional[callable] = None,
             coordinates: Optional[dict] = None,
+            compression_matrix: Optional[torch.Tensor] = None,
             *args, 
             **kwargs,
     ):
@@ -89,6 +90,7 @@ class FCN(BaseModel):
                     "std_output",
                 ],
             )
+        self.compression_matrix = compression_matrix
 
     @staticmethod
     def add_model_specific_args(parent_parser):
@@ -157,6 +159,7 @@ class FCN(BaseModel):
                 'predict_errors': True if self.loss == "learned_gaussian" else False,
                 'transform_output': self.transform_output,
                 'coordinates': self.coordinates,
+                'compression_matrix': None,
         }
 
     def register_parameter(self, parameter_name, parameter, dim):
@@ -275,6 +278,7 @@ class FCN(BaseModel):
         return y_pred, y_var
 
     def get_prediction(self, x: Tensor, filters: Optional[dict] = None) -> Tensor:
+        x = torch.Tensor(x)
         if self.transform_input:
             x = self.transform_input.transform(x)
         y, _ = self.forward(x) 
@@ -284,8 +288,8 @@ class FCN(BaseModel):
             y =  y * std_output + mean_output
         if self.transform_output:
             y = self.transform_output.inverse_transform(y)
-        # if filters is not None:
-        #     y = y[:, ~filters.reshape(-1)] if len(y.shape) > 1 else y[~filters.reshape(-1)]
+        if self.compression_matrix is not None:
+            y = y @ self.compression_matrix
         return y
 
     def _compute_loss(self, batch, batch_idx) -> float:

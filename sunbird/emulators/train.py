@@ -1,19 +1,12 @@
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor, RichProgressBar
-from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from lightning import Trainer, seed_everything
-# import wandb
 import torch
+import wandb
 
 
-def fit(data, 
-        model, 
-        early_stop_patience=30, 
-        early_stop_threshold=1.e-7, 
-        max_epochs=1_000, model_dir=None, 
-        logger_dir=None, 
-        **kwargs
-        ) -> tuple:
-    
+
+def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epochs=1_000, model_dir=None, log_dir=None, logger='wandb', **kwargs):
     early_stop_callback = EarlyStopping(
         monitor="val_loss", 
         patience=early_stop_patience, 
@@ -36,16 +29,15 @@ def fit(data,
 
     seed_everything(42, workers=True)
 
-    if logger_dir is not None:
-        logger_dir = logger_dir / 'tensorboard'
-        logger_dir.mkdir(parents=True, exist_ok=True)
-        logger = TensorBoardLogger(logger_dir, name="optuna")
-        # wandb.init(reinit=True, dir='logger_dir')
-        # logger = WandbLogger(log_model="all", project="sunbird",)
-    else:
-        # NOTE : Setting it to False will break if logger is not provided because LearningRateMonitor requires a logger :/ --> Can we fix this to not have any logging here ?
-        logger = None # Disable logging if no path is provided
     
+    if logger == 'wandb':
+        wandb.init()
+        logger = WandbLogger(log_model="all", project="sunbird",)
+    elif logger == 'tensorboard':
+        logger = TensorBoardLogger(log_dir, name="optuna")
+    else:
+        logger=None
+
     trainer = Trainer(
         accelerator="auto",
         callbacks=[early_stop_callback, checkpoint_callback, lr_monitor, progress_bar],
