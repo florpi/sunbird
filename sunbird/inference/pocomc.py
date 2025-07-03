@@ -91,6 +91,7 @@ class PocoMCSampler(BaseSampler):
         """
         return self.theory_model.get_prediction(x=theta)
 
+
     def log_likelihood(self, theta):
         """Log likelihood function
 
@@ -100,6 +101,7 @@ class PocoMCSampler(BaseSampler):
         Returns:
             float: log likelihood
         """
+        t0 = time.time()
         batch = len(theta.shape) > 1
         params = self.fill_params_batch(theta) if batch else self.fill_params(theta)
         prediction = self.get_model_prediction(params)
@@ -113,6 +115,7 @@ class PocoMCSampler(BaseSampler):
             if self.ellipsoid:
                 logl += self.abacus_ellipsoid.log_likelihood(params[:8])
         return logl
+      
 
     def __call__(self, vectorize=True, random_state=0, precondition=True, n_total=4096, progress=True, **kwargs):
         """Run the sampler

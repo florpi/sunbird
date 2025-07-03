@@ -5,6 +5,7 @@ import torch
 import wandb
 
 
+
 def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epochs=1_000, model_dir=None, log_dir=None, logger='wandb', **kwargs):
     early_stop_callback = EarlyStopping(
         monitor="val_loss", 
@@ -28,6 +29,7 @@ def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epo
 
     seed_everything(42, workers=True)
 
+    
     if logger == 'wandb':
         wandb.init()
         logger = WandbLogger(log_model="all", project="sunbird",)
