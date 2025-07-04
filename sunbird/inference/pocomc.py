@@ -101,7 +101,6 @@ class PocoMCSampler(BaseSampler):
         Returns:
             float: log likelihood
         """
-        t0 = time.time()
         batch = len(theta.shape) > 1
         params = self.fill_params_batch(theta) if batch else self.fill_params(theta)
         prediction = self.get_model_prediction(params)
