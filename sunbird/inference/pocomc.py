@@ -91,6 +91,7 @@ class PocoMCSampler(BaseSampler):
         """
         return self.theory_model.get_prediction(x=theta)
 
+
     def log_likelihood(self, theta):
         """Log likelihood function
 
@@ -113,6 +114,7 @@ class PocoMCSampler(BaseSampler):
             if self.ellipsoid:
                 logl += self.abacus_ellipsoid.log_likelihood(params[:8])
         return logl
+      
 
     def __call__(self, vectorize=True, random_state=0, precondition=True, n_total=4096, progress=True, **kwargs):
         """Run the sampler

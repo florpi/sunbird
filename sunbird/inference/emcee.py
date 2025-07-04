@@ -82,12 +82,11 @@ class EmceeSampler(BaseSampler):
         """
         with torch.no_grad():
             prediction = []
-            for model, filters in zip(self.theory_model, self.model_filters):
+            for model in self.theory_model:
                 pred = model.get_prediction(
                     x=torch.Tensor(theta),
-                    filters=filters,
                 )
-                prediction.append(pred.numpy())
+                prediction.append(pred)
             prediction = np.concatenate(prediction, axis=-1)
             return prediction
 

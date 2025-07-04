@@ -368,7 +368,7 @@ class Log(BaseTransform):
     def inverse_transform(
         self,
         summary: xr.DataArray,
-        errors: xr.DataArray,
+        errors: xr.DataArray = None, # As it is neither implemented here or in sunbird 
     ) -> xr.DataArray:
         """Inverse the transform
 
@@ -380,7 +380,7 @@ class Log(BaseTransform):
         """
         inv_summary = 10**summary + self.min_value
         # TODO: how to transform errors?
-        return inv_summary, errors
+        return inv_summary #, errors (add it back later when it's implemented)
 
 
 class S2(BaseTransform):
