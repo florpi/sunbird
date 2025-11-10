@@ -52,6 +52,22 @@ class Yuan23:
         self.ranges = load_ranges(os.path.join(dirname, 'yuan23.yaml'))
         self.labels = load_labels(os.path.join(dirname, 'yuan23.yaml'))
 
+class Rocher25:
+    def __init__(self, stats_module='scipy.stats'):
+        dirname = os.path.dirname(__file__)
+        self.priors = load_prior(os.path.join(dirname, 'rocher25.yaml'),
+                          stats_module=stats_module)
+        self.ranges = load_ranges(os.path.join(dirname, 'rocher25.yaml'))
+        self.labels = load_labels(os.path.join(dirname, 'rocher25.yaml'))
+
+class DESIEDR:
+    def __init__(self, stats_module='scipy.stats'):
+        dirname = os.path.dirname(__file__)
+        self.priors = load_prior(os.path.join(dirname, 'desi_edr.yaml'),
+                          stats_module=stats_module)
+        self.ranges = load_ranges(os.path.join(dirname, 'desi_edr.yaml'))
+        self.labels = load_labels(os.path.join(dirname, 'desi_edr.yaml'))
+
 class AbacusSummit:
     def __init__(self, stats_module='scipy.stats'):
         dirname = os.path.dirname(__file__)
@@ -59,6 +75,22 @@ class AbacusSummit:
                           stats_module=stats_module)
         self.ranges = load_ranges(os.path.join(dirname, 'abacus_summit.yaml'))
         self.labels = load_labels(os.path.join(dirname, 'abacus_summit.yaml'))
+
+class AbacusPNG:
+    def __init__(self, stats_module='scipy.stats'):
+        dirname = os.path.dirname(__file__)
+        self.priors =  load_prior(os.path.join(dirname, 'abacus_png.yaml'),
+                          stats_module=stats_module)
+        self.ranges = load_ranges(os.path.join(dirname, 'abacus_png.yaml'))
+        self.labels = load_labels(os.path.join(dirname, 'abacus_png.yaml'))
+
+class AbacusGrowthMC:
+    def __init__(self, stats_module='scipy.stats'):
+        dirname = os.path.dirname(__file__)
+        self.priors =  load_prior(os.path.join(dirname, 'abacus_mc.yaml'),
+                          stats_module=stats_module)
+        self.ranges = load_ranges(os.path.join(dirname, 'abacus_mc.yaml'))
+        self.labels = load_labels(os.path.join(dirname, 'abacus_mc.yaml'))
 
 # class PocoMCAbacusSummitPrior:
 #     def __init__(self, stats_module='scipy.stats'):
