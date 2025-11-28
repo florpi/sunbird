@@ -1,0 +1,53 @@
+omega_b:
+  prior:
+    distribution: norm
+    loc: 0.02237
+    scale: 0.00063
+  latex: \omega_{\rm b}
+
+omega_cdm:
+  prior:
+    distribution: uniform
+    min: 0.1032
+    max: 0.140
+  latex: \omega_{\rm cdm}
+
+sigma8_m:
+  prior:
+    distribution: uniform
+    min: 0.678
+    max: 0.938
+  latex: \sigma_8
+n_s:
+  prior:
+    distribution: norm
+    loc: 0.9649
+    scale: 0.0042
+  latex: n_{\rm s}
+nrun:
+  prior:
+    distribution: uniform
+    min: -0.038
+    max: 0.038
+  latex: \alpha_s
+
+N_ur:
+  prior:
+    distribution: uniform
+    min: 1.188
+    max: 2.889
+  latex: N_{\rm ur}
+
+w0_fld:
+  prior:
+    distribution: uniform
+    min: -1.22
+    max: -0.726
+  latex: w_0
+
+wa_fld:
+  prior:
+    distribution: uniform
+    min: -0.628
+    max: 0.621
+  latex: w_a
