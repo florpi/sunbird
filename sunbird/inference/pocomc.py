@@ -1,6 +1,4 @@
 import pocomc
-from typing import Dict, Optional
-from collections.abc import Iterable
 import importlib
 import numpy as np
 import jax.numpy as jnp
@@ -9,43 +7,11 @@ import sys
 import time
 import logging
 from sunbird.inference.base import BaseSampler
-from sunbird.data.data_utils import convert_to_summary
-from sunbird.inference.priors import AbacusSummitEllipsoid
 
 
 class PocoMCSampler(BaseSampler):
-    def __init__(
-        self,
-        observation,
-        precision_matrix,
-        theory_model,
-        priors,
-        ranges: Optional[Dict[str, tuple]] = {},
-        labels: Dict[str, str] = {},
-        fixed_parameters: Dict[str, float] = {},
-        slice_filters: Dict = {},
-        select_filters: Dict = {},
-        coordinates: list = [],
-        ellipsoid: bool = False,
-    ):
-        self.theory_model = theory_model
-        if fixed_parameters is None:
-            fixed_parameters = {}
-        self.fixed_parameters = fixed_parameters
-        self.observation = observation
-        self.priors = priors
-        self.ranges = ranges
-        self.labels = labels
-        self.precision_matrix = precision_matrix
-        self.ellipsoid = ellipsoid
-        if self.ellipsoid:
-            self.abacus_ellipsoid = AbacusSummitEllipsoid()
-        self.ndim = len(self.priors.keys()) - len(self.fixed_parameters.keys())
-        self.logger = logging.getLogger('PocoMCSampler')
-        self.logger.info('Initializing PocoMCSampler.')
-        self.logger.info(f'Free parameters: {[key for key in priors.keys() if key not in fixed_parameters.keys()]}')
-        self.logger.info(f'Fixed parameters: {[key for key in priors.keys() if key in fixed_parameters.keys()]}')
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def fill_params(self, theta):
         """Fill the parameter vector to include fixed parameters
@@ -89,7 +55,12 @@ class PocoMCSampler(BaseSampler):
         Returns:
             np.array: model prediction
         """
-        return self.theory_model.get_prediction(x=theta)
+        # pred = self.theory_model.get_prediction(x=theta)
+        pred = self.theory_model(x=theta)
+        # detach if using torch
+        if isinstance(pred, torch.Tensor):
+            pred = pred.detach().numpy()
+        return pred
 
     def log_likelihood(self, theta):
         """Log likelihood function
@@ -142,9 +113,11 @@ class PocoMCSampler(BaseSampler):
         Returns:
             np.array: chain
         """
-        samples, weights, logl, logp = self.sampler.posterior()
-        return {'samples': samples, 'weights': weights,
-                'log_likelihood': logl, 'log_prior': logp}
+        samples, weights, loglike, logprior = self.sampler.posterior()
+        logz, logz_err = self.sampler.evidence()
+        logposterior = loglike + logprior - logz
+        return {'samples': samples, 'weights': weights, 'log_likelihood': loglike,
+                'log_prior': logprior, 'log_posterior': logposterior}
 
     def evidence(self,):
         """Get the evidence from the sampler
@@ -153,6 +126,38 @@ class PocoMCSampler(BaseSampler):
             tuple: logz, logz_err
         """
         return self.sampler.evidence()
+
+
+class PocoMCPriorSampler(PocoMCSampler):
+    def __init__(
+        self,
+        observation=None,
+        precision_matrix=None,
+        theory_model=None,
+        **kwargs,
+    ):
+        super().__init__(observation, precision_matrix, theory_model, **kwargs)
+
+    def log_likelihood(self, theta):
+        """Log likelihood function
+
+        Args:
+            theta (np.array): input parameters
+
+        Returns:
+            float: log likelihood
+        """
+        batch = len(theta.shape) > 1
+        params = self.fill_params_batch(theta) if batch else self.fill_params(theta)
+        if batch:
+            logl = np.ones(len(theta))
+            if self.ellipsoid:
+                logl += np.asarray([self.abacus_ellipsoid.log_likelihood(params[i, :8]) for i in range(len(theta))])
+        else:
+            logl  = 1.0 
+            if self.ellipsoid:
+                logl += self.abacus_ellipsoid.log_likelihood(params[:8])
+        return logl
 
 
 
