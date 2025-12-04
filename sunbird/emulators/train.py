@@ -346,7 +346,7 @@ def train_fcn(
     return val_loss
 
 
-@deprecated("Kept for compatibility, use TrainFCN instead")
+@deprecated("Kept for compatibility, use train_fcn instead")
 def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epochs=1_000, model_dir=None, log_dir=None, logger='wandb', **kwargs):
     early_stop_callback = EarlyStopping(
         monitor="val_loss", 
