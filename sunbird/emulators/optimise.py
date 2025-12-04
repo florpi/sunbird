@@ -33,7 +33,7 @@ class FCNObjective:
             Dictionary mapping a key to a tuple containing the minimum and maximum values 
             of the range to study for a given parameter.
         **kwargs :
-            Additional keyword arguments to pass to the TrainFCN function.
+            Additional keyword arguments to pass to the train_fcn function.
         """
         self.same_n_hidden = same_n_hidden
         self.training_kwargs = kwargs
