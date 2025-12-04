@@ -42,7 +42,7 @@ class FCNObjective:
         hpi = DEFAULT_HYPERPARAMETERS_RANGES # Default values
         if hyperparameters_info:
             hpi.update(hyperparameters_info) # Update if needed
-        self.hpi = hyperparameters_info
+        self.hpi = hpi
     
     def __call__(self, trial):
         """
