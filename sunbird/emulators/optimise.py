@@ -215,7 +215,7 @@ def train_best_model(study_fn: str|Path, save_fn: str|Path = None, **kwargs):
     save_fn : str | Path, optional
         File path to save the best model checkpoint. If None, the model is not saved. Defaults to None.
     **kwargs :
-        Keyword arguments to pass to the TrainFCN function, apart from the hyperparameters read from the study.
+        Keyword arguments to pass to the train_fcn function, apart from the hyperparameters read from the study.
 
     Returns
     -------
