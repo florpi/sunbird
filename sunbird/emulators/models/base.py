@@ -157,7 +157,6 @@ class BaseModel(pl.LightningModule):
             threshold=self.scheduler_threshold,
             threshold_mode='abs',
             min_lr=1.0e-6,
-            verbose=True,
         )
         return {
             "optimizer": optimizer,

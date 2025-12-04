@@ -359,9 +359,9 @@ def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epo
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
         dirpath=model_dir,
-        # filename='best-model-{epoch:02d}-{val_loss:.5f}',
-        # save_top_k=1,
-        auto_insert_metric_name=True,
+        filename='{epoch:02d}-{train_loss:.5f}-{val_loss:.5f}',
+        save_top_k=1,
+        auto_insert_metric_name=False,
         save_last='link',
         mode='min',
     )
@@ -371,6 +371,7 @@ def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epo
     seed_everything(42, workers=True)
 
     if logger == 'wandb':
+        import wandb
         wandb.init()
         logger = WandbLogger(log_model="all", project="sunbird",)
     elif logger == 'tensorboard':
@@ -387,9 +388,18 @@ def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epo
         logger=logger,
         check_val_every_n_epoch=1,
         log_every_n_steps=1,
+        # num_sanity_val_steps=0,
         # devices=1,
         **kwargs
     )
+    #  # === NEW: run a validation pass BEFORE training to save the "init" checkpoint ===
+    # # This will compute val_loss with random weights and trigger ModelCheckpoint once.
+    # _ = trainer.validate(
+    #     model=model,
+    #     dataloaders=data.val_dataloader(),
+    #     verbose=False,
+    #     ckpt_path=None,
+    # )
     trainer.fit(
         model=model,
         train_dataloaders=data.train_dataloader(),
@@ -399,6 +409,7 @@ def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epo
     weights_dict = torch.load(
         checkpoint_callback.best_model_path,
         map_location=torch.device('cpu'),
+        weights_only=False,
     )
     state_dict = weights_dict["state_dict"]
     model.load_state_dict(state_dict, strict=True)
