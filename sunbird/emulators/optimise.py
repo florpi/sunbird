@@ -95,7 +95,7 @@ class FCNObjective:
                 
     def get_range(self, key):
         """Get the min and max values of the requested key from the hpi dictionary of the class"""
-        return self.hpi[key].min, self.hpi[key].max
+        return min(self.hpi[key]), max(self.hpi[key])
     
     #%% Callbacks
     def log_best_trial(self, study, trial):
