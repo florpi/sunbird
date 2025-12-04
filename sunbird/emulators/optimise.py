@@ -11,6 +11,15 @@ from lightning import seed_everything
 from sunbird.emulators import FCN
 from sunbird.emulators.train import train_fcn
 
+# Default values for hyperparameters study 
+DEFAULT_HYPERPARAMETERS_RANGES = dict(
+    learning_rate = (1.0e-3, 0.01),
+    weight_decay = (1.0e-5, 0.001),
+    n_layers = (1, 10),
+    n_hidden = (200, 1024),
+    dropout_rate = (0.0, 0.15),
+)
+
 class FCNObjective:
     def __init__(self, same_n_hidden: bool = True, hyperparameters_info: dict = None, **kwargs):
         """
@@ -21,17 +30,19 @@ class FCNObjective:
         same_n_hidden : bool
             Whether to use the same number of hidden units in each layer.
         hyperparameters_info : dict, optional
-            Information about hyperparameter ranges and types. 
-            Currently not used, but can be implemented to customize hyperparameter suggestions.
-            Defaults to None.
+            Dictionary mapping a key to a tuple containing the minimum and maximum values 
+            of the range to study for a given parameter.
         **kwargs :
             Additional keyword arguments to pass to the TrainFCN function.
         """
         self.same_n_hidden = same_n_hidden
         self.training_kwargs = kwargs
         self.logger = logging.getLogger('Objective')
-        
-        # TODO: Use hyperparameters_info to adjust hyperparameter suggestion ranges/types
+
+        hpi = DEFAULT_HYPERPARAMETERS_RANGES # Default values
+        if hyperparameters_info:
+            hpi.update(hyperparameters_info) # Update if needed
+        self.hpi = hyperparameters_info
     
     def __call__(self, trial):
         """
@@ -48,17 +59,17 @@ class FCNObjective:
             Validation loss obtained after training the model with the suggested hyperparameters.
         """
         # Suggest hyperparameters
-        learning_rate = trial.suggest_float("learning_rate", 1.0e-3, 0.01)
-        weight_decay = trial.suggest_float("weight_decay", 1.0e-5, 0.001)
-        n_layers = trial.suggest_int("n_layers", 1, 10)
+        learning_rate = trial.suggest_float("learning_rate", *self.get_range("learning_rate"))
+        weight_decay = trial.suggest_float("weight_decay", *self.get_range("weight_decay"))
+        n_layers = trial.suggest_int("n_layers", *self.get_range("n_layers"))
         if self.same_n_hidden:
-            n_hidden = [trial.suggest_int("n_hidden", 200, 1024)] * n_layers
+            n_hidden = [trial.suggest_int("n_hidden", *self.get_range("n_hidden"))] * n_layers
         else:
             n_hidden = [
-                trial.suggest_int(f"n_hidden_{layer}", 200, 1024)
+                trial.suggest_int(f"n_hidden_{layer}", *self.get_range("n_hidden"))
                 for layer in range(n_layers)
             ]
-        dropout_rate = trial.suggest_float("dropout_rate", 0.0, 0.15)
+        dropout_rate = trial.suggest_float("dropout_rate", *self.get_range("dropout_rate"))
         
         kwargs = self.training_kwargs.copy()
         checkpoint_filename = kwargs.get('checkpoint_filename', '{epoch:02d}-{val_loss:.5f}')
@@ -81,6 +92,10 @@ class FCNObjective:
                 checkpoint_fn = callback.best_model_path
                 trial.set_user_attr('checkpoint', checkpoint_fn)
         return val_loss
+                
+    def get_range(self, key):
+        """Get the min and max values of the requested key the the hpi dictionary of the class"""
+        return self.hpi[key].min, self.hpi[key].max
     
     #%% Callbacks
     def log_best_trial(self, study, trial):
