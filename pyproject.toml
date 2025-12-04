@@ -1,0 +1,77 @@
+[build-system]
+requires = [
+    "setuptools", 
+    "wheel", 
+    "numpy < 2.0.0", # Avoid numpy 2.0.0 for compatibility with acm
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sunbird"
+description = "Python code to analyse cosmological N-body simulations "
+readme = "README.md"
+version = "0.1.0"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+requires-python = ">=3.9"
+dependencies = [ # Base requirements
+    "numpy",
+    "pandas",
+    "scipy",
+    "xarray",
+    "torch",
+    "lightning",
+    "pytorch-lightning",
+    "jax",
+    "flax",
+    "cosmoprimo",
+    "joblib",
+    "optuna",
+    "deprecation",
+    "optax",
+    "wandb",
+    "mpi4py",
+]
+
+
+[project.optional-dependencies]
+# Environements
+inference = [
+    "matplotlib",
+    "getdist",
+    "tabulate",
+    "pybobyqa",
+    "desilike",
+    "h5py",
+    "dynesty",
+    "emcee",
+    "numpyro",
+    "iminuit",
+    "pocomc",
+    "ultranest",
+]
+
+
+
+[project.urls]
+Repository = "https://github.com/florpi/sunbird.git"
+
+
+[tool.setuptools.packages.find]
+namespaces = false
+
+[tool.setuptools.package-data]
+acm = [
+    "*.yml",
+    "*.yaml",
+]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning::",  # ignore deprecations from all modules
+    "default::DeprecationWarning:mymodule.*:",  # except from mymodule
+]
