@@ -1,10 +1,10 @@
-from iminuit import Minuit
-import numpy as np
+import time
+import logging
 import torch
+import numpy as np
+from iminuit import Minuit
 from typing import Dict, Optional
 from collections.abc import Iterable
-import logging
-import time
 
 
 class MinuitProfiler:
