@@ -7,12 +7,12 @@ import numpy as np
 from pathlib import Path
 # from warnings import deprecated # Available only in Python 3.13+
 from deprecation import deprecated
-from pytorch_lightning import seed_everything
+from lightning import seed_everything
 from sunbird.emulators import FCN
-from acm.model.train import TrainFCN
+from sunbird.emulators.train import train_fcn
 
 class FCNObjective:
-    def __init__(self, same_n_hidden: bool = True, hyperparameters_info: dict = None, save_method: str = None, save_dir: str | Path = None, **kwargs):
+    def __init__(self, same_n_hidden: bool = True, hyperparameters_info: dict = None, **kwargs):
         """
         Callable class to be used as the objective function for Optuna hyperparameter optimization.
         
@@ -68,7 +68,7 @@ class FCNObjective:
         ))
         
         # Train the model with the hyperparameters
-        val_loss, trainer = TrainFCN(
+        val_loss, trainer = train_fcn(
             learning_rate=learning_rate,
             n_hidden=n_hidden,
             dropout_rate=dropout_rate,
@@ -91,11 +91,11 @@ class FCNObjective:
         self.logger.info(f"Trial {trial.number} done. Best trial is {best_trial.number} with value {best_trial.value}")  
 
 
-def StudyFCN(
+def study_fcn(
     n_trials: int, 
     same_n_hidden: bool, 
     study_fn: str|Path, 
-    seed: float = 42, 
+    seed: int = 42, 
     pruner: optuna.pruners.BasePruner|None = None,
     load_if_exists: bool = True, 
     hyperparameters_info: dict = None,
@@ -124,7 +124,7 @@ def StudyFCN(
         Defaults to None.
     load_if_exists : bool, optional
         Whether to load the study if it exists. Defaults to True.
-    seed : float, optional
+    seed : int, optional
         Random seed for reproducibility. Defaults to 42.
     save_dir : str | Path | None, optional
         Directory to save the best model checkpoints. If given, the best model checkpoint will be moved here after the study.
@@ -170,15 +170,20 @@ def StudyFCN(
     
     checkpoint_dir = kwargs.get('checkpoint_dir', None) # Get checkpoint directory from kwargs
     if checkpoint_dir is not None:
-        best_checkpoint = sorted(Path(checkpoint_dir).glob(f'trial={study.best_trial.number}*.ckpt'))[0] # In theory, there should be only one
-        logger.info(f'Best model checkpoint from study saved at {best_checkpoint}')
-        # Move best checkpoint to save_dir if specified
-        if save_dir is not None:
-            save_dir = Path(save_dir)
-            save_dir.mkdir(parents=True, exist_ok=True)
-            save_best_fn = save_dir / f'{study_fn.stem}.ckpt'
-            shutil.copy(best_checkpoint, save_best_fn)
-            logger.info(f'Moved best model checkpoint to {save_best_fn}')
+        checkpoint_files = sorted(Path(checkpoint_dir).glob(f'trial={study.best_trial.number}*.ckpt'))
+        if checkpoint_files:
+            best_checkpoint = checkpoint_files[0] # In theory, there should be only one
+            logger.info(f'Best model checkpoint from study saved at {best_checkpoint}')
+            # Move best checkpoint to save_dir if specified
+            if save_dir is not None:
+                save_dir = Path(save_dir)
+                save_dir.mkdir(parents=True, exist_ok=True)
+                save_best_fn = save_dir / f'{study_fn.stem}.ckpt'
+                shutil.copy(best_checkpoint, save_best_fn)
+                logger.info(f'Moved best model checkpoint to {save_best_fn}')
+        else:
+            logger.warning(f'No checkpoint found for best trial {study.best_trial.number} in {checkpoint_dir}')  
+    
     return study
 
 
@@ -219,7 +224,7 @@ def train_best_model(study_fn: str|Path, save_fn: str|Path = None, **kwargs):
     
     logger.info(f'Found best trial {study.best_trial.number} with value {study.best_value}')
     
-    best_params = study.best_params
+    best_params = study.best_params.copy()
     
     # Handle n_hidden parameter reconstruction
     n_hidden = best_params.pop('n_hidden', None)
@@ -232,13 +237,13 @@ def train_best_model(study_fn: str|Path, save_fn: str|Path = None, **kwargs):
         ]
     
     # Since we can't manually handle checkpointing here, we store the checkpoints in a temp directory
-    tmp_dir = Path(save_fn).parent if save_fn is not None else None
-    with tempfile.TemporaryDirectory(dir=tmp_dir) as tmp_dir:
+    tmp_parent_dir = Path(save_fn).parent if save_fn is not None else None
+    with tempfile.TemporaryDirectory(dir=tmp_parent_dir) as tmp_dir:
         tmp_dir_path = Path(tmp_dir)
         kwargs.update(dict(
             checkpoint_dir=tmp_dir_path,
         ))
-        val_loss = TrainFCN(
+        val_loss = train_fcn(
             **kwargs,
             **best_params,
         )
@@ -264,7 +269,7 @@ def train_best_model(study_fn: str|Path, save_fn: str|Path = None, **kwargs):
 
 # Example usage in optimize_model.py
 if __name__ == '__main__':
-    from acm.utils.logging import setup_logging
+    from sunbird.utils import setup_logging
     setup_logging(level='info')
     
     # Dummy data for testing
@@ -272,7 +277,7 @@ if __name__ == '__main__':
     lhc_y = np.random.rand(1000, 5)
     lhc_x_names = [f'feature_{i}' for i in range(10)]
     
-    study = StudyFCN(
+    study = study_fcn(
         n_trials=2,
         same_n_hidden=True,
         study_fn='./study/example_study.pkl',
