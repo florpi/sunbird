@@ -5,13 +5,11 @@ import numpy as np
 from pathlib import Path
 # from warnings import deprecated # Available only in Python 3.13+
 from deprecation import deprecated
-from lightning import Trainer
+from lightning import Trainer, seed_everything
 from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor, RichProgressBar
 from sunbird.emulators import FCN
 from sunbird.data import ArrayDataModule
-
-from pytorch_lightning import seed_everything
 
 class FCNTrainer(Trainer):
     """
@@ -94,10 +92,13 @@ class FCNTrainer(Trainer):
         best_val_loss = None
         for cb in self.callbacks:
             if isinstance(cb, EarlyStopping):
-                best_val_loss = cb.best_score.item()
-                break
-        if best_val_loss is None:
+                if cb.monitor == 'val_loss':
+                    best_val_loss = cb.best_score.item()
+                    break
+        if best_val_loss is None: # If no EarlyStopping w/ val_loss monitoring found, get it from any other callback
             best_val_loss = self.callback_metrics.get('val_loss', None)
+        if best_val_loss is None: # If no callback with val_loss found, raise a warning
+            logging.warning('val_loss not found, returning None. If this is not expected, check your callbacks and metrics.')
         
         return best_val_loss
     
@@ -198,7 +199,7 @@ class FCNTrainer(Trainer):
         return mcp
 
 
-def TrainFCN(
+def train_fcn(
     lhc_x: np.ndarray,
     lhc_y: np.ndarray,
     lhc_x_names: list,
@@ -208,15 +209,19 @@ def TrainFCN(
     weight_decay: float,
     act_fn: str = 'learned_sigmoid',
     loss: str = 'mae',
+    scheduler_patience: int = 10,
+    scheduler_factor: float = 0.5,
+    scheduler_threshold: float = 1e-6,
     transform = None,
     val_fraction: float = 0.1,
+    batch_size: int = 128,
     checkpoint_dir: str = None,
     checkpoint_filename: str = '{epoch:02d}-{step}-{val_loss:.5f}',
     train_logger: str = None,
     log_dir: str = None,
     return_trainer: bool = False,
     **kwargs,
-) -> tuple[float, FCNTrainer]:
+) -> float|tuple[float, FCNTrainer]:
     """
     Train a Fully Connected Neural Network (FCN) model with the given hyperparameters
     and return the validation loss.
@@ -241,12 +246,18 @@ def TrainFCN(
         Activation function to use in the model.
     loss : str
         Loss function to use for training.
+    scheduler_patience : int
+        The number of allowed epochs with no improvement after which the learning rate will be reduced. (see torch.optim.lr_scheduler)
+    scheduler_factor : float
+        Factor by which the learning rate will be reduced (see torch.optim.lr_scheduler)
+    scheduler_threshold : float
+        Threshold for measuring the new learning rate optimum (see torch.optim.lr_scheduler)
     transform : callable | None
         Data transform to apply to the target values.
     val_fraction : float
         Fraction of data to use for validation.
-    max_epochs : int
-        Maximum number of epochs to train the model.
+    batch_size : int
+        Batch size to use for each dataloader. Default is 128.
     checkpoint_dir : str | None
         Directory to save model checkpoints.
     checkpoint_filename : str
@@ -274,7 +285,7 @@ def TrainFCN(
         logger.info(f'Applying transform: {type(transform).__name__}')
         try: # Handle sunbird.data.transforms
             lhc_y = transform.fit_transform(lhc_y)
-        except: # Handle sunbird.data.transforms_array
+        except AttributeError: # Handle sunbird.data.transforms_array
             lhc_y = transform.transform(lhc_y) 
 
     train_mean = np.mean(lhc_y, axis=0)
@@ -287,33 +298,33 @@ def TrainFCN(
         x=torch.Tensor(lhc_x),
         y=torch.Tensor(lhc_y), 
         val_fraction=val_fraction, 
-        batch_size=128, # NOTE : Hardcoded values here : Ok ?
-        num_workers=0,
+        batch_size=batch_size,
+        num_workers=0, # AVoid spreading data amongst sub-processes
     )
     data.setup()
 
     model = FCN(
-        n_input=data.n_input,
-        n_output=data.n_output,
-        n_hidden=n_hidden,
-        dropout_rate=dropout_rate, 
-        learning_rate=learning_rate,
-        scheduler_patience=10, # NOTE : Hardcoded values here : Ok ?
-        scheduler_factor=0.5,
-        scheduler_threshold=1.e-6,
-        weight_decay=weight_decay,
-        act_fn=act_fn,
-        loss=loss,
-        training=True,
-        mean_input=train_mean_x,
-        std_input=train_std_x,
-        mean_output=train_mean,
-        std_output=train_std,
-        standarize_input=True,
-        standarize_output=True,
-        transform_input=None,
-        transform_output=transform,
-        coordinates=lhc_x_names,
+        n_input = data.n_input,
+        n_output = data.n_output,
+        n_hidden = n_hidden,
+        dropout_rate = dropout_rate, 
+        learning_rate = learning_rate,
+        scheduler_patience = scheduler_patience,
+        scheduler_factor = scheduler_factor,
+        scheduler_threshold = scheduler_threshold,
+        weight_decay = weight_decay,
+        act_fn = act_fn,
+        loss = loss,
+        training = True,
+        mean_input = train_mean_x,
+        std_input = train_std_x,
+        mean_output = train_mean,
+        std_output = train_std,
+        standardize_input = True,
+        standardize_output = True,
+        transform_input = None,
+        transform_output = transform,
+        coordinates = lhc_x_names,
     )
     
     trainer = FCNTrainer(
@@ -395,10 +406,8 @@ def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epo
 
 #%% Example usage
 if __name__ == "__main__":
-    from acm.utils.logging import setup_logging
+    from sunbird.utils import setup_logging
     setup_logging(level='info')
-    
-    from lightning import seed_everything
     seed_everything(42, workers=True)
     
     # Dummy data for testing
@@ -406,7 +415,7 @@ if __name__ == "__main__":
     lhc_y = np.random.rand(1000, 5)
     lhc_x_names = [f'feature_{i}' for i in range(10)]
     
-    val_loss, trainer = TrainFCN(
+    val_loss, trainer = train_fcn(
         lhc_x=lhc_x,
         lhc_y=lhc_y,
         lhc_x_names=lhc_x_names,
