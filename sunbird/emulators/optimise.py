@@ -202,7 +202,7 @@ def study_fcn(
     return study
 
 
-@deprecated("Use StudyFCN save_dir instead")
+@deprecated("Use study_fcn save_dir parameter instead")
 def train_best_model(study_fn: str|Path, save_fn: str|Path = None, **kwargs):
     """
     Trains the best model found in the Optuna study saved at `study_fn`.
