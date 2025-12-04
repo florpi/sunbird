@@ -145,7 +145,7 @@ def study_fcn(
         Directory to save the best model checkpoints. If given, the best model checkpoint will be moved here after the study.
         If None, the best model is not saved separately. Defaults to None.
     **kwargs :
-        Additional keyword arguments to pass to the Objective class (and by extension to TrainFCN function).
+        Additional keyword arguments to pass to the FCNObjective class (and by extension to train_fcn function).
         
     Returns
     -------
