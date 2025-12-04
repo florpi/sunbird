@@ -371,7 +371,6 @@ def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epo
     seed_everything(42, workers=True)
 
     if logger == 'wandb':
-        import wandb
         wandb.init()
         logger = WandbLogger(log_model="all", project="sunbird",)
     elif logger == 'tensorboard':

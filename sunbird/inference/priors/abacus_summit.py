@@ -1,6 +1,5 @@
-from scipy.linalg.lapack import dpotrf, dpotri
 import numpy as np
-
+from scipy.linalg.lapack import dpotrf, dpotri
 
 class AbacusSummitEllipsoid:
 

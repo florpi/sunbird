@@ -1,8 +1,7 @@
-from sunbird.inference import Inference
 import numpy as np
-from ultranest import ReactiveNestedSampler
 import ultranest.stepsampler
-
+from ultranest import ReactiveNestedSampler
+from sunbird.inference import Inference
 
 class UltraNested(Inference):
     """

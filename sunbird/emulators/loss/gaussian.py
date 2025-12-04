@@ -1,7 +1,5 @@
-import numpy as np
 import torch
 from torch import nn, Tensor
-from typing import List, Dict, Optional
 
 def get_cholesky_decomposition_covariance(values: Tensor, data_dim: int)->Tensor:
     """ Starting from a vector of values, return the lower triangular matrix L such that LL^T = covariance
