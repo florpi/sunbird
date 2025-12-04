@@ -299,7 +299,7 @@ def train_fcn(
         y=torch.Tensor(lhc_y), 
         val_fraction=val_fraction, 
         batch_size=batch_size,
-        num_workers=0, # AVoid spreading data amongst sub-processes
+        num_workers=0, # Avoid spreading data amongst sub-processes
     )
     data.setup()
 
