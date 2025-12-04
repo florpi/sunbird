@@ -94,7 +94,7 @@ class FCNObjective:
         return val_loss
                 
     def get_range(self, key):
-        """Get the min and max values of the requested key the the hpi dictionary of the class"""
+        """Get the min and max values of the requested key from the hpi dictionary of the class"""
         return self.hpi[key].min, self.hpi[key].max
     
     #%% Callbacks
