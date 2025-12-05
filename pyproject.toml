@@ -64,7 +64,7 @@ Repository = "https://github.com/florpi/sunbird.git"
 namespaces = false
 
 [tool.setuptools.package-data]
-acm = [
+sunbird = [
     "*.yml",
     "*.yaml",
 ]
