@@ -163,8 +163,8 @@ class AbacusGrowthMC(PriorBase):
 
 
 def get_priors(
-    cosmo_class: PriorBase = AbacusSummit, 
-    hod_class: PriorBase = Yuan23,
+    cosmo_class: type[PriorBase] = AbacusSummit, 
+    hod_class: type[PriorBase] = Yuan23,
     cosmo: bool = True, 
     hod: bool = True,
     stats_module: str = 'scipy.stats',
@@ -182,6 +182,8 @@ def get_priors(
         Whether to include the cosmological parameters. Defaults to True.
     hod : bool, optional
         Whether to include the HOD parameters. Defaults to True.
+    stats_module : str, optional
+        The statistics module to use for the priors. Defaults to 'scipy.stats'.
 
     Returns
     -------
@@ -194,16 +196,18 @@ def get_priors(
     """
     priors, ranges, labels = {}, {}, {}  
     if cosmo:
-        priors.update(cosmo_class(stats_module).priors)
-        ranges.update(cosmo_class(stats_module).ranges)
-        labels.update(cosmo_class(stats_module).labels)
+        cosmo_instance = cosmo_class(stats_module)
+        priors.update(cosmo_instance.priors)
+        ranges.update(cosmo_instance.ranges)
+        labels.update(cosmo_instance.labels)
     if hod:
-        priors.update(hod_class(stats_module).priors)
-        ranges.update(hod_class(stats_module).ranges)
-        labels.update(hod_class(stats_module).labels)
+        hod_instance = hod_class(stats_module)
+        priors.update(hod_instance.priors)
+        ranges.update(hod_instance.ranges)
+        labels.update(hod_instance.labels)
     return priors, ranges, labels
 
-def in_range(values: dict, range: dict, verbose: bool = False) -> bool:
+def in_range(values: dict, ranges: dict, verbose: bool = False) -> bool:
     """
     Check if the values are within the given range.
 
@@ -211,7 +215,7 @@ def in_range(values: dict, range: dict, verbose: bool = False) -> bool:
     ----------
     values : dict
         Dictionary containing the parameter values.
-    range : dict
+    ranges : dict
         Dictionary containing the parameter ranges.
     verbose : bool, optional
         Whether to print the parameters that are not within the range. Defaults to False.
@@ -223,8 +227,8 @@ def in_range(values: dict, range: dict, verbose: bool = False) -> bool:
     """
     all_within = True
     for param, val in values.items():
-        if param in range:
-            min_val, max_val = range[param]
+        if param in ranges:
+            min_val, max_val = ranges[param]
             if not (min_val <= val <= max_val):
                 all_within = False
                 if verbose:
