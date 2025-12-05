@@ -43,7 +43,7 @@ inference = [
     "matplotlib",
     "getdist",
     "tabulate",
-    "pybobyqa",
+    "Py-BOBYQA",
     "desilike",
     "h5py",
     "dynesty",
