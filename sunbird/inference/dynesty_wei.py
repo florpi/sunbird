@@ -1,16 +1,17 @@
-import glob
-import sys
-import h5py
-import dynesty
-import torch 
-import numpy as np
-from pathlib import Path
-from multiprocessing import Pool
-from sunbird.emulators import FCN
-from scipy import spatial,stats
-from torch import set_num_threads
-set_num_threads(1)
 import os
+import sys
+import glob
+import h5py
+import torch 
+import dynesty
+import numpy as np
+from scipy import stats
+from multiprocessing import Pool
+from torch import set_num_threads
+from sunbird.emulators import FCN
+
+
+set_num_threads(1)
 os.environ["OMP_NUM_THREADS"] = "1"
 Rg = int(sys.argv[1])
 Nm   = int(sys.argv[2])

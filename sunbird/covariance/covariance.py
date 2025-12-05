@@ -1,7 +1,6 @@
-import numpy as np
 import json
+import numpy as np
 from pathlib import Path
-from scipy.stats import sigmaclip
 from typing import List, Dict, Optional, Callable
 from sunbird.data import data_readers
 

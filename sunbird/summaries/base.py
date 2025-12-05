@@ -1,17 +1,17 @@
-from pathlib import Path
-from typing import List, Optional, Union, Dict, Tuple
+
+import jax
 import json
 import yaml
-import jax
+import flax
+import torch
+import xarray
 import numpy as np
 import jax.numpy as jnp
-import xarray
-import torch
-import flax
+from pathlib import Path
 from flax.core.frozen_dict import freeze
-
-from sunbird.emulators import FCN, FlaxFCN
+from typing import List, Optional, Union, Dict, Tuple
 from sunbird.data import transforms
+from sunbird.emulators import FCN, FlaxFCN
 from sunbird.data.data_utils import convert_selection_to_filters, convert_to_summary
 
 DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best/"

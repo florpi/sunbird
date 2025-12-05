@@ -1,13 +1,12 @@
-from argparse import ArgumentParser, Namespace
-from pathlib import Path
 import json
+from pathlib import Path
+from argparse import ArgumentParser
 from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning import loggers as pl_loggers
-
-from sunbird.data import AbacusDataModule
 from sunbird.emulators import FCN
+from sunbird.data import AbacusDataModule
 
 
 def fit(args):

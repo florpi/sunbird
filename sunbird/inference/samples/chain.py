@@ -1,9 +1,9 @@
-from pathlib import Path
-from getdist import plots, MCSamples
-import numpy as np
-from .base import Samples
 import logging
-
+import numpy as np
+import matplotlib.pyplot as plt
+from getdist import plots, MCSamples
+from sunbird.cosmology.growth_rate import Growth
+from .base import Samples
 
 class Chain(Samples):
     """
@@ -71,7 +71,6 @@ class Chain(Samples):
         Returns:
             MCSamples: GetDist MCSamples object with derived parameters.
         """
-        from sunbird.cosmology.growth_rate import Growth
         varied_params = self.names
         fixed_params = self.fixed_params
         growth = Growth(emulate=True,)
@@ -104,7 +103,6 @@ class Chain(Samples):
     def plot_triangle(self, save_fn=None, thin=1, add_bestfit=False, show=False, **kwargs):
         """Plot triangle plot
         """
-        import matplotlib.pyplot as plt
         names = self.names
         labels = [label.strip('$') for label in self.labels]
         samples = MCSamples(samples=self.samples, weights=self.weights, names=names,
@@ -135,7 +133,6 @@ class Chain(Samples):
         """Parameter trace plot
         """
         names = self.names
-        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(len(names), 1, figsize=(10, 2*len(names)))
         for i, name in enumerate(names):
             ax[i].plot(self.samples[:, i])

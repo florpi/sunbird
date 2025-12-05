@@ -1,8 +1,7 @@
-from abc import ABC, abstractmethod
 import torch
 import numpy as np
 import jax.numpy as jnp
-
+from abc import ABC, abstractmethod
 
 class BaseTransform(ABC):
     @abstractmethod

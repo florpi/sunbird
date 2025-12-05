@@ -1,10 +1,10 @@
-import numpy as np
 import json
-from abc import ABC
+import numpy as np
 import pandas as pd
 import xarray as xr
+from abc import ABC
 from pathlib import Path
-from typing import List, Dict, Optional, Callable
+from typing import List, Dict, Optional
 from sunbird.data.data_utils import convert_to_summary, normalize_data
 from sunbird.data.transforms import BaseTransform
 

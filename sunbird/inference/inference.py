@@ -1,14 +1,12 @@
-from abc import ABC, abstractmethod
-from pathlib import Path
+import yaml
 import importlib
 import numpy as np
-import yaml
+from pathlib import Path
+from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple, Optional
-from sunbird.covariance import CovarianceMatrix
 from sunbird.data import data_readers
 from sunbird.summaries import Bundle
-import sys
-
+from sunbird.covariance import CovarianceMatrix
 
 class Inference(ABC):
     def __init__(

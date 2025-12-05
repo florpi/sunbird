@@ -1,9 +1,8 @@
 # taken from https://github.com/cosmodesi/desilike/blob/main/desilike/utils.py
-import numpy as np
-import logging
-import sys
 import os
+import sys
 import time
+import logging
 import traceback
 
 

@@ -1,13 +1,9 @@
-from typing import Dict, Optional
-from collections.abc import Iterable
-import importlib
-import numpy as np
-import jax.numpy as jnp
 import emcee
 import torch
-import sys
-import time
 import logging
+import numpy as np
+from typing import Dict, Optional
+from collections.abc import Iterable
 from sunbird.inference.base import BaseSampler
 
 

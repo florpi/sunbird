@@ -1,18 +1,15 @@
-from pathlib import Path
-import json
+import jax
+import optax
 import numpy as np
 import pandas as pd
-from scipy import optimize
-from cosmoprimo.fiducial import AbacusSummit
-from cosmoprimo.fiducial import DESI
-import jax
 import jax.numpy as jnp
-from flax.training import train_state, checkpoints
+from mpi4py import MPI
+from pathlib import Path
+from scipy import optimize
 from flax.core import freeze
-
-import optax
-
-
+from flax.training import checkpoints
+from cosmoprimo.fiducial import DESI
+from cosmoprimo.fiducial import AbacusSummit
 from sunbird.emulators.models.simple_flax import SimpleNN
 
 DEFAULT_PATH = Path(__file__).parent.parent.parent
@@ -40,7 +37,6 @@ class Growth:
         self,
         n_samples: int = 32_000,
     ):
-        from mpi4py import MPI
 
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()

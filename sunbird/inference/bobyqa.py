@@ -1,10 +1,9 @@
+import torch
+import logging
 import pybobyqa
 import numpy as np
-import torch
+from desilike import mpi
 from typing import Dict, Optional
-from collections.abc import Iterable
-import logging
-import time
 from sunbird.data.data_utils import convert_to_summary
 
 
@@ -39,7 +38,6 @@ class BobyqaProfiler:
         self.ndim = len(self.varied_params)
 
         if mpicomm is None:
-            from desilike import mpi
             self.mpicomm = mpi.COMM_WORLD
         self.mpicomm = mpicomm
 

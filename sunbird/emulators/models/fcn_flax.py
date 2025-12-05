@@ -1,14 +1,12 @@
-from typing import Tuple, Sequence, Dict
-from pathlib import Path
-import numpy as np
 import yaml
 import torch
+import numpy as np
 import jax.numpy as jnp
 import flax.linen as nn
+from pathlib import Path
+from typing import Tuple, Sequence, Dict
 from sunbird.emulators.models.base import convert_state_dict_from_pt
 from sunbird.emulators.models.activation import FlaxLearnedSigmoid
-from sunbird.data.data_utils import convert_to_summary
-
 
 
 class FlaxFCN(nn.Module):

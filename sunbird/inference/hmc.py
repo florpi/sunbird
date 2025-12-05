@@ -1,10 +1,8 @@
-from typing import Dict
-from functools import partial
-import pandas as pd
-import jax
-from jax import random
-import jax.numpy as np
 import numpyro
+import pandas as pd
+import jax.numpy as np
+from jax import random
+from typing import Dict
 from numpyro import infer
 from numpyro import distributions as dist
 from sunbird.inference import Inference
