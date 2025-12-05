@@ -44,7 +44,7 @@ inference = [
     "getdist",
     "tabulate",
     "Py-BOBYQA",
-    "desilike",
+    "desilike @ git+https://github.com/cosmodesi/desilike",
     "h5py",
     "dynesty",
     "emcee",
