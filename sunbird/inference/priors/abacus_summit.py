@@ -98,6 +98,3 @@ class AbacusSummitEllipsoid:
         if self.is_within(x):
             return 0.0
         return -np.inf
-
-
-
