@@ -65,8 +65,8 @@ namespaces = false
 
 [tool.setuptools.package-data]
 sunbird = [
-    "*.yml",
-    "*.yaml",
+    "**/*.yml",
+    "**/*.yaml",
 ]
 
 [tool.pytest.ini_options]
