@@ -39,7 +39,6 @@ dependencies = [ # Base requirements
 
 
 [project.optional-dependencies]
-# Environements
 inference = [
     "matplotlib",
     "getdist",
