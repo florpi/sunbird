@@ -1,2 +1,2 @@
-from .inference import Inference
 from .base import BaseSampler
+from .inference import Inference
