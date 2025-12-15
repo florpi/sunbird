@@ -1,8 +1,7 @@
+import jax
 import torch
 import torch.nn as nn
-import jax
 from flax import linen 
-
 
 
 class LearnedSigmoid(nn.Module):
