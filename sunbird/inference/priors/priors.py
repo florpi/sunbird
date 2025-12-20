@@ -207,6 +207,67 @@ def get_priors(
         labels.update(hod_instance.labels)
     return priors, ranges, labels
 
+def get_fixed_params(cosmo_model: str, hod_model: str, priors: dict) -> list:
+    """
+    Return a list of fixed parameter names based on the cosmological and HOD models.
+    This function checks which parameters are free in the specified models.
+    Each parameter should be separated by a dash '-' in the model strings.
+    Fixed parameters can be specified by appending 'fixed-' before the exact parameter name in the model string.
+    Fixed parameters must be added at the end of the model string *after* all free parameters.
+    
+    Parameters
+    ----------
+    cosmo_model : str
+        The cosmological model string containing keywords (e.g., 'base', 'w0', 'wa', etc.).
+    hod_model : str
+        The HOD model string containing keywords (e.g., 'base', 'AB', 'CB', etc.).
+    priors : dict
+        A dictionary of all parameter priors.
+        
+    Returns
+    -------
+    fixed : list
+        A list of fixed parameter names.
+        
+    Examples
+    --------
+    >>> get_fixed_params('base-w0wa-fixed-n_s-fixed-wa_fld', 'base-AB-fixed-B_sat', priors)
+    ['n_s', 'wa_fld', 'B_sat']
+    """
+    free = []
+    
+    # cosmology
+    if 'base' in cosmo_model:
+        free += ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s']
+    if 'w0' in cosmo_model:
+        free += ['w0_fld']
+    if 'wa' in cosmo_model:
+        free += ['wa_fld']
+    if 'Nur' in cosmo_model:
+        free += ['N_ur']
+    if 'nrun' in cosmo_model:
+        free += ['nrun']
+    
+    # HOD
+    if 'base' in hod_model:
+        free += ['logM_cut', 'logM_1', 'sigma', 'alpha', 'kappa']
+    if 'AB' in hod_model:
+        free += ['B_cen', 'B_sat']
+    if "CB" in hod_model:
+        free += ["A_cen", "A_sat"]
+    if 'VB' in hod_model:
+        free += ['alpha_c', 'alpha_s']
+    if '-s' in hod_model: # Not _s or s as other params have _s in their name (e.g., sigma, alpha_s)
+        free += ['s']
+    
+    for param in [*cosmo_model.split('fixed-'), *hod_model.split('fixed-')]:
+        param = param.strip('-') # to handle leading/trailing dashes
+        if param in free:
+            free.remove(param)
+    
+    fixed = [par for par in priors.keys() if par not in free]
+    return fixed
+
 def in_range(values: dict, ranges: dict, verbose: bool = False) -> bool:
     """
     Check if the values are within the given range.
