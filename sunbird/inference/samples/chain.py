@@ -26,7 +26,7 @@ class Chain(Samples):
         self.bestfit = self.get_bestfit()
 
     @classmethod
-    def load(self, filename: str):
+    def load(cls, filename: str):
         """
         Load a chain from a file.
 
@@ -44,7 +44,7 @@ class Chain(Samples):
         return Chain(data)
 
     @classmethod
-    def to_getdist(self, chain, add_derived: bool = False, **kwargs) -> MCSamples:
+    def to_getdist(cls, chain, add_derived: bool = False, **kwargs) -> MCSamples:
         """
         Convert data to a GetDist MCSamples object.
 
@@ -134,6 +134,7 @@ class Chain(Samples):
         # TODO: add option to select which parameters to plot
         names = self.names
         fig, ax = plt.subplots(len(names), 1, figsize=(10, 2*len(names)))
+        ax = np.atleast_1d(ax)
         for i, name in enumerate(names):
             ax[i].plot(self.samples[:, i])
             ax[i].set_ylabel(self.labels[i])
@@ -178,13 +179,24 @@ class Chain(Samples):
         
         params = kwargs.pop('params', None)
         if params is not None:
-            kwargs['params'] = [p for p in params if p in self.names] # Remove any parameter that is not in the chain (just in case)
+            # Build the set of all parameter names across the provided chains
+            all_names = set()
+            for ch in chains:
+                try:
+                    all_names.update(getattr(ch, 'names', []))
+                except Exception:
+                    # If a chain does not have a 'names' attribute or it is not iterable,
+                    # skip it rather than failing the entire plotting routine.
+                    continue
+            # Remove any parameter that is not present in any of the chains (just in case)
+            kwargs['params'] = [p for p in params if p in all_names]
     
         samples = []
         for chain in chains:
-            chain.labels = [label.strip('$') for label in chain.labels] # getdist does not like $ in labels
+            clean_labels = [label.strip('$') for label in chain.labels] # getdist does not like $ in labels
             chain_label = label_dict.get(chain.data.get('label', ''), chain.data.get('label', None)) # The label for the chain in the triangle plot
             chain = self.to_getdist(chain, label=chain_label) # ensure it's a MCSamples object
+            setattr(chain, 'labels', clean_labels) # set the cleaned labels here to avoid overwriting the original ones
             samples.append(chain)
         
         g = plots.get_subplot_plotter()
@@ -253,6 +265,7 @@ class Chain(Samples):
         chain_labels = [label_dict.get(chain.data.get('label', ''), chain.data.get('label', None)) for chain in chains] # replace label with actual name if provided
         
         fig, ax = plt.subplots(1, len(names), sharey=True, figsize=(3*len(names), 3))
+        ax = np.atleast_1d(ax)
         
         for i, chain in enumerate(chains):
             maxl = chain.samples[chain.loglike.argmax()]
