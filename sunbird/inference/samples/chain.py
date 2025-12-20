@@ -261,7 +261,7 @@ class Chain(Samples):
         params = kwargs.get('params', self.names)
         names = [p for p in params if p in self.names]
         labels = {k: v for k, v in zip(self.names, self.labels)}
-        labels = [labels[n] for n in names]
+        labels = [labels[n].strip('$') for n in names]
         chain_labels = [label_dict.get(chain.data.get('label', ''), chain.data.get('label', None)) for chain in chains] # replace label with actual name if provided
         
         fig, ax = plt.subplots(1, len(names), sharey=True, figsize=(3*len(names), 3))
