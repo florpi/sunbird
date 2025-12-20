@@ -69,6 +69,9 @@ class PocoMCSampler(BaseSampler):
         batch = len(theta.shape) > 1
         params = self.fill_params_batch(theta) if batch else self.fill_params(theta)
         prediction = self.get_model_prediction(params)
+        # detach if using torch
+        if isinstance(prediction, torch.Tensor):
+            prediction = prediction.detach().numpy()
         diff = self.observation - prediction
         if batch:
             logl = np.asarray([-0.5 * diff[i] @ self.precision_matrix @ diff[i].T for i in range(len(theta))])
