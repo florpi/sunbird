@@ -62,12 +62,13 @@ class Chain(Samples):
         MCSamples: 
             GetDist MCSamples object.
         """
+        labels = [label.strip('$') for label in chain.labels] # getdist does not like $ in labels
         mcsamples = MCSamples(
             samples=chain.samples,
             weights=chain.weights,
             names=chain.names,
             ranges=chain.ranges,
-            labels=chain.labels,
+            labels=labels,
             **kwargs,
         )
         if add_derived:
@@ -193,10 +194,8 @@ class Chain(Samples):
     
         samples = []
         for chain in chains:
-            clean_labels = [label.strip('$') for label in chain.labels] # getdist does not like $ in labels
             chain_label = label_dict.get(chain.data.get('label', ''), chain.data.get('label', None)) # The label for the chain in the triangle plot
             chain = self.to_getdist(chain, label=chain_label) # ensure it's a MCSamples object
-            setattr(chain, 'labels', clean_labels) # set the cleaned labels here to avoid overwriting the original ones
             samples.append(chain)
         
         g = plots.get_subplot_plotter()
@@ -261,7 +260,7 @@ class Chain(Samples):
         params = kwargs.get('params', self.names)
         names = [p for p in params if p in self.names]
         labels = {k: v for k, v in zip(self.names, self.labels)}
-        labels = [labels[n].strip('$') for n in names]
+        labels = [labels[n] for n in names]
         chain_labels = [label_dict.get(chain.data.get('label', ''), chain.data.get('label', None)) for chain in chains] # replace label with actual name if provided
         
         fig, ax = plt.subplots(1, len(names), sharey=True, figsize=(3*len(names), 3))
