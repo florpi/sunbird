@@ -128,16 +128,25 @@ class Chain(Samples):
         best_fit.update(self.fixed_params)
         return best_fit
     
-    def plot_trace(self, save_fn: str = None):
+    def plot_trace(self, save_fn: str = None, thin: int = 1, **kwargs):
         """
         Parameter trace plot
+        
+        Parameters
+        ----------
+        save_fn : str, optional
+            If provided, will save the figure to the given filename.
+        thin : int, optional
+            Thinning factor for the samples to plot, by default 1 (no thinning).
+        **kwargs : dict, optional
+            Additional keyword arguments to customize the plot lines.
         """
         # TODO: add option to select which parameters to plot
         names = self.names
         fig, ax = plt.subplots(len(names), 1, figsize=(10, 2*len(names)))
         ax = np.atleast_1d(ax)
         for i, name in enumerate(names):
-            ax[i].plot(self.samples[:, i])
+            ax[i].plot(self.samples[:, i][::thin], **kwargs)
             ax[i].set_ylabel(self.labels[i])
         ax[i].set_xlabel('Iteration')
         plt.tight_layout()
