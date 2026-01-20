@@ -207,63 +207,116 @@ def get_priors(
         labels.update(hod_instance.labels)
     return priors, ranges, labels
 
-def get_fixed_params(cosmo_model: str, hod_model: str, priors: dict) -> list:
+COSMO_MAPPING = dict(
+    base = ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s'],
+    w0 = ['w0_fld'],
+    wa = ['wa_fld'],
+    w0wa = ['w0_fld', 'wa_fld'],
+    Nur = ['N_ur'],
+)
+
+HOD_MAPPING = dict(
+    base = ['logM_cut', 'logM_1', 'sigma', 'alpha', 'kappa'],
+    AB = ['B_cen', 'B_sat'],
+    CB = ['A_cen', 'A_sat'],
+    VB = ['alpha_c', 'alpha_s'],
+)
+
+def params_from_str(model_name: str, mapping: dict[str, list[str]] = None) -> tuple[list[str], list[str]]:
+    """
+    Takes any string of the form 'param1-param2-fixed-param3-fixed-param4-param5' and returns 
+    two unordered lists: one with the free parameters and one with the fixed parameters.
+    Fixed parameters will take over free parameters if any parameter is both free and fixed.
+    
+    Parameters
+    ----------
+    model_name : str
+        String containing the model name with free and fixed parameters
+    mapping: dict[str, list[str]], optional
+        Dictionnary mapping parameter names to lists of parameter names to replace them with.
+    
+    Returns
+    -------
+    free: list[str]
+        List of free parameter names
+    fixed: list[str]
+        List of fixed parameter names
+        
+    Raises
+    ------
+    ValueError
+        If any parameter is both free and fixed
+    """ 
+    free = model_name.split('-')
+    fixed = []
+    for i, param in enumerate(free):
+        if param == 'fixed':
+            i += 1
+            fixed.append(free[i])
+    
+    free = [param for param in free if param not in fixed and param != 'fixed']
+    
+    # replace parameters according to mapping
+    if mapping is not None:
+        for k, v in mapping.items():
+            for l in [free, fixed]:
+                if k in l:
+                    l.remove(k)
+                    l.extend(v)
+
+    # Remove fixed parameters from free parameters
+    for param in fixed:
+        if param in free:
+            free.remove(param)
+
+    return free, fixed
+
+def get_fixed_params(
+    cosmo_model: str, 
+    hod_model: str, 
+    priors: dict,
+    cosmo_mapping: dict[str, list[str]] = COSMO_MAPPING,
+    hod_mapping: dict[str, list[str]] = HOD_MAPPING,
+) -> list:
     """
     Return a list of fixed parameter names based on the cosmological and HOD models.
     This function checks which parameters are free in the specified models.
     Each parameter should be separated by a dash '-' in the model strings.
     Fixed parameters can be specified by appending 'fixed-' before the exact parameter name in the model string.
-    Fixed parameters must be added at the end of the model string *after* all free parameters.
+    
+    A mapping dictionary can be provided to replace a list of parameter names with a custom name.
+    
+    Only parameter names contained in the priors will be considered.
     
     Parameters
     ----------
     cosmo_model : str
-        The cosmological model string containing keywords (e.g., 'base', 'w0', 'wa', etc.).
+        The cosmological model string containing parameter names or keywords (e.g., 'base', 'w0', 'wa', etc.).
     hod_model : str
-        The HOD model string containing keywords (e.g., 'base', 'AB', 'CB', etc.).
+        The HOD model string containing parameter names or keywords (e.g., 'base', 'AB', 'CB', etc.).
     priors : dict
         A dictionary of all parameter priors.
+    cosmo_mapping: dict[str, list[str]], optional
+        Dictionnary mapping cosmological parameter names to lists of parameter names to replace them with.
+        See COSMO_MAPPING for the default value.
+    hod_mapping: dict[str, list[str]], optional
+        Dictionnary mapping HOD parameter names to lists of parameter names to replace them with.
+        See HOD_MAPPING for the default value.
         
     Returns
     -------
     fixed : list
-        A list of fixed parameter names.
+        A list of fixed parameter names contained in the priors but not in the free parameters.
         
     Examples
     --------
+    >>> priors, _, _ = get_priors()
     >>> get_fixed_params('base-w0wa-fixed-n_s-fixed-wa_fld', 'base-AB-fixed-B_sat', priors)
-    ['n_s', 'wa_fld', 'B_sat']
+    ['n_s', 'wa_fld', 'B_sat'] # w0wa is a mapping for ['w0_fld', 'wa_fld']
     """
     free = []
-    
-    # cosmology
-    if 'base' in cosmo_model:
-        free += ['omega_b', 'omega_cdm', 'sigma8_m', 'n_s']
-    if 'w0' in cosmo_model:
-        free += ['w0_fld']
-    if 'wa' in cosmo_model:
-        free += ['wa_fld']
-    if 'Nur' in cosmo_model:
-        free += ['N_ur']
-    if 'nrun' in cosmo_model:
-        free += ['nrun']
-    
-    # HOD
-    if 'base' in hod_model:
-        free += ['logM_cut', 'logM_1', 'sigma', 'alpha', 'kappa']
-    if 'AB' in hod_model:
-        free += ['B_cen', 'B_sat']
-    if "CB" in hod_model:
-        free += ["A_cen", "A_sat"]
-    if 'VB' in hod_model:
-        free += ['alpha_c', 'alpha_s']
-    if '-s' in hod_model: # Not _s or s as other params have _s in their name (e.g., sigma, alpha_s)
-        free += ['s']
-    
-    for param in [*cosmo_model.split('fixed-'), *hod_model.split('fixed-')]:
-        param = param.strip('-') # to handle leading/trailing dashes
-        if param in free:
-            free.remove(param)
+    free += params_from_str(cosmo_model, cosmo_mapping)[0] # Cosmology free parameters
+    free += params_from_str(hod_model, hod_mapping)[0] # HOD free parameters
     
     fixed = [par for par in priors.keys() if par not in free]
     return fixed
