@@ -19,6 +19,7 @@ class BaseSampler:
         coordinates: list = [],
         ellipsoid: bool = False,
         markers: dict = {},
+        sample_in_transformed_space: bool = False,
         **kwargs,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -33,11 +34,15 @@ class BaseSampler:
         self.precision_matrix = precision_matrix
         self.ellipsoid = ellipsoid
         self.markers = markers
+        self.sample_in_transformed_space = sample_in_transformed_space
         if self.ellipsoid:
             self.abacus_ellipsoid = AbacusSummitEllipsoid()
         self.ndim = len(self.priors.keys()) - len(self.fixed_parameters.keys())
         self.logger.info(f'Free parameters: {[key for key in priors.keys() if key not in fixed_parameters.keys()]}')
         self.logger.info(f'Fixed parameters: {[key for key in priors.keys() if key in fixed_parameters.keys()]}')
+        if self.sample_in_transformed_space:
+            self.logger.warning('Sampling in transformed space (skip_output_inverse_transform=True). '
+                              'Ensure observations and covariance matrix are also transformed to match!')
 
     def save_chain(self, save_fn, metadata=None):
         """Save the chain to a file
