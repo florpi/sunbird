@@ -1,6 +1,5 @@
-from scipy.linalg.lapack import dpotrf, dpotri
 import numpy as np
-
+from scipy.linalg.lapack import dpotrf, dpotri
 
 class AbacusSummitEllipsoid:
 
@@ -98,6 +97,3 @@ class AbacusSummitEllipsoid:
         if self.is_within(x):
             return 0.0
         return -np.inf
-
-
-
