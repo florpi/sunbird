@@ -1,12 +1,11 @@
+import yaml
 import torch
 import numpy as np
+import lightning as pl
 from typing import Dict
 from pathlib import Path
-import yaml
-import lightning as pl
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from flax.traverse_util import unflatten_dict
-
 import sunbird.emulators.models as models
 
 

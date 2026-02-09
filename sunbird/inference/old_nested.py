@@ -1,11 +1,12 @@
-from typing import Dict
+import dill
 import numpy as np
 import pandas as pd
-import dill
-from dynesty import NestedSampler
 import dynesty.utils
-dynesty.utils.pickle_module = dill
+from typing import Dict
+from dynesty import NestedSampler
 from sunbird.inference import Inference
+
+dynesty.utils.pickle_module = dill
 
 
 class Nested(Inference):

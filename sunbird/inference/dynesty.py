@@ -1,12 +1,12 @@
-
-from typing import Dict, Optional
+import dill
+import torch
 import numpy as np
 import pandas as pd
-import torch
-import dill
-from dynesty import NestedSampler, DynamicNestedSampler
 import dynesty.utils
 from multiprocessing import Pool
+from typing import Dict, Optional
+from dynesty import DynamicNestedSampler
+
 dynesty.utils.pickle_module = dill
 
 
