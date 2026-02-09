@@ -21,11 +21,11 @@ DEFAULT_PATH = Path(__file__).parent.parent.parent
 class Growth:
     def __init__(
         self,
-        theta_star: float = AbacusSummit(0).theta_star,
+        theta_MC_100: float = AbacusSummit(0)['theta_MC_100'],
         emulate=False,
         emulator_data_dir=DEFAULT_PATH / "data/hemu/",
     ):
-        self.theta_star = theta_star
+        self.theta_MC_100 = theta_MC_100
         self.emulate = emulate
         self.emulator_data_dir = emulator_data_dir
         if self.emulate:
@@ -63,10 +63,13 @@ class Growth:
         h_values, sample_parameters = [], []
         for i, sample in enumerate(samples_matrix):
             try:
-                cosmology = self.get_cosmology_fixed_theta_star(
+                # print every 1000th sample
+                if i % 1000 == 0:
+                    print(i)
+                cosmology = self.get_cosmology_fixed_theta_MC_100(
                     DESI(engine="class"),
                     dict(
-                        theta_star=self.theta_star,
+                        theta_MC_100=self.theta_MC_100,
                         omega_b=sample[0],
                         omega_cdm=sample[1],
                         sigma8=sample[2],
@@ -278,29 +281,30 @@ class Growth:
         x = jnp.vstack([omega_b, omega_cdm, sigma8, N_ur, n_s, w0_fld, wa_fld]).T
         return self.model.apply(self.params, x)
 
-    def get_cosmology_fixed_theta_star(
+    def get_cosmology_fixed_theta_MC_100(
         self,
         fiducial,
         params,
         h_limits=[0.4, 1.0],
         xtol=1.0e-6,
     ):
-        theta = params.pop("theta_star", None)
+        theta = params.pop("theta_MC_100", None)
         fiducial = fiducial.clone(base="input", **params)
         if theta is not None:
             if "h" in params:
-                raise ValueError("Cannot provide both theta_star and h")
+                raise ValueError("Cannot provide both theta_MC_100 and h")
 
             def f(h):
                 cosmo = fiducial.clone(base="input", h=h)
-                return 100.0 * (theta - cosmo.get_thermodynamics().theta_star)
+                # return 100.0 * (theta - cosmo.get_thermodynamics().theta_MC_100)
+                return 100.0 * (theta - cosmo['theta_MC_100'])
 
             rtol = xtol
             try:
                 h = optimize.bisect(f, *h_limits, xtol=xtol, rtol=rtol, disp=True)
             except ValueError as exc:
                 raise ValueError(
-                    "Could not find proper h value in the interval that matches theta_star = {:.4f} with [f({:.3f}), f({:.3f})] = [{:.4f}, {:.4f}]".format(
+                    "Could not find proper h value in the interval that matches theta_MC_100 = {:.4f} with [f({:.3f}), f({:.3f})] = [{:.4f}, {:.4f}]".format(
                         theta, *h_limits, *list(map(f, h_limits))
                     )
                 ) from exc
@@ -339,10 +343,10 @@ class Growth:
                 z=z,
             )
         else:
-            cosmology = self.get_cosmology_fixed_theta_star(
+            cosmology = self.get_cosmology_fixed_theta_MC_100(
                 DESI(engine="class"),
                 dict(
-                    theta_star=self.theta_star,
+                    theta_MC_100=self.theta_MC_100,
                     omega_b=omega_b,
                     omega_cdm=omega_cdm,
                     sigma8=sigma8,
@@ -397,10 +401,10 @@ class Growth:
             )
             return growth_rate * sigma8_z
         else:
-            cosmology = self.get_cosmology_fixed_theta_star(
+            cosmology = self.get_cosmology_fixed_theta_MC_100(
                 DESI(engine="class"),
                 dict(
-                    theta_star=self.theta_star,
+                    theta_MC_100=self.theta_MC_100,
                     omega_b=omega_b,
                     omega_cdm=omega_cdm,
                     sigma8=sigma8,
@@ -418,6 +422,6 @@ if __name__ == "__main__":
 
     t0 = time.time()
     growth = Growth()
-    # growth.generate_emulator_training_data()
+    growth.generate_emulator_training_data(n_samples=100_000)
     growth.train_emulator()
     print(f"It took {time.time() - t0} seconds")
