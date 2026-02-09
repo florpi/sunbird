@@ -1,5 +1,5 @@
+import logging
 from .base import Samples
-import loggig
 
 class Profiles(Samples):
     """

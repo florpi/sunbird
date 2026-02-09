@@ -1,5 +1,5 @@
-from torch import nn, Tensor
 import torch
+from torch import nn, Tensor
 
 
 class WeightedL1Loss(nn.Module):

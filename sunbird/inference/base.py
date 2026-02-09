@@ -1,9 +1,8 @@
-from sunbird.inference.priors import AbacusSummitEllipsoid
-from typing import Dict, Optional
-from collections.abc import Iterable
-from getdist import plots, MCSamples
 import logging
-
+import numpy as np
+from tabulate import tabulate
+from typing import Dict, Optional
+from sunbird.inference.priors import AbacusSummitEllipsoid
 
 class BaseSampler:
     def __init__(self,
@@ -47,7 +46,6 @@ class BaseSampler:
     def save_chain(self, save_fn, metadata=None):
         """Save the chain to a file
         """
-        import numpy as np
         data = self.get_chain(flat=True)
         names = [param for param in self.priors.keys() if param not in self.fixed_parameters]
         dof = len(self.observation) - self.ndim
@@ -73,7 +71,6 @@ class BaseSampler:
         np.save(save_fn, cout)
 
     def save_table(self, save_fn):
-        from tabulate import tabulate
         chain = self.get_chain(flat=True)
         maxp = chain['samples'][chain['log_posterior'].argmax()]
         mean = chain['samples'].mean(axis=0)

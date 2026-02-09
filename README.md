@@ -13,32 +13,26 @@ These models have been trained on mock galaxy catalogues based on the AbacusSumm
 Documentation is hosted on Read the Docs, [pysunbird.readthedocs.io](https://pysunbird.readthedocs.io/).
 
 ## Requirements
+Dependencies are listed in `pyproject.toml`, and installed automatically when installing the package.
 
-The following packages are required to run the code:
+Optional dependencies can be added for the inference routines, with the following command:
+```bash
+pip install sunbird[inference]
+```
 
-- black
-- pytorch
-- pandas
-- numpy
-- matplotlib
-- xarray
-- pytorch-lightning
-- optuna
-- joblib
 
 ## Installation
 
-#### Cloning from repository
+### Install with pip
+To install `sunbird`, you can use pip:
+```bash
+pip install sunbird @ git+https://github.com/florpi/sunbird.git
+```
 
-First
-```
+### Install from source
+If you want to install the package from source, you can clone the repository and install it with:
+```bash
 git clone https://github.com/florpi/sunbird.git
-```
-To install the code
-```
-python setup.py install --user
-```
-Or in development mode (any change to Python code will take place immediately)
-```
-python setup.py develop --user
+cd sunbird
+pip install .[inference]
 ```

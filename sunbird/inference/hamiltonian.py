@@ -1,13 +1,12 @@
-from typing import Dict, Optional
-import numpy as np
-import jax
-import jax.numpy as jnp
-import numpyro
-from numpyro import infer
-from functools import partial
-from numpyro import distributions as dist
-from jax import random
 import time
+import jax
+import numpyro
+import numpy as np
+import jax.numpy as jnp
+from jax import random
+from numpyro import infer
+from numpyro import distributions as dist
+from typing import Dict, Optional
 
 
 class HMCSampler:
