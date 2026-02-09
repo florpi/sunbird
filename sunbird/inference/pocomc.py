@@ -55,9 +55,7 @@ class PocoMCSampler(BaseSampler):
         Returns:
             np.array: model prediction
         """
-        # pred = self.theory_model.get_prediction(x=theta)
-        pred = self.theory_model(x=theta)
-        # detach if using torch
+        pred = self.theory_model(x=theta, skip_output_inverse_transform=self.sample_in_transformed_space)
         if isinstance(pred, torch.Tensor):
             pred = pred.detach().numpy()
         return pred
