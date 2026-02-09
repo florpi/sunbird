@@ -176,6 +176,7 @@ class FCN(BaseModel):
                 'n_output': self.n_output,
                 'predict_errors': True if self.loss == "learned_gaussian" else False,
                 'output_transform': self.output_transform,
+                # 'transform_output': self.output_transform,
                 'coordinates': self.coordinates,
                 'compression_matrix': None,
         }

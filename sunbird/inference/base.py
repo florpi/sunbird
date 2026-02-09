@@ -20,6 +20,7 @@ class BaseSampler:
         ellipsoid: bool = False,
         markers: dict = {},
         sample_in_transformed_space: bool = False,
+        observable = None,
         **kwargs,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -27,22 +28,45 @@ class BaseSampler:
         if fixed_parameters is None:
             fixed_parameters = {}
         self.fixed_parameters = fixed_parameters
-        self.observation = observation
         self.priors = priors
         self.ranges = ranges
         self.labels = labels
-        self.precision_matrix = precision_matrix
         self.ellipsoid = ellipsoid
         self.markers = markers
         self.sample_in_transformed_space = sample_in_transformed_space
+        self.observable = observable
+        
+        # Handle transformation of observations and covariance
+        if sample_in_transformed_space:
+            if observable is None:
+                self.logger.warning('Sampling in transformed space (skip_output_inverse_transform=True). '
+                                  'Ensure observations and covariance matrix are also transformed to match!')
+                self.observation = observation
+                self.precision_matrix = precision_matrix
+            else:
+                # Validate that the observable has an output transform
+                if not hasattr(observable, 'output_transform') or observable.output_transform is None:
+                    raise ValueError('Cannot sample in transformed space: observable does not have an output_transform. '
+                                   'Either set sample_in_transformed_space=False or use an observable with output_transform.')
+                
+                # Auto-transform the observation and covariance
+                self.logger.info('Auto-transforming observation and covariance matrix to transformed space.')
+                self.observation = observable.get_transformed_y()
+                
+                # Get transformed covariance and invert it to get precision matrix
+                import numpy as np
+                transformed_cov = observable.get_transformed_covariance_matrix()
+                self.precision_matrix = np.linalg.inv(transformed_cov)
+                self.logger.info('Successfully transformed observation and precision matrix.')
+        else:
+            self.observation = observation
+            self.precision_matrix = precision_matrix
+            
         if self.ellipsoid:
             self.abacus_ellipsoid = AbacusSummitEllipsoid()
         self.ndim = len(self.priors.keys()) - len(self.fixed_parameters.keys())
         self.logger.info(f'Free parameters: {[key for key in priors.keys() if key not in fixed_parameters.keys()]}')
         self.logger.info(f'Fixed parameters: {[key for key in priors.keys() if key in fixed_parameters.keys()]}')
-        if self.sample_in_transformed_space:
-            self.logger.warning('Sampling in transformed space (skip_output_inverse_transform=True). '
-                              'Ensure observations and covariance matrix are also transformed to match!')
 
     def save_chain(self, save_fn, metadata=None):
         """Save the chain to a file
