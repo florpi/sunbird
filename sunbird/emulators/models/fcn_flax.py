@@ -17,7 +17,7 @@ class FlaxFCN(nn.Module):
     act_fn: str
     n_output: int
     predict_errors: False
-    output_transform: None
+    transform_output: None
     coordinates: None
     compression_matrix: None
 
@@ -95,8 +95,8 @@ class FlaxFCN(nn.Module):
         else:
             y_var = jnp.zeros_like(y_pred)
         y_pred = y_pred * std_output + mean_output
-        if self.output_transform is not None:
-            y_pred = self.output_transform.inverse_transform(y_pred)
+        if self.transform_output is not None:
+            y_pred = self.transform_output.inverse_transform(y_pred)
         if filters is not None:
             y_pred = y_pred[~filters.reshape(-1)]
         if self.compression_matrix is not None:

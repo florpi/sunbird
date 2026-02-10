@@ -38,8 +38,8 @@ class FCN(BaseModel):
             std_output: Optional[torch.Tensor] = None,
             standarize_input: bool = True,
             standarize_output: bool = True,
-            input_transform: Optional[callable] = None,
-            output_transform: Optional[callable] = None,
+            transform_input: Optional[callable] = None,
+            transform_output: Optional[callable] = None,
             coordinates: Optional[dict] = None,
             compression_matrix: Optional[torch.Tensor] = None,
             *args, 
@@ -64,8 +64,8 @@ class FCN(BaseModel):
         self.register_parameter('std_input', std_input, n_input)
         self.register_parameter('mean_output', mean_output, n_output)
         self.register_parameter('std_output', std_output, n_output)
-        self.input_transform = input_transform
-        self.output_transform = output_transform
+        self.transform_input = transform_input
+        self.transform_output = transform_output
         self.loss = loss
         self.data_dim = self.n_output
         if self.loss == "learned_gaussian":
@@ -90,24 +90,6 @@ class FCN(BaseModel):
             )
         self.compression_matrix = compression_matrix
     
-    def __setattr__(self, name, value):
-        """Override to provide backward compatibility for renamed attributes"""
-        # Map old attribute names to new ones for backward compatibility
-        if name == 'transform_input':
-            name = 'input_transform'
-        elif name == 'transform_output':
-            name = 'output_transform'
-        super().__setattr__(name, value)
-    
-    def __getattr__(self, name):
-        """Override to provide backward compatibility for renamed attributes"""
-        # Map old attribute names to new ones for backward compatibility
-        if name == 'transform_input':
-            return self.input_transform
-        elif name == 'transform_output':
-            return self.output_transform
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
-
     @staticmethod
     def add_model_specific_args(parent_parser):
         """Model arguments that could vary
@@ -173,8 +155,7 @@ class FCN(BaseModel):
                 'act_fn': self.act_fn_str,
                 'n_output': self.n_output,
                 'predict_errors': True if self.loss == "learned_gaussian" else False,
-                'output_transform': self.output_transform,
-                # 'transform_output': self.output_transform,
+                'transform_output': self.transform_output,
                 'coordinates': self.coordinates,
                 'compression_matrix': None,
         }
@@ -308,15 +289,15 @@ class FCN(BaseModel):
             Tensor: Model prediction
         """
         x = torch.Tensor(x)
-        if self.input_transform is not None:
-            x = self.input_transform.transform(x)
+        if self.transform_input is not None:
+            x = self.transform_input.transform(x)
         y, _ = self.forward(x) 
         if self.standarize_output:
             std_output = self.std_output.to(x.device)
             mean_output = self.mean_output.to(x.device)
             y =  y * std_output + mean_output
-        if self.output_transform is not None and not skip_output_inverse_transform:
-            y = self.output_transform.inverse_transform(y)
+        if self.transform_output is not None and not skip_output_inverse_transform:
+            y = self.transform_output.inverse_transform(y)
         if self.compression_matrix is not None:
             y = y @ self.compression_matrix
         return y
