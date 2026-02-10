@@ -106,7 +106,7 @@ class Transformer(BaseModel):
                 'act_fn': self.act_fn_str,
                 'n_output': self.n_output,
                 'predict_errors': True if self.loss == "learned_gaussian" else False,
-                'output_transform': self.output_transform,
+                'transform_output': self.transform_output,
                 'coordinates': self.coordinates,
         }
 

@@ -1,3 +1,5 @@
+"""Samplers based on the `pocomc` inference engine."""
+
 import torch
 import pocomc
 import numpy as np
@@ -5,17 +7,20 @@ from sunbird.inference.base import BaseSampler
 
 
 class PocoMCSampler(BaseSampler):
+    """PoCoMC sampler wrapper with optional ellipsoid prior support."""
+
     def __init__(self, **kwargs):
+        """Initialize the PoCoMC sampler wrapper."""
         super().__init__(**kwargs)
 
     def fill_params(self, theta):
-        """Fill the parameter vector to include fixed parameters
+        """Fill a parameter vector to include fixed parameters.
 
         Args:
-            theta (np.array): input parameters
+            theta: Free parameter vector.
 
         Returns:
-            np.array: filled parameters
+            Filled parameter vector with fixed values inserted.
         """
         params = np.ones(len(self.priors.keys()))
         itheta = 0
@@ -28,13 +33,13 @@ class PocoMCSampler(BaseSampler):
         return params
 
     def fill_params_batch(self, thetas):
-        """Fill the batch of parameter vectors to include fixed parameters
+        """Fill a batch of parameter vectors to include fixed parameters.
 
         Args:
-            thetas (np.array): input parameters
+            thetas: Batch of free parameter vectors.
 
         Returns:
-            np.array: filled parameters
+            Filled parameter array with fixed values inserted.
         """
         params = np.ones((len(thetas), len(self.priors.keys())))
         for i, theta in enumerate(thetas):
@@ -42,13 +47,13 @@ class PocoMCSampler(BaseSampler):
         return params
 
     def get_model_prediction(self, theta):
-        """Get model prediction
+        """Return the model prediction for the given parameters.
 
         Args:
-            theta (np.array): input parameters
+            theta: Parameter vector or batch of vectors.
 
         Returns:
-            np.array: model prediction
+            Model prediction as a NumPy array.
         """
         pred = self.theory_model(x=theta, skip_output_inverse_transform=self.sample_in_transformed_space)
         if isinstance(pred, torch.Tensor):
@@ -56,13 +61,13 @@ class PocoMCSampler(BaseSampler):
         return pred
 
     def log_likelihood(self, theta):
-        """Log likelihood function
+        """Compute the log likelihood for a parameter vector or batch.
 
         Args:
-            theta (np.array): input parameters
+            theta: Free parameter vector or batch of vectors.
 
         Returns:
-            float: log likelihood
+            Log likelihood value(s).
         """
         batch = len(theta.shape) > 1
         params = self.fill_params_batch(theta) if batch else self.fill_params(theta)
@@ -78,14 +83,24 @@ class PocoMCSampler(BaseSampler):
                 logl += self.abacus_ellipsoid.log_likelihood(params[:8])
         return logl
 
-    def __call__(self, vectorize=True, random_state=0, precondition=True, n_total=4096, progress=True, **kwargs):
-        """Run the sampler
+    def __call__(
+        self,
+        vectorize=True,
+        random_state=0,
+        precondition=True,
+        n_total=4096,
+        progress=True,
+        **kwargs,
+    ):
+        """Run the PoCoMC sampler.
 
         Args:
-            vectorize (bool, optional): Vectorize the log likelihood call. Defaults to False.
-            random_state (int, optional): Random seed. Defaults to 0.
-            precondition (bool, optional): If False, use standard MCMC without normalizing flow. Defaults to True.
-            kwargs: Additional arguments for the sampler
+            vectorize: Vectorize the log likelihood call.
+            random_state: Random seed for the sampler.
+            precondition: If False, disable normalizing flow preconditioning.
+            n_total: Total number of samples to draw.
+            progress: Whether to display progress output.
+            **kwargs: Additional arguments for `pocomc.Sampler`.
         """
         prior = pocomc.Prior([value for key, value in self.priors.items() if key not in self.fixed_parameters.keys()])
 
@@ -101,27 +116,20 @@ class PocoMCSampler(BaseSampler):
         self.sampler.run(progress=progress, n_total=n_total)
 
     def get_chain(self, **kwargs):
-        """Get the chain from the sampler
-
-        Returns:
-            np.array: chain
-        """
+        """Return the posterior samples and derived quantities."""
         samples, weights, loglike, logprior = self.sampler.posterior()
         logz, logz_err = self.sampler.evidence()
         logposterior = loglike + logprior - logz
         return {'samples': samples, 'weights': weights, 'log_likelihood': loglike,
                 'log_prior': logprior, 'log_posterior': logposterior}
 
-    def evidence(self,):
-        """Get the evidence from the sampler
-
-        Returns:
-            tuple: logz, logz_err
-        """
+    def evidence(self):
+        """Return the evidence estimate and its error."""
         return self.sampler.evidence()
 
 
 class PocoMCPriorSampler(PocoMCSampler):
+    """PoCoMC sampler that returns a flat likelihood over the prior."""
     def __init__(
         self,
         observation=None,
@@ -129,17 +137,11 @@ class PocoMCPriorSampler(PocoMCSampler):
         theory_model=None,
         **kwargs,
     ):
+        """Initialize a prior-only sampler."""
         super().__init__(observation, precision_matrix, theory_model, **kwargs)
 
     def log_likelihood(self, theta):
-        """Log likelihood function
-
-        Args:
-            theta (np.array): input parameters
-
-        Returns:
-            float: log likelihood
-        """
+        """Return a flat log likelihood with optional ellipsoid term."""
         batch = len(theta.shape) > 1
         params = self.fill_params_batch(theta) if batch else self.fill_params(theta)
         if batch:
