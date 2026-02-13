@@ -120,7 +120,7 @@ def get_table(
     Returns
     -------
     str
-        A LaTeX-formatted table string.
+        A LaTeX-formatted table string. Columns will be ordered based on their first occurrence in the subtables, and missing values will be filled with "N/A".
     """
     # Define characters for simplifying the LaTeX table formatting
     tab = "\t" # Tab character for indentation
