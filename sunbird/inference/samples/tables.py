@@ -13,8 +13,9 @@ def get_row_dict(chain: Chain, params: list[str], percentiles: list[float] = [16
     params : list[str]
         The list of parameter names to include in the table row.
     percentiles : list[float]
-        The list of quantiles to include in the table row. If only one value is provided, it will be used to determine the confidence interval for the mean ± std format. 
-        If multiple values are provided, they will be used to determine the confidence interval for the quantile format.
+        The list of quantiles to include in the table row. 
+        If only one value is provided, it will be used to determine the confidence interval for the mean ± std format. 
+        If two values are provided, they will be used to determine the confidence interval for the quantile format.
         Must match np.percentile format, i.e. between 0 and 100.
         Defaults to [16], which corresponds to the 16th and 84th percentiles for a 1-sigma confidence interval.
     precision : int
@@ -22,7 +23,7 @@ def get_row_dict(chain: Chain, params: list[str], percentiles: list[float] = [16
         If set to None, defaults to 2 significant digits of the lowest percentile.
         Defaults to None.
     low_error_only : bool
-        If True, only the lower error will be included in the formatted string, and the upper error will be omitted.
+        If True, the lower error will be considered as the error for both sides. 
         Defaults to False.
     
     Returns
@@ -32,10 +33,17 @@ def get_row_dict(chain: Chain, params: list[str], percentiles: list[float] = [16
         Each value is a string formatted as '$mean_{-err_low}^{+err_high}$' where mean is the mean of the parameter, 
         and err_low and err_high are the errors corresponding to the provided percentiles. 
         If both values are identical at the given precision, it will be formatted as '$mean \\pm err$'.
+        
+    Raises
+    ------
+    ValueError
+        If the provided percentiles list does not contain exactly one or two values.
     """
     row = {}
     if len(percentiles) == 1:
         percentiles = [percentiles[0], 100 - percentiles[0]]
+    if len(percentiles) != 2:
+        raise ValueError("Percentiles must be a single value or a list of two values.")
     percentiles = np.sort(percentiles) # Ensure percentiles are in ascending order
     quantiles = np.percentile(chain.samples, percentiles, axis=0)
     
@@ -46,12 +54,15 @@ def get_row_dict(chain: Chain, params: list[str], percentiles: list[float] = [16
             err = np.abs(quantiles[:, idx] - mean)
             label = chain.labels[idx] if chain.labels else param
             
-            # If precision is not provided, determine it based on the lowest error to have 2 significant digits
-            min_err = np.min(err)
-            if min_err == 0:
-                p = 2
+            if precision is not None:
+                p = precision # Use provided precision
             else:
-                p = precision if precision is not None else int(abs(np.floor(np.log10(np.min(err)))) + 1)
+                # Determine it based on the lowest error to have 2 significant digits
+                min_err = np.min(err)
+                if min_err == 0: # Just in case of zero error
+                    p = 2
+                else:
+                    p = max(0, int(abs(np.floor(np.log10(np.min(err)))) + 1))
             
             if round(err[0], p) == round(err[1], p) or low_error_only:
                 row[label] = fr'${mean:.{p}f} \pm {err[0]:.{p}f}$'
@@ -60,7 +71,7 @@ def get_row_dict(chain: Chain, params: list[str], percentiles: list[float] = [16
     
     return row
 
-def get_subtable_dict(chains: list[Chain], **kwargs) -> dict:
+def get_subtable_dict(*chains, **kwargs) -> dict:
     """
     Get a list of dictionaries with the mean and std of the parameters in the chains.
     
@@ -90,7 +101,21 @@ def get_table(
     label_dict: dict[str, str] = None,
 ) -> str:
     """
-    TODO
+    Create a LaTeX-formatted table from a list of subtables.
+    
+    Parameters
+    ----------
+    subtables : dict|list
+        A dictionary of subtables with their names as keys, or a list of subtables (dictionaries).
+        Each subtable is a dictionary with chain names as keys and row dictionaries as values.
+    header_name : str
+        The name to use for the first column header (chain names).
+        If None, the first column will have no header.
+        Defaults to None.
+    label_dict : dict[str, str]
+        A dictionary mapping chain names to labels to use in the table.
+        If None, the chain names will be used as-is.
+        Defaults to None.
     
     Returns
     -------
@@ -111,10 +136,11 @@ def get_table(
         subtables_names = None
     
     # Get the column names as the union of all parameter names in the subtables
-    column_names = set()
+    column_names = []
     for subtable in subtables:
         for row in subtable.values():
-            column_names.update(row.keys())
+            column_names.extend(row.keys()) # First-seen order
+    column_names = list(dict.fromkeys(column_names)) # Remove duplicates while preserving order
 
     # Create the LaTeX table string
     table_str = f"\\begin{{tabular}}{{{'| c ' + '| c ' * len(column_names) + '|'}}}" + lr
