@@ -1,0 +1,119 @@
+#ELG priors for HOD parameters
+logM_cut: 
+  prior:
+    distribution: uniform
+    min: 11.2
+    max: 12.5
+  latex: \log M_{\rm cut}
+
+logM_1:
+  prior:
+    distribution: uniform
+    min: 12
+    max: 15
+  latex: \log M_1
+
+sigma:
+  prior:
+    distribution: uniform
+    min: -2.99
+    max: 0.2
+  latex: \log \sigma
+
+alpha:
+  prior:
+    distribution: uniform
+    min: 0.
+    max: 2
+  latex: \alpha
+
+kappa:
+  prior:
+    distribution: uniform
+    min: 0.
+    max: 2
+  latex: \kappa
+
+gamma:
+  prior:
+    distribution: uniform
+    min: 1
+    max: 8
+  latex: \gamma
+#Velocity bias
+alpha_c:
+  prior:
+    distribution: uniform
+    min: 0.
+    max: 0.61
+  latex: \alpha_{\rm cen}
+
+alpha_s:
+  prior:
+    distribution: uniform
+    min: 0.5
+    max: 2
+  latex: \alpha_{\rm sat}
+#Extended satelitte profile 
+exp_scale:
+  prior:
+    distribution: uniform
+    min: 0.9
+    max: 10
+  latex: \tau
+
+exp_frac:
+  prior:
+    distribution: uniform
+    min: 0
+    max: 1.
+  latex: \f_{exp}
+
+nfw_rescale:
+  prior:
+    distribution: uniform
+    min: 0.1
+    max: 2.
+  latex: \lambda_{\rm NFW}
+#Assembly bias
+A_cen:
+  prior:
+    distribution: uniform
+    min: -1
+    max: 1  
+  latex: A_{\rm cen}
+
+A_sat:
+  prior:
+    distribution: uniform
+    min: -1.
+    max: 1.
+  latex: A_{\rm sat}
+
+B_cen:
+  prior:
+    distribution: uniform
+    min: -1
+    max: 1
+  latex: B_{\rm cen}
+
+B_sat:
+  prior:
+    distribution: uniform
+    min: -1
+    max: 1
+  latex: B_{\rm sat}
+#Conformity
+logM1_EE:
+  prior:
+    distribution: uniform
+    min: -1
+    max: 1
+  latex: \log M_{1,EE}
+
+alpha_EE:
+  prior:
+    distribution: uniform
+    min: 0.4
+    max: 2
+  latex: \alpha_{1,EE}
