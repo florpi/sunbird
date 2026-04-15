@@ -89,7 +89,7 @@ class FCN(BaseModel):
                 ],
             )
         self.compression_matrix = compression_matrix
-
+    
     @staticmethod
     def add_model_specific_args(parent_parser):
         """Model arguments that could vary
@@ -275,16 +275,28 @@ class FCN(BaseModel):
         y_var = torch.zeros_like(y_pred)
         return y_pred, y_var
 
-    def get_prediction(self, x: Tensor, filters: Optional[dict] = None) -> Tensor:
+    def get_prediction(self, x: Tensor, filters: Optional[dict] = None, skip_output_inverse_transform: bool = False) -> Tensor:
+        """Get prediction from the model.
+        
+        Args:
+            x (Tensor): Input tensor
+            filters (dict, optional): Filters to apply. Defaults to None.
+            skip_output_inverse_transform (bool, optional): If True, skip the output inverse transformation,
+                keeping predictions in the transformed space. Useful when performing inference in transformed 
+                space (requires transforming observations and covariance to match). Defaults to False.
+        
+        Returns:
+            Tensor: Model prediction
+        """
         x = torch.Tensor(x)
-        if self.transform_input:
+        if self.transform_input is not None:
             x = self.transform_input.transform(x)
         y, _ = self.forward(x) 
         if self.standarize_output:
             std_output = self.std_output.to(x.device)
             mean_output = self.mean_output.to(x.device)
             y =  y * std_output + mean_output
-        if self.transform_output:
+        if self.transform_output is not None and not skip_output_inverse_transform:
             y = self.transform_output.inverse_transform(y)
         if self.compression_matrix is not None:
             y = y @ self.compression_matrix
