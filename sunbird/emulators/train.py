@@ -1,15 +1,27 @@
 import torch
-import wandb
 import logging
 import numpy as np
 from pathlib import Path
 # from warnings import deprecated # Available only in Python 3.13+
 from deprecation import deprecated
 from lightning import Trainer, seed_everything
-from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
+from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping, LearningRateMonitor, RichProgressBar
 from sunbird.emulators import FCN
 from sunbird.data import ArrayDataModule
+
+
+def _create_wandb_logger():
+    try:
+        import wandb
+        from lightning.pytorch.loggers.wandb import WandbLogger
+    except ImportError as exc:
+        raise ImportError(
+            "wandb is only required when logger='wandb'. Install a compatible wandb/protobuf setup or use logger='tensorboard' instead."
+        ) from exc
+
+    wandb.init()
+    return WandbLogger(log_model="all", project="sunbird")
 
 class FCNTrainer(Trainer):
     """
@@ -120,8 +132,7 @@ class FCNTrainer(Trainer):
             Configured logger instance or None.
         """
         if logger == 'wandb':
-            wandb.init()
-            logger = WandbLogger(log_model="all", project="sunbird",)
+            logger = _create_wandb_logger()
         elif logger == 'tensorboard':
             logger = TensorBoardLogger(log_dir, name="optuna")
         elif logger is None:
@@ -371,8 +382,7 @@ def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epo
     seed_everything(42, workers=True)
 
     if logger == 'wandb':
-        wandb.init()
-        logger = WandbLogger(log_model="all", project="sunbird",)
+        logger = _create_wandb_logger()
     elif logger == 'tensorboard':
         logger = TensorBoardLogger(log_dir, name="optuna")
     else:
