@@ -11,7 +11,7 @@ from pathlib import Path
 from flax.core.frozen_dict import freeze
 from typing import List, Optional, Union, Dict, Tuple
 from sunbird.data import transforms
-from sunbird.emulators import FCN, FlaxFCN
+from sunbird.emulators import FCN, FlaxFCN, Transformer, Zhong24Transformer
 from sunbird.data.data_utils import convert_selection_to_filters, convert_to_summary
 
 DEFAULT_PATH = Path(__file__).parent.parent.parent / "trained_models/best/"
@@ -133,12 +133,26 @@ class BaseSummary:
             Tuple[Union[torch.nn.Module, flax.linen.Module], Optional[jnp.array]]: model and flax parameters
         """
 
+        with open(path_to_model / "hparams.yaml") as f:
+            config = yaml.safe_load(f)
+        model_type = str(config.get("model_type", "fcn")).lower()
+
         if flax:
+            if model_type in {"transformer", "zhong24_transformer"}:
+                raise NotImplementedError(
+                    "Transformer summaries do not yet support Flax/JAX loading."
+                )
             nn_model, flax_params = FlaxFCN.from_folder(
                 path_to_model,
             )
         else:
-            nn_model = FCN.from_folder(
+            if model_type == "transformer":
+                model_cls = Transformer
+            elif model_type == "zhong24_transformer":
+                model_cls = Zhong24Transformer
+            else:
+                model_cls = FCN
+            nn_model = model_cls.from_folder(
                 path_to_model,
                 load_loss=False,
             )

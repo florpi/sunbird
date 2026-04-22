@@ -1,1 +1,1 @@
-from .models import FCN, FlaxFCN, Transformer
+from .models import FCN, FlaxFCN, Transformer, Zhong24Transformer
