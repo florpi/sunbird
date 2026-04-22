@@ -27,7 +27,14 @@ class FCNTrainer(Trainer):
     """
     Trainer class for Fully Connected Neural Network (FCN) models using PyTorch Lightning.
     """
-    def __init__(self, callbacks: list = None, logger: str = None, log_dir: str = None, **kwargs):
+    def __init__(
+        self,
+        callbacks: list = None,
+        logger: str = None,
+        log_dir: str = None,
+        tensorboard_name: str = 'tensorboard',
+        **kwargs,
+    ):
         """
         Initialize the FCNTrainer with specified callbacks and logger.
         
@@ -70,7 +77,11 @@ class FCNTrainer(Trainer):
             ]
             callbacks = [cb for cb in callbacks if cb is not None] # Remove None callbacks
             
-        logger = self.get_logger(logger=logger, log_dir=log_dir)
+        logger = self.get_logger(
+            logger=logger,
+            log_dir=log_dir,
+            tensorboard_name=tensorboard_name,
+        )
         
         gradient_clip_val = kwargs.pop('gradient_clip_val', 0.5)
         log_every_n_steps = kwargs.pop('log_every_n_steps', 1)
@@ -115,7 +126,11 @@ class FCNTrainer(Trainer):
         return best_val_loss
     
     @staticmethod
-    def get_logger(logger: str = None, log_dir: str = None):
+    def get_logger(
+        logger: str = None,
+        log_dir: str = None,
+        tensorboard_name: str = 'tensorboard',
+    ):
         """
         Get the logger instance based on the specified type.
         
@@ -134,7 +149,7 @@ class FCNTrainer(Trainer):
         if logger == 'wandb':
             logger = _create_wandb_logger()
         elif logger == 'tensorboard':
-            logger = TensorBoardLogger(log_dir, name="optuna")
+            logger = TensorBoardLogger(log_dir, name=tensorboard_name)
         elif logger is None:
             logger = None
         return logger
@@ -230,6 +245,7 @@ def train_fcn(
     checkpoint_filename: str = '{epoch:02d}-{step}-{val_loss:.5f}',
     train_logger: str = None,
     log_dir: str = None,
+    tensorboard_name: str = 'tensorboard',
     return_trainer: bool = False,
     **kwargs,
 ) -> float|tuple[float, FCNTrainer]:
@@ -277,6 +293,8 @@ def train_fcn(
         Type of logger to use ('wandb', 'tensorboard', or None).
     log_dir : str | None
         Directory to save logs.
+    tensorboard_name : str
+        TensorBoard subdirectory name when ``train_logger='tensorboard'``.
     return_trainer: bool
         Whether to return the trainer instance along with the validation loss.
     **kwargs
@@ -341,6 +359,7 @@ def train_fcn(
     trainer = FCNTrainer(
         logger = train_logger,
         log_dir = log_dir,
+        tensorboard_name = tensorboard_name,
         checkpoint_dir = checkpoint_dir,
         checkpoint_filename = checkpoint_filename,
         **kwargs,
@@ -358,7 +377,18 @@ def train_fcn(
 
 
 @deprecated("Kept for compatibility, use train_fcn instead")
-def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epochs=1_000, model_dir=None, log_dir=None, logger='wandb', **kwargs):
+def fit(
+    data,
+    model,
+    early_stop_patience=30,
+    early_stop_threshold=1.e-7,
+    max_epochs=1_000,
+    model_dir=None,
+    log_dir=None,
+    logger='wandb',
+    tensorboard_name='tensorboard',
+    **kwargs,
+):
     early_stop_callback = EarlyStopping(
         monitor="val_loss", 
         patience=early_stop_patience, 
@@ -384,7 +414,7 @@ def fit(data, model, early_stop_patience=30, early_stop_threshold=1.e-7, max_epo
     if logger == 'wandb':
         logger = _create_wandb_logger()
     elif logger == 'tensorboard':
-        logger = TensorBoardLogger(log_dir, name="optuna")
+        logger = TensorBoardLogger(log_dir, name=tensorboard_name)
     else:
         logger=None
 

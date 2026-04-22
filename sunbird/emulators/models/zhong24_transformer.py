@@ -1,7 +1,8 @@
 import numpy as np
 import torch
 from torch import Tensor, nn
-from typing import Optional
+from typing import Optional, Tuple
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from sunbird.emulators.loss import (
     GaussianNLoglike,
@@ -13,23 +14,61 @@ from sunbird.emulators.loss import (
 from sunbird.emulators.models import BaseModel
 
 
-class Transformer(BaseModel):
-    """Transformer encoder tailored to continuous-feature emulator regression."""
+class Zhong24TransformerBlock(nn.Module):
+    """Post-norm residual transformer block used by Zhong et al. (2024)."""
+
+    def __init__(
+        self,
+        d_model: int,
+        n_heads: int,
+        dim_feedforward: int,
+        dropout_rate: float,
+    ):
+        super().__init__()
+        self.attention = nn.MultiheadAttention(
+            embed_dim=d_model,
+            num_heads=n_heads,
+            dropout=dropout_rate,
+            batch_first=True,
+        )
+        self.attention_dropout = nn.Dropout(dropout_rate)
+        self.attention_norm = nn.LayerNorm(d_model)
+
+        self.feedforward = nn.Sequential(
+            nn.Linear(d_model, dim_feedforward),
+            nn.PReLU(),
+            nn.Dropout(dropout_rate),
+            nn.Linear(dim_feedforward, d_model),
+        )
+        self.feedforward_dropout = nn.Dropout(dropout_rate)
+        self.feedforward_norm = nn.LayerNorm(d_model)
+
+    def forward(self, tokens: Tensor) -> Tensor:
+        attended, _ = self.attention(tokens, tokens, tokens, need_weights=False)
+        tokens = self.attention_norm(tokens + self.attention_dropout(attended))
+        updates = self.feedforward(tokens)
+        return self.feedforward_norm(tokens + self.feedforward_dropout(updates))
+
+
+class Zhong24Transformer(BaseModel):
+    """EMC-tuned Zhong-style transformer architecture."""
 
     def __init__(
         self,
         n_input: int,
         n_output: int,
-        d_model: int = 128,
+        n_tokens: int = 10,
+        d_model: int = 96,
         n_heads: int = 4,
-        n_layers: int = 4,
-        dim_feedforward: int = 512,
-        dropout_rate: float = 0.0,
-        learning_rate: float = 1.0e-3,
-        scheduler_patience: int = 30,
+        n_layers: int = 2,
+        dim_feedforward: int = 192,
+        dropout_rate: float = 0.05,
+        learning_rate: float = 5.0e-4,
+        weight_decay: float = 1.0e-2,
+        scheduler_patience: int = 8,
         scheduler_factor: float = 0.5,
-        scheduler_threshold: float = 1.0e-6,
-        weight_decay: float = 0.0,
+        scheduler_threshold: float = 1.0e-4,
+        adam_betas: Tuple[float, float] = (0.9, 0.999),
         loss: str = "rmse",
         training: bool = True,
         mean_input: Optional[torch.Tensor] = None,
@@ -42,7 +81,7 @@ class Transformer(BaseModel):
         transform_output: Optional[callable] = None,
         coordinates: Optional[dict] = None,
         compression_matrix: Optional[torch.Tensor] = None,
-        model_type: str = "transformer",
+        model_type: str = "zhong24_transformer",
         *args,
         **kwargs,
     ):
@@ -54,16 +93,18 @@ class Transformer(BaseModel):
 
         self.n_input = n_input
         self.n_output = n_output
+        self.n_tokens = n_tokens
         self.d_model = d_model
         self.n_heads = n_heads
         self.n_layers = n_layers
         self.dim_feedforward = dim_feedforward
         self.dropout_rate = dropout_rate
         self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
         self.scheduler_patience = scheduler_patience
         self.scheduler_factor = scheduler_factor
         self.scheduler_threshold = scheduler_threshold
-        self.weight_decay = weight_decay
+        self.adam_betas = adam_betas
         self.loss = loss
         self.coordinates = coordinates
         self.standarize_input = standarize_input
@@ -83,33 +124,21 @@ class Transformer(BaseModel):
         elif self.loss == "multivariate_learned_gaussian":
             self.n_output += (self.n_output * (self.n_output + 1)) // 2
 
-        self.feature_weight = nn.Parameter(torch.empty(n_input, d_model))
-        self.feature_bias = nn.Parameter(torch.empty(n_input, d_model))
-        self.feature_embedding = nn.Parameter(torch.empty(n_input, d_model))
-        self.cls_token = nn.Parameter(torch.empty(1, 1, d_model))
-        self.input_dropout = nn.Dropout(dropout_rate)
-
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model,
-            nhead=n_heads,
-            dim_feedforward=dim_feedforward,
-            dropout=dropout_rate,
-            activation="gelu",
-            batch_first=True,
-            norm_first=True,
+        self.embedding = nn.Linear(n_input, n_tokens * d_model)
+        self.embedding_activation = nn.PReLU()
+        self.embedding_dropout = nn.Dropout(dropout_rate)
+        self.blocks = nn.ModuleList(
+            [
+                Zhong24TransformerBlock(
+                    d_model=d_model,
+                    n_heads=n_heads,
+                    dim_feedforward=dim_feedforward,
+                    dropout_rate=dropout_rate,
+                )
+                for _ in range(n_layers)
+            ]
         )
-        self.encoder = nn.TransformerEncoder(
-            encoder_layer=encoder_layer,
-            num_layers=n_layers,
-            enable_nested_tensor=False,
-        )
-        self.head = nn.Sequential(
-            nn.LayerNorm(2 * d_model),
-            nn.Linear(2 * d_model, dim_feedforward),
-            nn.GELU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(dim_feedforward, self.n_output),
-        )
+        self.head = nn.Linear(n_tokens * d_model, self.n_output)
         self.reset_parameters()
 
         if training:
@@ -127,8 +156,34 @@ class Transformer(BaseModel):
     @property
     def flax_attributes(self):
         raise NotImplementedError(
-            "Transformer does not currently support Flax/JAX conversion."
+            "Zhong24Transformer does not currently support Flax/JAX conversion."
         )
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(
+            self.parameters(),
+            lr=self.learning_rate,
+            weight_decay=self.weight_decay,
+            betas=self.adam_betas,
+        )
+        scheduler = ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            patience=self.scheduler_patience,
+            factor=self.scheduler_factor,
+            threshold=self.scheduler_threshold,
+            threshold_mode="abs",
+            min_lr=1.0e-6,
+        )
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "monitor": "val_loss",
+                "interval": "epoch",
+                "frequency": 1,
+            },
+        }
 
     def register_stat_buffer(self, parameter_name, parameter, dim):
         if parameter is not None:
@@ -143,11 +198,7 @@ class Transformer(BaseModel):
             )
 
     def reset_parameters(self):
-        nn.init.xavier_uniform_(self.feature_weight)
-        nn.init.zeros_(self.feature_bias)
-        nn.init.normal_(self.feature_embedding, std=0.02)
-        nn.init.normal_(self.cls_token, std=0.02)
-        for module in self.head:
+        for module in self.modules():
             if isinstance(module, nn.Linear):
                 nn.init.xavier_uniform_(module.weight)
                 nn.init.zeros_(module.bias)
@@ -181,14 +232,6 @@ class Transformer(BaseModel):
         else:
             raise NotImplementedError(f"Loss {loss} not implemented")
 
-    def _tokenize(self, x: Tensor) -> Tensor:
-        feature_tokens = x.unsqueeze(-1) * self.feature_weight.unsqueeze(0)
-        feature_tokens = feature_tokens + self.feature_bias.unsqueeze(0)
-        feature_tokens = feature_tokens + self.feature_embedding.unsqueeze(0)
-        cls_token = self.cls_token.expand(x.shape[0], -1, -1)
-        tokens = torch.cat([cls_token, feature_tokens], dim=1)
-        return self.input_dropout(tokens)
-
     def forward(self, x: Tensor):
         squeeze_batch = x.ndim == 1
         if squeeze_batch:
@@ -199,12 +242,12 @@ class Transformer(BaseModel):
             mean_input = self.mean_input.to(x.device)
             x = (x - mean_input) / std_input
 
-        tokens = self._tokenize(x)
-        encoded = self.encoder(tokens)
-        cls_state = encoded[:, 0]
-        pooled_state = encoded[:, 1:].mean(dim=1)
-        summary_state = torch.cat([cls_state, pooled_state], dim=-1)
-        y_pred = self.head(summary_state)
+        tokens = self.embedding(x).reshape(x.shape[0], self.n_tokens, self.d_model)
+        tokens = self.embedding_dropout(self.embedding_activation(tokens))
+        for block in self.blocks:
+            tokens = block(tokens)
+
+        y_pred = self.head(tokens.reshape(tokens.shape[0], -1))
 
         if self.loss == "learned_gaussian":
             y_pred, y_var = torch.chunk(y_pred, 2, dim=-1)
@@ -258,8 +301,6 @@ class Transformer(BaseModel):
             std_output = self.std_output.to(x.device)
             mean_output = self.mean_output.to(x.device)
             y_pred = y_pred * std_output + mean_output
-        if self.loss == "learned_gaussian":
-            return self.loss_fct(y_pred, y, y_var)
-        if self.loss == "multivariate_learned_gaussian":
+        if self.loss in {"learned_gaussian", "multivariate_learned_gaussian"}:
             return self.loss_fct(y_pred, y, y_var)
         return self.loss_fct(y, y_pred)
