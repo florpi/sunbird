@@ -1,4 +1,5 @@
 import numpy as np
+from pathlib import Path
 from scipy.linalg.lapack import dpotrf, dpotri
 
 class AbacusSummitEllipsoid:
@@ -78,7 +79,7 @@ class AbacusSummitEllipsoid:
 
     def summit_cosmo_table(self, params):
         import pandas
-        table_fn = "/global/cfs/cdirs/desicollab/users/epaillas/code/sunbird/sunbird/inference/priors/summit_cosmologies.txt"
+        table_fn = Path(__file__).with_name("summit_cosmologies.txt")
         df = pandas.read_csv(table_fn, delimiter=',')
         df.columns = df.columns.str.strip()
         df.columns = list(df.columns.str.strip('# ').values)
