@@ -5,12 +5,24 @@ from typing import Any, Dict, Optional, Type, Union
 
 import torch
 
-from sunbird.data.transforms_array import ArcsinhTransform, LogTransform
+from sunbird.data.transforms_array import (
+    ArcsinhTransform,
+    ArrayTransformSequence,
+    FiducialSpectrumNormalizeTransform,
+    HighKTaperTransform,
+    LogTransform,
+)
 from sunbird.emulators.models import BaseModel, FCN, Transformer, Zhong24Transformer
 
 logger = logging.getLogger(__name__)
 
-SAFE_GLOBALS = [LogTransform, ArcsinhTransform]
+SAFE_GLOBALS = [
+    LogTransform,
+    ArcsinhTransform,
+    HighKTaperTransform,
+    FiducialSpectrumNormalizeTransform,
+    ArrayTransformSequence,
+]
 MODEL_TYPES = {
     "fcn": FCN,
     "transformer": Transformer,
