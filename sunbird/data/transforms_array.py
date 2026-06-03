@@ -104,6 +104,133 @@ class ArcsinhTransform(BaseTransform):
         else:
             return 1.0 / jnp.sqrt(1.0 + y**2)
 
+
+class HighKTaperTransform(BaseTransform):
+    """Apply a fixed high-k taper across flattened power-spectrum features."""
+
+    def __init__(self, feature_k, k0=0.1, slope=0.75):
+        self.feature_k = np.asarray(feature_k, dtype=float)
+        if self.feature_k.ndim != 1:
+            raise ValueError("feature_k must be a one-dimensional array.")
+        if self.feature_k.size == 0:
+            raise ValueError("feature_k must contain at least one value.")
+        if k0 <= 0:
+            raise ValueError("k0 must be positive.")
+        self.k0 = float(k0)
+        self.slope = float(slope)
+        self.weights = np.where(
+            self.feature_k < self.k0,
+            1.0,
+            (self.feature_k / self.k0) ** (-self.slope),
+        )
+
+    def _check_feature_shape(self, x):
+        if x.shape[-1] != self.weights.size:
+            raise ValueError(
+                "Input last dimension must match feature_k length "
+                f"({x.shape[-1]} != {self.weights.size})."
+            )
+
+    def _numpy_weights(self, x):
+        self._check_feature_shape(x)
+        shape = (1,) * (x.ndim - 1) + (self.weights.size,)
+        return self.weights.astype(x.dtype, copy=False).reshape(shape)
+
+    def _torch_weights(self, x):
+        self._check_feature_shape(x)
+        shape = (1,) * (x.ndim - 1) + (self.weights.size,)
+        return torch.as_tensor(
+            self.weights,
+            dtype=x.dtype,
+            device=x.device,
+        ).reshape(shape)
+
+    def _jax_weights(self, x):
+        self._check_feature_shape(x)
+        shape = (1,) * (x.ndim - 1) + (self.weights.size,)
+        return jnp.asarray(self.weights, dtype=x.dtype).reshape(shape)
+
+    def _weights_like(self, x):
+        if type(x) == torch.Tensor:
+            return self._torch_weights(x)
+        if type(x) == np.ndarray:
+            return self._numpy_weights(x)
+        return self._jax_weights(x)
+
+    def transform(self, x):
+        return x * self._weights_like(x)
+
+    def inverse_transform(self, x):
+        return x / self._weights_like(x)
+
+    def get_jacobian_diagonal(self, y):
+        return self._weights_like(y) * (y * 0 + 1)
+
+
+class FiducialSpectrumNormalizeTransform(BaseTransform):
+    """Normalize flattened spectrum features by a fixed fiducial divisor."""
+
+    def __init__(self, divisor):
+        self.divisor = np.asarray(divisor, dtype=float)
+        if self.divisor.ndim != 1:
+            raise ValueError("divisor must be a one-dimensional array.")
+        if self.divisor.size == 0:
+            raise ValueError("divisor must contain at least one value.")
+        if not np.isfinite(self.divisor).all() or np.any(self.divisor == 0):
+            raise ValueError("divisor must contain finite non-zero values.")
+
+    def _check_feature_shape(self, x):
+        if x.shape[-1] != self.divisor.size:
+            raise ValueError(
+                "Input last dimension must match divisor length "
+                f"({x.shape[-1]} != {self.divisor.size})."
+            )
+
+    def _divisor_like(self, x):
+        self._check_feature_shape(x)
+        shape = (1,) * (x.ndim - 1) + (self.divisor.size,)
+        if type(x) == torch.Tensor:
+            return torch.as_tensor(self.divisor, dtype=x.dtype, device=x.device).reshape(shape)
+        if type(x) == np.ndarray:
+            return self.divisor.astype(x.dtype, copy=False).reshape(shape)
+        return jnp.asarray(self.divisor, dtype=x.dtype).reshape(shape)
+
+    def transform(self, x):
+        return x / self._divisor_like(x)
+
+    def inverse_transform(self, x):
+        return x * self._divisor_like(x)
+
+    def get_jacobian_diagonal(self, y):
+        return (1.0 / self._divisor_like(y)) * (y * 0 + 1)
+
+
+class ArrayTransformSequence(BaseTransform):
+    """Compose array transforms into one checkpointable transform."""
+
+    def __init__(self, transforms):
+        self.transforms = list(transforms)
+        if not self.transforms:
+            raise ValueError("transforms must contain at least one transform.")
+
+    def transform(self, x):
+        for transform in self.transforms:
+            x = transform.transform(x)
+        return x
+
+    def inverse_transform(self, x):
+        for transform in reversed(self.transforms):
+            x = transform.inverse_transform(x)
+        return x
+
+    def get_jacobian_diagonal(self, y):
+        diagonal = y * 0 + 1
+        current = y
+        for transform in self.transforms:
+            diagonal = diagonal * transform.get_jacobian_diagonal(current)
+            current = transform.transform(current)
+        return diagonal
+
 class WeiLiuOutputTransForm(BaseTransform):
     """Class to reconcile output the Minkowski functionals model
     trained with Wei Liu's scripts with those from the ACM repository.
