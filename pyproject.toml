@@ -26,12 +26,10 @@ dependencies = [
     "torch",
     "lightning",
     "pytorch-lightning",
-    "jax",
     "flax",
     "joblib",
     "optuna",
     "deprecation",
-    'cosmoprimo[class,camb,astropy,extras] @ git+https://github.com/cosmodesi/cosmoprimo',
     "optax",
     "wandb",
     "mpi4py",
@@ -39,13 +37,17 @@ dependencies = [
 
 
 [project.optional-dependencies]
+cosmodesi = [ # Dependencies existing in the cosmodesi ecosystem
+    "jax",
+    "cosmoprimo[class,camb,astropy,extras] @ git+https://github.com/cosmodesi/cosmoprimo",
+    "desilike @ git+https://github.com/cosmodesi/desilike",
+]
 inference = [
     "matplotlib",
     "getdist",
     "tabulate",
-    "Py-BOBYQA",
-    "desilike @ git+https://github.com/cosmodesi/desilike",
     "h5py",
+    "Py-BOBYQA",
     "dynesty",
     "emcee",
     "numpyro",
