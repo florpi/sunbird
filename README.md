@@ -17,9 +17,11 @@ Dependencies are listed in `pyproject.toml`, and installed automatically when in
 
 Optional dependencies can be added for the inference routines, with the following command:
 ```bash
-pip install sunbird[inference]
+pip install sunbird[cosmodesi,inference]
 ```
 
+> [!NOTE]
+> The `cosmodesi` dependencies contain dependencies existing on the `cosmodesi` environment at NERSC. When installing `sunbird` outside of NERSC, those dependencies are required.
 
 ## Installation
 
